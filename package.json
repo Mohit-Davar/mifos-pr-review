@@ -1,0 +1,22 @@
+{
+  "name": "pr-review",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@octokit/auth-app": "^8.2.0",
+    "@octokit/rest": "^22.0.1",
+    "@octokit/webhooks-types": "^7.6.1",
+    "dotenv": "^17.2.3",
+    "hono": "^4.11.7"
+  }
+}

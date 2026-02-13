@@ -1,0 +1,40 @@
+name: "Review Owl"
+description: "PR review agent that focuses on security vulnerabilities."
+author: "Mohit Davar"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  GITHUB_TOKEN:
+    description: "The GitHub Token to read diffs and post comments."
+    required: true
+  OPENAI_API_KEY:
+    description: "API Key for the LLM model."
+    required: true
+  MODEL:
+    description: "The LLM model to use (default: gpt-5-nano)."
+    required: false
+    default: "gpt-5-nano"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install Dependencies
+      run: bun install
+      shell: bash
+      working-directory: ${{ github.action_path }}
+
+    - name: Run PR Review
+      run: bun run start
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        OPENAI_API_KEY: ${{ inputs.OPENAI_API_KEY }}
+        MODEL: ${{ inputs.MODEL }}

@@ -1,10 +1,11 @@
 {
   "name": "pr-review",
-  "module": "app/index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --hot src/app/index.ts",
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix && prettier --write .",
     "prepare": "lint-staged"
@@ -19,6 +20,7 @@
     "eslint": "^9.39.2",
     "globals": "^17.3.0",
     "husky": "^9.1.7",
+    "jiti": "^2.6.1",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "typescript-eslint": "^8.54.0"
@@ -27,11 +29,11 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@octokit/auth-app": "^8.2.0",
+    "@actions/core": "^3.0.0",
+    "@actions/github": "^9.0.0",
     "@octokit/rest": "^22.0.1",
     "@octokit/webhooks-types": "^7.6.1",
     "dotenv": "^17.2.3",
-    "hono": "^4.11.7",
     "openai": "^6.18.0",
     "parse-diff": "^0.11.1",
     "zod": "^4.3.6"

@@ -19,12 +19,7 @@ export async function handlePullRequest({
   const parsed = parseGitDiff(diff);
   const filtered = filterDiff(parsed);
 
-  if (!filtered.length) {
-    return {
-      comments: [],
-      message: "No relevant files changed."
-    };
-  }
+  if (!filtered.length) return { comments: [] };
 
   const regexFindings = runSecurityEngine(filtered);
   const llmFindings = await callLLM(filtered, regexFindings);

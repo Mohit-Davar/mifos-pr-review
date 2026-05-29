@@ -1,5 +1,5 @@
 name: "Review Owl"
-description: "PR review agent that focuses on security vulnerabilities."
+description: "A tool that checks for security vulnerabilities in pull requests."
 author: "Mohit Davar"
 branding:
   icon: "shield"
@@ -26,7 +26,7 @@ runs:
         bun-version: latest
 
     - name: Install Dependencies
-      run: bun install
+      run: bun install --ignore-scripts
       shell: bash
       working-directory: ${{ github.action_path }}
 

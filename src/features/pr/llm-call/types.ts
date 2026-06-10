@@ -1,10 +1,10 @@
-export type Severity = "high" | "medium" | "low";
+import type { Severity } from "@src/features/pr/security-engine";
 
 export type Review = {
+  comment: string;
   file: string;
   line: number;
   severity: Severity;
-  comment: string;
 };
 
 export type Reviews = {

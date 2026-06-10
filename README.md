@@ -53,7 +53,6 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          MODEL: "gpt-4o"
 ```
 
 ### 2. Environment Variables / Secrets required
@@ -62,7 +61,6 @@ jobs:
 | :--------------- | :------------------------------------------------------------------------------------------ |
 | `GITHUB_TOKEN`   | Automatically provided by GitHub Actions (ensure it has `pull-requests: write` permission). |
 | `OPENAI_API_KEY` | Your OpenAI API key for LLM analysis. Store this in your repository's **Secrets**.          |
-| `MODEL`          | The OpenAI model to use.                                                         |
 
 ## Development
 

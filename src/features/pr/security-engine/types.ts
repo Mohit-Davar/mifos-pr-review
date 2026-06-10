@@ -1,9 +1,9 @@
-import type { Severity } from "@src/features/pr/llm-call";
+export type Severity = "high" | "medium" | "low";
 
 export interface SecurityRule {
-  id: string;
   description: string;
+  fileExtensions?: string[];
+  id: string;
   pattern: RegExp;
   severity: Severity;
-  fileExtensions?: string[];
 }

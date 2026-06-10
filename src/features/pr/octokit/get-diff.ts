@@ -8,10 +8,10 @@ export async function getPullRequestDiff(
 ) {
   const octokit = getOctokit(token);
   const response = await octokit.rest.pulls.get({
-    owner,
-    repo,
-    pull_number: pullNumber,
     headers: { accept: "application/vnd.github.v3.diff" },
+    owner,
+    pull_number: pullNumber,
+    repo,
   });
   return response.data as unknown as string;
 }

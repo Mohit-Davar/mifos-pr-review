@@ -4,7 +4,7 @@ export type Change = {
 };
 
 export type ParsedFileDiff = {
-  file: string;
   added: Change[];
+  file: string;
   removed: Change[];
 };

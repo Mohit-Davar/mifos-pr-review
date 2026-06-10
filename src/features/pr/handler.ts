@@ -1,33 +1,62 @@
+import { checkDependencies } from "@src/features/pr/cve-detection";
 import { filterDiff, parseGitDiff } from "@src/features/pr/git-diff";
 import { callLLM } from "@src/features/pr/llm-call";
 import { getPullRequestDiff, toComment } from "@src/features/pr/octokit";
 import { runSecurityEngine } from "@src/features/pr/security-engine";
+import { expectError } from "@src/shared/expect-error";
 
 export async function handlePullRequest({
-  token,
+  apiKey,
   owner,
-  repo,
   prNumber,
+  repo,
+  token,
 }: {
-  token: string;
+  apiKey: string;
   owner: string;
-  repo: string;
   prNumber: number;
+  repo: string;
+  token: string;
 }) {
-  const diff = await getPullRequestDiff(token, owner, repo, prNumber);
+  const [diffError, diff] = await expectError(
+    getPullRequestDiff(token, owner, repo, prNumber)
+  );
+  if (diffError) {
+    throw new Error("Failed to get pull request diff.");
+  }
 
-  const parsed = parseGitDiff(diff);
-  const filtered = filterDiff(parsed);
+  const parsedDiff = parseGitDiff(diff);
+  const filteredDiff = filterDiff(parsedDiff);
+  if (filteredDiff.length === 0) {
+    return [];
+  }
 
-  if (!filtered.length) return { comments: [] };
+  const [dependencyError, dependencyFindings] = await expectError(
+    checkDependencies(filteredDiff)
+  );
+  if (dependencyError) {
+    console.error("Failed to check dependencies.");
+  }
 
-  const regexFindings = runSecurityEngine(filtered);
-  const llmFindings = await callLLM(filtered, regexFindings);
+  const resolvedDependencyFindings = dependencyFindings || {
+    reviews: [],
+  };
+  const securityFindings = runSecurityEngine(filteredDiff);
 
-  const comments = [
-    ...regexFindings.reviews.map(toComment),
-    ...llmFindings.reviews.map(toComment),
+  const [llmError, llmFindings] = await expectError(
+    callLLM(filteredDiff, securityFindings, resolvedDependencyFindings, apiKey)
+  );
+  if (llmError) {
+    console.error("Failed to call LLM:", llmError);
+  }
+
+  const resolvedLlmFindings = llmFindings || {
+    reviews: [],
+  };
+
+  return [
+    ...resolvedDependencyFindings.reviews.map(toComment),
+    ...securityFindings.reviews.map(toComment),
+    ...resolvedLlmFindings.reviews.map(toComment),
   ];
-
-  return { comments };
 }

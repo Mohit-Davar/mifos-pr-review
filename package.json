@@ -8,7 +8,8 @@
     "start": "bun src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix && prettier --write .",
-    "prepare": "lint-staged"
+    "prepare": "lint-staged",
+    "format": "prettier --write ."
   },
   "lint-staged": {
     "*.{ts,js}": "eslint --cache --fix",
@@ -18,6 +19,8 @@
     "@eslint/js": "^9.39.2",
     "@types/bun": "latest",
     "eslint": "^9.39.2",
+    "eslint-plugin-perfectionist": "^5.9.0",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
     "globals": "^17.3.0",
     "husky": "^9.1.7",
     "jiti": "^2.6.1",
@@ -34,8 +37,10 @@
     "@octokit/rest": "^22.0.1",
     "@octokit/webhooks-types": "^7.6.1",
     "dotenv": "^17.2.3",
+    "minimatch": "^10.2.5",
     "openai": "^6.18.0",
     "parse-diff": "^0.11.1",
+    "yaml": "^2.9.0",
     "zod": "^4.3.6"
   }
 }

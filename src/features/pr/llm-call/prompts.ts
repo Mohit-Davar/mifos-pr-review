@@ -1,33 +1,117 @@
-export const SYSTEM_PROMPT = `
-You are a security engineer reviewing a pull request.
+import type { ParsedFileDiff } from "@src/features/pr/git-diff";
+import type { DiffChunk } from "@src/features/pr/llm-call";
+import type { Reviews } from "@src/features/pr/llm-call";
 
-Goal:
-- Detect security vulnerabilities missed by regex.
-- Validate pre-detected findings (ignore false positives).
-- Review and report any provided CVE findings for added dependencies.
-- Report new issues.
+// Security review instructions
+export const SYSTEM_PROMPT = `You are a security code reviewer.
 
-Focus on:
-- OWASP Top 10 (SQLi, XSS, IDOR, etc.)
-- Auth/session flaws
-- Crypto misuse
-- Business logic abuse (e.g., payment bypass)
+Tasks:
+- Find security vulnerabilities missed by automated scans.
+- Validate provided findings and ignore false positives.
+- Assess vulnerable dependencies.
+- Report new security issues.
+
+Focus:
+- Injection (SQL, XSS, command, LDAP, template)
+- Auth/Authz (IDOR, privilege escalation, session flaws)
 - Sensitive data exposure
-- Vulnerable third-party dependencies
+- Cryptography misuse
+- Business logic flaws
+- Vulnerable dependencies
+- Unsafe deserialisation
+- SSRF and path traversal
 
-Return ONLY valid JSON:
+Rules:
+- Report only issues in added lines.
+- Use the exact diff line number.
+- Ignore style, quality, and performance issues.
+- Avoid speculation.
+- Return only valid JSON.
 
-
+Schema:
 {
   "reviews": [
     {
       "file": "path/to/file",
-      "line": number,
-      "severity": "high" | "medium" | "low",
-      "comment": "brief vulnerability description"
+      "line": 42,
+      "severity": "high|medium|low",
+      "comment": "Issue and fix"
     }
   ]
 }
 
-If none: { "reviews": [] }
-`;
+If nothing is found:
+{"reviews":[]}`;
+
+// Format a single file diff
+// Output:
+// FILE src/auth/login.ts
+//  10 const user = getUser();
+// +11 const query = `SELECT * FROM users WHERE id=${id}`;
+// -11 const query = db.prepare(...);
+//  12 return user;
+function formatFileDiff(fileDiff: ParsedFileDiff): string {
+  const lines = [
+    ...fileDiff.context.map((line) => ({
+      content: line.content,
+      lineNumber: line.lineNumber,
+      prefix: " ",
+    })),
+    ...fileDiff.added.map((line) => ({
+      content: line.content,
+      lineNumber: line.lineNumber,
+      prefix: "+",
+    })),
+    ...fileDiff.removed.map((line) => ({
+      content: line.content,
+      lineNumber: line.lineNumber,
+      prefix: "-",
+    })),
+  ].sort((a, b) => a.lineNumber - b.lineNumber);
+
+  const body = lines
+    .map((line) => `${line.prefix}${line.lineNumber} ${line.content}`)
+    .join("\n");
+
+  return `FILE ${fileDiff.file}\n${body}`;
+}
+
+// Format existing findings
+// Output:
+// Regex Scan:
+// path/to/file.ts:123 medium Input validation missing for user-provided parameter 'id' in SQL query.
+// path/to/another/file.ts:45 high Unsanitised user input in 'comment' field could lead to XSS.
+function formatFindings(label: string, findings: Reviews): string {
+  if (findings.reviews.length === 0) {
+    return `${label}: none`;
+  }
+  const lines: string[] = [];
+  findings.reviews.forEach((review) => {
+    lines.push(
+      `${review.file}:${review.line} ${review.severity} ${review.comment}`
+    );
+  });
+
+  return `${label}\n${lines.join("\n")}`;
+}
+
+// Build LLM message
+export function buildUserMessage(
+  chunk: DiffChunk,
+  securityFindings: Reviews,
+  cveFindings: Reviews
+): string {
+  const parts: string[] = [];
+
+  if (chunk.totalChunks > 1) {
+    parts.push(`Chunk ${chunk.chunkIndex + 1}/${chunk.totalChunks}`);
+  }
+
+  parts.push(chunk.diffs.map(formatFileDiff).join("\n\n"));
+
+  parts.push(formatFindings("SECURITY_SCAN", securityFindings));
+
+  parts.push(formatFindings("CVE_SCAN", cveFindings));
+
+  return parts.join("\n\n");
+}

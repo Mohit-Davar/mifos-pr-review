@@ -10,37 +10,40 @@ async function run() {
 
   const { context } = github;
   if (context.eventName !== "pull_request") {
-    return core.info("This action only runs on pull request events.");
+    core.notice(
+      `Triggered by '${context.eventName}' event but this action only runs on pull requests.`
+    );
+    return;
   }
 
   const pr = context.payload.pull_request;
   if (!pr) {
-    return core.setFailed("No pull request found in the context.");
+    core.error("Pull request payload was not found.");
+    core.setFailed("No pull request found in the GitHub context.");
+    return;
   }
 
   const { owner, repo } = context.repo;
 
-  const [error, comments] = await expectError(
-    handlePullRequest({
-      apiKey,
-      owner,
-      prNumber: pr.number,
-      repo,
-      token,
-    })
+  const [analysisError, comments] = await expectError(
+    handlePullRequest({ apiKey, owner, prNumber: pr.number, repo, token })
   );
-  if (error) {
-    return core.setFailed(error.message);
+  if (analysisError) {
+    core.error(`Security analysis failed: ${analysisError.message}`);
+    core.setFailed(analysisError.message);
+    return;
   }
-  if (!comments.length) {
-    return core.info("No security issues found.");
+  if (comments.length === 0) {
+    return;
   }
 
   const [postError] = await expectError(
     postReviewComment(token, owner, repo, pr.number, comments)
   );
   if (postError) {
-    return core.setFailed(postError.message);
+    core.error(`Failed to publish review comments: ${postError.message}`);
+    core.setFailed(postError.message);
+    return;
   }
 }
 

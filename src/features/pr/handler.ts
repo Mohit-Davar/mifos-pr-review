@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import { findVulnerabilities } from "@src/features/pr/cve-detection";
+import { checkVulnerabilities } from "@src/features/pr/cve-detection";
 import { parseGitDiff } from "@src/features/pr/git-diff";
 import { callLLM, LLMCallError } from "@src/features/pr/llm-call";
 import { getPullRequestDiff, toComment } from "@src/features/pr/octokit";
@@ -33,7 +33,7 @@ export async function handlePullRequest({
 
   // Check for dependency vulnerabilities
   const [dependencyError, dependencyScanResult] = await expectError(
-    findVulnerabilities(parsedDiff)
+    checkVulnerabilities(parsedDiff)
   );
   if (dependencyError) {
     core.warning("Dependency vulnerability scan failed.");

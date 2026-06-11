@@ -6,9 +6,7 @@ import { getConfig } from "@src/shared";
 
 export function runSecurityEngine(diffs: ParsedFileDiff[]): Reviews {
   const reviews: Review[] = [];
-
   const config = getConfig();
-
   const allRules: SecurityRule[] = [...defaultRules];
 
   if (config.rules) {
@@ -27,12 +25,10 @@ export function runSecurityEngine(diffs: ParsedFileDiff[]): Reviews {
     const fileExtension = fileDiff.file.substring(
       fileDiff.file.lastIndexOf(".")
     );
-
     const applicableRules = allRules.filter((rule) => {
       if (!rule.fileExtensions) {
         return true;
       }
-
       return rule.fileExtensions.includes(fileExtension);
     });
 
@@ -41,7 +37,6 @@ export function runSecurityEngine(diffs: ParsedFileDiff[]): Reviews {
         if (!rule.pattern.test(addedLine.content)) {
           continue;
         }
-
         reviews.push({
           comment: rule.description,
           file: fileDiff.file,

@@ -1,9 +1,10 @@
-import { SYSTEM_PROMPT } from "@src/features/pr/llm-call";
+import * as core from "@actions/core";
+import { SYSTEM_PROMPT } from "@src/features/pr/llm-call/prompts";
 import {
   LLMCallError,
   type Reviews,
   ReviewsSchema,
-} from "@src/features/pr/llm-call";
+} from "@src/features/pr/llm-call/types";
 import { createLLMClient } from "@src/shared/model";
 import { zodTextFormat } from "openai/helpers/zod";
 
@@ -16,7 +17,6 @@ function isRetryableError(error: unknown): boolean {
   if (error instanceof Error && "status" in error) {
     return RETRYABLE_STATUS_CODES.has((error as { status: number }).status);
   }
-
   return false;
 }
 
@@ -47,42 +47,30 @@ export async function callWithRetry(
           format: zodTextFormat(ReviewsSchema, "reviews"),
         },
       });
-
       if (!response.output_parsed) {
-        throw new LLMCallError("LLM returned empty structured output", {
+        throw new LLMCallError("LLM returned empty output", {
           attempts: attempt,
           cause: null,
           retryable: false,
         });
       }
-
       return response.output_parsed;
     } catch (error) {
       lastError = error;
-
       if (!isRetryableError(error) || attempt === MAX_RETRIES) {
-        throw new LLMCallError(
-          `LLM API call failed after ${attempt} attempt(s)`,
-          {
-            attempts: attempt,
-            cause: error,
-            retryable: isRetryableError(error),
-          }
-        );
+        throw new LLMCallError(`LLM call failed after ${attempt} attempt(s)`, {
+          attempts: attempt,
+          cause: error,
+          retryable: isRetryableError(error),
+        });
       }
-
       const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-
-      console.warn(
-        `Attempt ${attempt} failed, retrying in ${delay}ms`,
-        error instanceof Error ? error.message : error
-      );
-
+      core.warning(`Error in LLM call. Retrying in ${delay}ms.`);
       await sleep(delay);
     }
   }
 
-  throw new LLMCallError(`LLM API call failed after ${MAX_RETRIES} attempts`, {
+  throw new LLMCallError(`LLM call failed after ${MAX_RETRIES} attempts`, {
     attempts: MAX_RETRIES,
     cause: lastError,
     retryable: false,

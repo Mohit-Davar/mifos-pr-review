@@ -18,45 +18,45 @@ export async function handlePullRequest({
   repo: string;
   token: string;
 }) {
-  const [diffError, diff] = await expectError(
+  const [diffError, rawDiff] = await expectError(
     getPullRequestDiff(token, owner, repo, prNumber)
   );
   if (diffError) {
     throw new Error("Failed to get pull request diff.");
   }
 
-  const parsedDiff = parseGitDiff(diff);
+  const parsedDiff = parseGitDiff(rawDiff);
+
   const filteredDiff = filterDiff(parsedDiff);
   if (filteredDiff.length === 0) {
     return [];
   }
 
-  const [dependencyError, dependencyFindings] = await expectError(
+  // dependency vulnerability results
+  const [dependencyError, dependencyScanResult] = await expectError(
     checkDependencies(filteredDiff)
   );
   if (dependencyError) {
-    console.error("Failed to check dependencies.");
+    console.error("Failed to scan dependencies:", dependencyError);
   }
+  const dependencyScan = dependencyScanResult ?? { reviews: [] };
 
-  const resolvedDependencyFindings = dependencyFindings || {
-    reviews: [],
-  };
-  const securityFindings = runSecurityEngine(filteredDiff);
+  // Regex based security scan
+  const securityScan = runSecurityEngine(filteredDiff);
 
-  const [llmError, llmFindings] = await expectError(
-    callLLM(filteredDiff, securityFindings, resolvedDependencyFindings, apiKey)
+  // LLM review
+  const [LLMError, LLMReviewResult] = await expectError(
+    callLLM(filteredDiff, securityScan, dependencyScan, apiKey)
   );
-  if (llmError) {
-    console.error("Failed to call LLM:", llmError);
+  if (LLMError) {
+    console.error("Failed to call LLM:", LLMError);
   }
+  const LLMReview = LLMReviewResult ?? { reviews: [] };
 
-  const resolvedLlmFindings = llmFindings || {
-    reviews: [],
-  };
-
+  // final PR comments
   return [
-    ...resolvedDependencyFindings.reviews.map(toComment),
-    ...securityFindings.reviews.map(toComment),
-    ...resolvedLlmFindings.reviews.map(toComment),
+    ...dependencyScan.reviews.map(toComment),
+    ...securityScan.reviews.map(toComment),
+    ...LLMReview.reviews.map(toComment),
   ];
 }

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "start": "bun src/index.ts",
+    "build": "bun build src/index.ts",
     "lint": "eslint .",
     "fix": "eslint . --fix && prettier --write .",
     "prepare": "husky"

@@ -5,21 +5,25 @@ export async function postReviewComment(
   owner: string,
   repo: string,
   pullNumber: number,
-  comments: { body: string; line: number; path: string }[]
+  comments: { body: string; line: number; path: string }[],
+  summary: string
 ) {
-  if (comments.length === 0) return;
-
   const octokit = getOctokit(token);
 
-  await octokit.rest.pulls.createReview({
-    comments: comments.map((c) => ({
-      body: c.body,
-      line: c.line,
-      path: c.path,
-    })),
-    event: "COMMENT",
+  const payload = {
+    body: summary,
+    event: "COMMENT" as const,
     owner,
     pull_number: pullNumber,
     repo,
-  });
+    ...(comments.length > 0 && {
+      comments: comments.map((c) => ({
+        body: c.body,
+        line: c.line,
+        path: c.path,
+      })),
+    }),
+  };
+
+  await octokit.rest.pulls.createReview(payload);
 }

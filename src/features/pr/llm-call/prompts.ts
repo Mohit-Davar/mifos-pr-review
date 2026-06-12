@@ -1,6 +1,5 @@
 import type { ParsedFileDiff } from "@src/features/pr/git-diff";
-import type { DiffChunk } from "@src/features/pr/llm-call";
-import type { Reviews } from "@src/features/pr/llm-call";
+import type { DiffChunk, Reviews } from "@src/features/pr/llm-call";
 
 // Security review instructions
 export const SYSTEM_PROMPT = `You are a security code reviewer.
@@ -51,25 +50,7 @@ If nothing is found:
 // -11 const query = db.prepare(...);
 //  12 return user;
 function formatFileDiff(fileDiff: ParsedFileDiff): string {
-  const lines = [
-    ...fileDiff.context.map((line) => ({
-      content: line.content,
-      lineNumber: line.lineNumber,
-      prefix: " ",
-    })),
-    ...fileDiff.added.map((line) => ({
-      content: line.content,
-      lineNumber: line.lineNumber,
-      prefix: "+",
-    })),
-    ...fileDiff.removed.map((line) => ({
-      content: line.content,
-      lineNumber: line.lineNumber,
-      prefix: "-",
-    })),
-  ].sort((a, b) => a.lineNumber - b.lineNumber);
-
-  const body = lines
+  const body = fileDiff.changes
     .map((line) => `${line.prefix}${line.lineNumber} ${line.content}`)
     .join("\n");
 

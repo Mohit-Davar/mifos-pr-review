@@ -1,12 +1,12 @@
 import type { ParsedFileDiff } from "@src/features/pr/git-diff";
-import { callWithRetry } from "@src/features/pr/llm-call/api";
 import {
+  buildUserMessage,
+  callWithRetry,
   chunkDiffs,
   createFindingsTable,
   getRelevantChunkFindings,
-} from "@src/features/pr/llm-call/chunking";
-import { buildUserMessage } from "@src/features/pr/llm-call/prompts";
-import type { Reviews } from "@src/features/pr/llm-call/types";
+  type Reviews,
+} from "@src/features/pr/llm-call";
 import { createLLMClient, getConfig } from "@src/shared";
 import pLimit from "p-limit";
 

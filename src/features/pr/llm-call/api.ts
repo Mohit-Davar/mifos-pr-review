@@ -1,11 +1,11 @@
 import * as core from "@actions/core";
-import { SYSTEM_PROMPT } from "@src/features/pr/llm-call/prompts";
 import {
   LLMCallError,
   type Reviews,
   ReviewsSchema,
-} from "@src/features/pr/llm-call/types";
-import { createLLMClient } from "@src/shared/model";
+  SYSTEM_PROMPT,
+} from "@src/features/pr/llm-call";
+import { createLLMClient } from "@src/shared";
 import { zodTextFormat } from "openai/helpers/zod";
 
 const MAX_RETRIES = 3;

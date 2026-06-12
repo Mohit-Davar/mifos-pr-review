@@ -1,9 +1,5 @@
 import type { ParsedFileDiff } from "@src/features/pr/git-diff";
-import type {
-  DiffChunk,
-  Review,
-  Reviews,
-} from "@src/features/pr/llm-call/types";
+import type { DiffChunk, Review, Reviews } from "@src/features/pr/llm-call";
 import { encoding_for_model } from "tiktoken";
 
 const MAX_TOKENS_PER_CHUNK = 10000;
@@ -12,10 +8,10 @@ const MAX_TOKENS_PER_CHUNK = 10000;
 export function countFileTokens(file: ParsedFileDiff): number {
   // Build the same formatted text we'll eventually send to the LLM
   const lines = [
-    `### ${file.file}`,
-    ...file.context.map((line) => ` ${line.lineNumber}: ${line.content}`),
-    ...file.added.map((line) => `+${line.lineNumber}: ${line.content}`),
-    ...file.removed.map((line) => `-${line.lineNumber}: ${line.content}`),
+    `FILE ${file.file}`,
+    ...file.changes.map(
+      (line) => `${line.prefix}${line.lineNumber} ${line.content}`
+    ),
   ];
 
   const encoder = encoding_for_model("gpt-5-mini");

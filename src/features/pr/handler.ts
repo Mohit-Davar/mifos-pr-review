@@ -2,9 +2,13 @@ import * as core from "@actions/core";
 import { checkVulnerabilities } from "@src/features/pr/cve-detection";
 import { parseGitDiff } from "@src/features/pr/git-diff";
 import { callLLM, LLMCallError } from "@src/features/pr/llm-call";
-import { getPullRequestDiff, toComment } from "@src/features/pr/octokit";
+import {
+  generateSummary,
+  getPullRequestDiff,
+  toComment,
+} from "@src/features/pr/octokit";
 import { runSecurityEngine } from "@src/features/pr/security-engine";
-import { expectError } from "@src/shared/expect-error";
+import { expectError } from "@src/shared";
 
 export async function handlePullRequest({
   apiKey,
@@ -28,7 +32,7 @@ export async function handlePullRequest({
 
   const parsedDiff = parseGitDiff(rawDiff);
   if (parsedDiff.length === 0) {
-    return [];
+    return null;
   }
 
   // Check for dependency vulnerabilities
@@ -64,9 +68,14 @@ export async function handlePullRequest({
     }
   }
   const llmReview = llmReviewResult ?? { reviews: [] };
-  return [
-    ...dependencyScan.reviews.map(toComment),
-    ...securityScan.reviews.map(toComment),
-    ...llmReview.reviews.map(toComment),
+  const allReviews = [
+    ...dependencyScan.reviews,
+    ...securityScan.reviews,
+    ...llmReview.reviews,
   ];
+
+  return {
+    comments: allReviews.map(toComment),
+    summary: generateSummary(allReviews),
+  };
 }

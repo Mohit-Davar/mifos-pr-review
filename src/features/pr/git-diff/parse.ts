@@ -1,4 +1,8 @@
-import type { Change, ParsedFileDiff } from "@src/features/pr/git-diff";
+import type {
+  Change,
+  DiffLine,
+  ParsedFileDiff,
+} from "@src/features/pr/git-diff";
 import { getConfig } from "@src/shared";
 import { minimatch } from "minimatch";
 import parseDiff from "parse-diff";
@@ -58,6 +62,7 @@ export function parseGitDiff(diff: string): ParsedFileDiff[] {
       const added: Change[] = [];
       const removed: Change[] = [];
       const context: Change[] = [];
+      const changesList: DiffLine[] = [];
 
       for (const chunk of file.chunks) {
         for (const change of chunk.changes) {
@@ -65,12 +70,19 @@ export function parseGitDiff(diff: string): ParsedFileDiff[] {
           switch (change.type) {
             case "add":
               added.push({ content, lineNumber: change.ln });
+              changesList.push({ content, lineNumber: change.ln, prefix: "+" });
               break;
             case "del":
               removed.push({ content, lineNumber: change.ln });
+              changesList.push({ content, lineNumber: change.ln, prefix: "-" });
               break;
             case "normal":
               context.push({ content, lineNumber: change.ln1 });
+              changesList.push({
+                content,
+                lineNumber: change.ln2,
+                prefix: " ",
+              });
               break;
           }
         }
@@ -78,6 +90,7 @@ export function parseGitDiff(diff: string): ParsedFileDiff[] {
 
       return {
         added,
+        changes: changesList,
         context,
         file: fileName,
         removed,

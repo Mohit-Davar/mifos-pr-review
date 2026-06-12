@@ -1,7 +1,9 @@
 import type { ParsedFileDiff } from "@src/features/pr/git-diff";
 import type { Review, Reviews } from "@src/features/pr/llm-call";
-import type { SecurityRule } from "@src/features/pr/security-engine";
-import { rules as defaultRules } from "@src/features/pr/security-engine";
+import {
+  rules as defaultRules,
+  type SecurityRule,
+} from "@src/features/pr/security-engine";
 import { getConfig } from "@src/shared";
 
 export function runSecurityEngine(diffs: ParsedFileDiff[]): Reviews {

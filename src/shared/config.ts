@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { Config } from "@src/shared/types";
+import type { Config } from "@src/shared";
 import yaml from "yaml";
 
 let cachedConfig: Config | null = null;

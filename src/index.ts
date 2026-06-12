@@ -25,7 +25,7 @@ async function run() {
 
   const { owner, repo } = context.repo;
 
-  const [analysisError, comments] = await expectError(
+  const [analysisError, result] = await expectError(
     handlePullRequest({ apiKey, owner, prNumber: pr.number, repo, token })
   );
   if (analysisError) {
@@ -33,12 +33,19 @@ async function run() {
     core.setFailed(analysisError.message);
     return;
   }
-  if (comments.length === 0) {
+  if (!result || (result.comments.length === 0 && !result.summary)) {
     return;
   }
 
   const [postError] = await expectError(
-    postReviewComment(token, owner, repo, pr.number, comments)
+    postReviewComment(
+      token,
+      owner,
+      repo,
+      pr.number,
+      result.comments,
+      result.summary
+    )
   );
   if (postError) {
     core.error(`Failed to publish review comments: ${postError.message}`);

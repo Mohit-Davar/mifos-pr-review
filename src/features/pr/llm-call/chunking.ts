@@ -1,6 +1,6 @@
 import type { ParsedFileDiff } from "@src/features/pr/git-diff";
 import type { DiffChunk, Review, Reviews } from "@src/features/pr/llm-call";
-import { encoding_for_model } from "tiktoken";
+import { encodingForModel } from "js-tiktoken";
 
 const MAX_TOKENS_PER_CHUNK = 10000;
 
@@ -13,13 +13,8 @@ export function countFileTokens(file: ParsedFileDiff): number {
       (line) => `${line.prefix}${line.lineNumber} ${line.content}`
     ),
   ];
-
-  const encoder = encoding_for_model("gpt-5-mini");
-  try {
-    return encoder.encode(lines.join("\n")).length;
-  } finally {
-    encoder.free();
-  }
+  const encoder = encodingForModel("gpt-5-nano");
+  return encoder.encode(lines.join("\n")).length;
 }
 
 export function chunkDiffs(diffs: ParsedFileDiff[]): DiffChunk[] {

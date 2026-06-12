@@ -5,8 +5,8 @@ import { postReviewComment } from "@src/features/pr/octokit";
 import { expectError } from "@src/shared";
 
 async function run() {
-  const token = core.getInput("GITHUB_TOKEN");
-  const apiKey = core.getInput("OPENAI_API_KEY");
+  const token = core.getInput("github-token");
+  const apiKey = core.getInput("openai-api-key");
 
   const { context } = github;
   if (context.eventName !== "pull_request") {

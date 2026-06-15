@@ -40,9 +40,9 @@ export function runSecurityEngine(diffs: ParsedFileDiff[]): Reviews {
           continue;
         }
         reviews.push({
-          comment: rule.description,
           file: fileDiff.file,
           line: addedLine.lineNumber,
+          problem: rule.description,
           severity: rule.severity,
         });
       }

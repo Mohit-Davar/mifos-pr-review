@@ -49,7 +49,7 @@ export async function handlePullRequest({
   const securityScan = runSecurityEngine(parsedDiff);
 
   // LLM Review
-  const [llmError, llmReviewResult] = await expectError(
+  const [llmError, LLMReviews] = await expectError(
     callLLM(parsedDiff, securityScan, dependencyScan, apiKey)
   );
   if (llmError) {
@@ -67,15 +67,10 @@ export async function handlePullRequest({
       core.debug(String(llmError));
     }
   }
-  const llmReview = llmReviewResult ?? { reviews: [] };
-  const allReviews = [
-    ...dependencyScan.reviews,
-    ...securityScan.reviews,
-    ...llmReview.reviews,
-  ];
-
-  return {
-    comments: allReviews.map(toComment),
-    summary: generateSummary(allReviews),
-  };
+  if (LLMReviews) {
+    return {
+      comments: LLMReviews.reviews.map(toComment),
+      summary: generateSummary(LLMReviews.reviews),
+    };
+  }
 }

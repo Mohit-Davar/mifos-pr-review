@@ -1,73 +1,183 @@
-# PR Reviewer
+# Review Owl
 
-A GitHub Action that performs a comprehensive security review of Pull Requests. Built with **TypeScript** and powered by **OpenAI** and **Octokit**, this tool acts as your first line of defense, automatically flagging potential vulnerabilities directly in your PR comments.
+A GitHub Action that reviews Pull Requests for **security issues** and **vulnerabilities**. This GitHub Action runs on every pull request in your project and automatically flags potential security problems and posts findings directly on PRs. It is easily configurable for your project using a simple `prowl.yml` file.
+
+---
+
+## Table of Contents
+
+1. [Features](#features)
+2. [How It Works](#how-it-works)
+3. [Setup & Usage](#setup--usage)
+   - [GitHub Actions Workflow](#1-github-actions-workflow)
+   - [Inputs & Secrets](#2-inputs--secrets)
+4. [Configuration (`prowl.yml`)](#configuration-prowlyml)
+5. [Local Development & Contribution](#local-development--contribution)
+   - [Prerequisites](#prerequisites)
+   - [Available Scripts](#available-scripts)
+   - [Code Quality & Linting](#code-quality--linting)
+   - [Building for Release](#building-for-release)
+
+---
 
 ## Features
 
-- **Dual-Layer Analysis**: Combines lightning-fast static regex scanning with deep-context LLM analysis.
-- **Context-Aware Reviews**: The AI understands the context of the diff and reviews it just like a human Security Engineer.
-- **Targeted Feedback**: Posts inline comments exactly where the vulnerable code was introduced.
-- **Smart Filtering**: Automatically ignores lockfiles, binaries, and system files to save token costs and reduce noise.
+- **Three-Stage Analysis**:
+  1. **Dependency Scanning**: Checks changed dependencies against the [OSV database](https://osv.dev/) for known vulnerabilities.
+  2. **Static Regex Scan**: Detects exposed secrets, keys, and unsafe function usage.
+  3. **LLM-based Review**: Uses LLM model to review full diff context, validate findings, and detect deeper issues.
+- **Inline PR Comments**: Adds findings directly to relevant lines in the pull request.
+- **Noise Reduction**: Skips lockfiles, binaries, and generated assets to reduce irrelevant results.
+- **Configurable Behavior**: You can easily adjust this tool for your project using `prowl.yml`, like choosing which files to scan, which ones to ignore, adding your own security rules, and selecting the LLM model.
 
-## Demo
+---
 
-![PR Comment Example](./docs/demo.png)
+## How It Works
 
-[Complete PR Review](https://github.com/Mohit-Davar/mifos-test/pull/6)
+1. **Trigger & Fetch**: Runs on `pull_request` events and fetches the raw git diff from the GitHub API using `@actions/github` and `@octokit/rest`.
+2. **Parsing & Filtering ([parse.ts](src/features/pr/git-diff/parse.ts))**: The diff is structured using `parse-diff`. It ignores common system/binary extensions (like images, PDFs, maps) and lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `bun.lockb`, etc.).
+3. **Dependency Scanning ([check-vulnerabilities.ts](src/features/pr/cve-detection/check-vulnerabilities.ts))**: Extracts changed packages from dependency files and queries **Open Source Vulnerabilities (OSV)** for known issues.
+4. **Static Analysis ([engine.ts](src/features/pr/security-engine/engine.ts))**: Runs regex checks for secrets, API keys, and unsafe patterns like `eval()`.
+5. **LLM Review ([review.ts](src/features/pr/llm-call/review.ts))**: Sends diff data, CVEs, and static findings to the model for validation and deeper analysis.
+6. **Commenting ([octokit](src/features/pr/octokit))**: Groups results and posts them as PR comments via Octokit.
 
-## Architecture
-
-The application is structured to decouple the fetching, parsing, and analysis phases:
-
-1. **Trigger & Fetch**: Triggered on `pull_request` events. Uses `@actions/github` and `@octokit/rest` to securely fetch the raw git diff of the PR.
-2. **Parsing & Filtering (`src/features/pr/git-diff`)**: Parses the raw diff string into structured objects (`parse-diff`). Filters out non-source files (e.g., `.lock`, images, `.DS_Store`).
-3. **Static Analysis (`src/features/pr/security-engine`)**: A first-pass regex engine that scans for obvious highly critical issues:
-   - Hardcoded Secrets (AWS keys, Private Keys, Generic API tokens)
-   - Dangerous functions (e.g., `eval()`, `exec()`)
-4. **LLM Analysis (`src/features/pr/llm-call`)**: Passes the structured diff and the static findings to a LLM model. The LLM is prompted to act as a strict Security Engineer, validating the regex findings (to reduce false positives) and finding complex logic flaws (OWASP top 10).
-5. **Commenting (`src/features/pr/octokit`)**: Aggregates all valid findings and posts them back to GitHub as inline review comments.
+---
 
 ## Setup & Usage
 
-### 1. GitHub Workflow
+### 1. GitHub Actions Workflow
 
-Create a new workflow file in your repository (e.g., `.github/workflows/security-review.yml`):
+Create a file named `.github/workflows/security-review.yml` in your repository:
 
 ```yaml
 name: AI Security Review
+
 on:
   pull_request:
     types: [opened, synchronize]
 
 jobs:
   review:
+    name: Run Security Review
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
+      pull-requests: write # Required to post comments on the PR
 
-      - name: Run PR Reviewer
-        uses: your-username/pr-review@main # Replace with the actual repository
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Security Review
+        uses: Org/Repo@tag
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 ```
 
-### 2. Environment Variables / Secrets required
+### 2. Inputs & Secrets
 
-| Secret/Input     | Description                                                                                 |
-| :--------------- | :------------------------------------------------------------------------------------------ |
-| `GITHUB_TOKEN`   | Automatically provided by GitHub Actions (ensure it has `pull-requests: write` permission). |
-| `OPENAI_API_KEY` | Your OpenAI API key for LLM analysis. Store this in your repository's **Secrets**.          |
+| Input            | Description                                                | Required | Default / Note                        |
+| :--------------- | :--------------------------------------------------------- | :------: | :------------------------------------ |
+| `github-token`   | GitHub token used to fetch the PR diff and write comments. | **Yes**  | Usually `${{ secrets.GITHUB_TOKEN }}` |
+| `openai-api-key` | API key for LLM-based analysis                             | **Yes**  | Save in repository **Secrets**        |
 
-## Development
+---
 
-This project uses **Bun** for fast execution and package management.
+## Configuration (`prowl.yml`)
+
+You can control behavior using a prowl.yml file:
+
+```yaml
+# Specify the LLM Model
+model: "gpt-5-mini"
+
+# Explicitly exclude files or directories using glob patterns
+ignore:
+  - "**/tests/**"
+  - "docs/**"
+  - "*.test.js"
+
+# Explicitly specify files to scan (takes precedence if defined)
+filesToScan:
+  - "src/**/*.ts"
+  - "lib/**/*.js"
+
+# Define custom regex rules for the static scanning engine
+rules:
+  - id: "slack-webhook"
+    description: "Slack webhook URL detected. Avoid committing tokens."
+    pattern: "https://hooks\\.slack\\.com/services/T[A-Z0-9_]+/B[A-Z0-9_]+/[A-Za-z0-9_]+"
+    severity: "high"
+    fileExtensions:
+      - ".ts"
+      - ".js"
+      - ".json"
+```
+
+### Configuration Options Reference
+
+- **`model`**: LLM model used for review.
+- **`ignore`**: Appended to the default ignored file patterns.
+- **`filesToScan`**: If defined, only files matching these globs will be reviewed.
+- **`rules`**: Custom regex rules. Each rule requires:
+  - `id`: A unique string identifier.
+  - `description`: The feedback message posted to the PR if triggered.
+  - `pattern`: A RegExp string pattern to match.
+  - `severity`: `"high"`, `"medium"`, or `"low"`.
+  - `fileExtensions` (optional): Limits the rule to specific extensions.
+
+---
+
+## Local Development & Contribution
+
+We welcome contributions! Please follow the steps below to set up your local development environment.
+
+### Prerequisites
+
+Uses [Bun](https://bun.sh/).
+
+1. Install Bun:
+   ```bash
+   curl -fsSL https://bun.sh/install | bash  # macOS/Linux
+   # For Windows, check: https://bun.sh/docs/installation
+   ```
+2. Clone and install:
+   ```bash
+   git clone <Repo_URL>
+   cd <Repo_Name>
+   bun install
+   ```
+
+### Available Scripts
+
+- **Development Mode**:
+  ```bash
+  bun run dev
+  ```
+- **Run Once**:
+  ```bash
+  bun run start
+  ```
+- **Lint Code**:
+  ```bash
+  bun run lint
+  ```
+- **Format & Fix**:
+  ```bash
+  bun run fix
+  ```
+
+### Code Quality & Linting
+
+Uses ESLint and Prettier. Run `bun run fix` before committing. Checks run via `husky` and `lint-staged`.
+
+### Build for Release
+
+Before submitting a Pull Request, ensure that the compiled distribution code is up to date:
 
 ```bash
-bun install
-
-bun run start
+bun run build
 ```
+
+This compiles `src/index.ts` to `dist/index.js` targeting Node.js, which is the entry point used by the GitHub Action environment. Ensure the changes to `dist/` are staged and committed.

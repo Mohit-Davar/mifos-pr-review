@@ -29264,9 +29264,9 @@ async function checkVulnerabilities(diffs) {
       continue;
     }
     reviews.push({
-      comment: `Added dependency \`${item.dep.package.name}@${item.dep.version}\` has known vulnerabilities: ${vulnerabilities.join(", ")}.`,
       file: item.file,
       line: item.line,
+      problem: `Added dependency \`${item.dep.package.name}@${item.dep.version}\` has known vulnerabilities: ${vulnerabilities.join(", ")}.`,
       severity: "high"
     });
   }
@@ -55974,30 +55974,52 @@ function getRelevantChunkFindings(chunk, findingsIndex) {
   return { reviews };
 }
 // src/features/pr/llm-call/prompts.ts
-var SYSTEM_PROMPT = `You are a security code reviewer.
+var SYSTEM_PROMPT = `
+You are an expert Application Security reviewer performing a pull request security review.
 
-Tasks:
-- Find security vulnerabilities missed by automated scans.
-- Validate provided findings and ignore false positives.
-- Assess vulnerable dependencies.
-- Report new security issues.
+Your goals:
+1. Find real security vulnerabilities introduced in the added code.
+2. Validate findings from automated security scanners.
+3. Ignore false positives.
+4. Identify vulnerable dependencies when evidence exists.
 
 Focus:
-- Injection (SQL, XSS, command, LDAP, template)
-- Auth/Authz (IDOR, privilege escalation, session flaws)
+- SQL Injection
+- Command Injection
+- XSS
+- SSRF
+- Path Traversal
+- LDAP Injection
+- Template Injection
+- Unsafe Deserialization
+- Authentication flaws
+- Authorization flaws (IDOR, privilege escalation)
+- Session management issues
 - Sensitive data exposure
-- Cryptography misuse
-- Business logic flaws
-- Vulnerable dependencies
-- Unsafe deserialisation
-- SSRF and path traversal
+- Cryptographic misuse
+- Business logic vulnerabilities
+- Dependency vulnerabilities
 
 Rules:
-- Report only issues in added lines.
-- Use the exact diff line number.
-- Ignore style, quality, and performance issues.
-- Avoid speculation.
-- Return only valid JSON.
+- Use the exact added diff line number.
+- Do not speculate.
+- Do not assume external context.
+- If exploitation cannot be reasonably inferred from the diff, do not report it.
+- Prefer false negatives over false positives.
+- Only report findings with clear evidence.
+
+Severity guidelines:
+- high: Exploitable vulnerability that may lead to unauthorised access, remote code execution, data exposure, privilege escalation, authentication bypass, or major security compromise.
+- medium: Security weakness with realistic impact but requiring additional conditions or limited attacker control.
+- low: Defense-in-depth issue or security weakness with limited impact.
+
+For every finding:
+- Explain the vulnerability.
+- Explain why it is risky.
+- Provide a concrete remediation.
+- Provide a prompt to another AI to fix this vulnerability.
+
+Return ONLY valid JSON.
 
 Schema:
 {
@@ -56006,13 +56028,17 @@ Schema:
       "file": "path/to/file",
       "line": 42,
       "severity": "high|medium|low",
-      "comment": "Issue and fix"
+      "problem": "Description of the vulnerability and why it is risky",
+      "solution": "Concrete remediation steps",
+      "prompt": "Give a prompt to another AI to fix this vulnerability"
     }
   ]
 }
 
-If nothing is found:
-{"reviews":[]}`;
+If no valid security findings exist:
+
+{"reviews":[]}
+`;
 function formatFileDiff(fileDiff) {
   const body = fileDiff.changes.map((line) => `${line.prefix}${line.lineNumber} ${line.content}`).join(`
 `);
@@ -56025,7 +56051,7 @@ function formatFindings(label, findings) {
   }
   const lines = [];
   findings.reviews.forEach((review) => {
-    lines.push(`${review.file}:${review.line} ${review.severity} ${review.comment}`);
+    lines.push(`${review.file}:${review.line} ${review.severity} ${review.problem}`);
   });
   return `${label}
 ${lines.join(`
@@ -56221,7 +56247,7 @@ async function callLLM(diffs, securityFindings, cveFindings, apiKey) {
   })));
   const seen = new Set;
   const reviews = results.flatMap((result) => result.reviews).filter((review) => {
-    const key = `${review.file}:${review.line}:${review.comment}`;
+    const key = `${review.file}:${review.line}:${review.problem}`;
     if (seen.has(key)) {
       return false;
     }
@@ -56233,10 +56259,12 @@ async function callLLM(diffs, securityFindings, cveFindings, apiKey) {
 // src/features/pr/llm-call/types.ts
 var SeveritySchema = exports_external.enum(["high", "medium", "low"]);
 var ReviewSchema = exports_external.object({
-  comment: exports_external.string(),
   file: exports_external.string(),
   line: exports_external.number(),
-  severity: SeveritySchema
+  problem: exports_external.string(),
+  prompt: exports_external.string().optional(),
+  severity: SeveritySchema,
+  solution: exports_external.string().optional()
 });
 var ReviewsSchema = exports_external.object({
   reviews: exports_external.array(ReviewSchema)
@@ -56285,86 +56313,115 @@ async function postReviewComment(token, owner, repo, pullNumber, comments, summa
   await octokit.rest.pulls.createReview(payload);
 }
 // src/features/pr/octokit/summary.ts
-var BADGES = {
-  clean: "![Clean](https://img.shields.io/badge/Security-Clean-2ea44f?style=for-the-badge)",
-  high: "![High](https://img.shields.io/badge/Severity-High-d73a4a?style=flat-square)",
-  issues: "![Issues Found](https://img.shields.io/badge/Security-Issues_Found-d73a4a?style=for-the-badge)",
-  low: "![Low](https://img.shields.io/badge/Severity-Low-0366d6?style=flat-square)",
-  medium: "![Medium](https://img.shields.io/badge/Severity-Medium-fb8532?style=flat-square)"
+var SEV_COLOR = {
+  high: "B60205",
+  low: "0075CA",
+  medium: "E4A11B"
 };
+var SEV_LABEL = {
+  high: "High",
+  low: "Low",
+  medium: "Medium"
+};
+function severityBadge(sev) {
+  return `![${SEV_LABEL[sev]}](https://img.shields.io/badge/severity-${SEV_LABEL[sev].toLowerCase()}-${SEV_COLOR[sev]}?style=flat-square&labelColor=1a1a1a)`;
+}
+var STATUS_CLEAN = "![Clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square&labelColor=1a1a1a)";
+var STATUS_ISSUES = "![Issues Found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square&labelColor=1a1a1a)";
 var severityWeight = {
   high: 3,
   low: 1,
   medium: 2
 };
 function generateSummary(reviews) {
-  const highCount = reviews.filter((review2) => review2.severity === "high").length;
-  const mediumCount = reviews.filter((review2) => review2.severity === "medium").length;
-  const lowCount = reviews.filter((review2) => review2.severity === "low").length;
   const total = reviews.length;
-  let body = `## \uD83D\uDEE1️ Security Review Summary
-
-`;
+  const counts = { high: 0, low: 0, medium: 0 };
+  for (const r of reviews)
+    counts[r.severity]++;
+  const hr = "---";
   if (total === 0) {
-    body += `${BADGES.clean}
-
-`;
-    body += `> No security issues were detected in the analyzed changes.
-`;
-    return body;
+    return [
+      "## Security Review",
+      "",
+      STATUS_CLEAN,
+      "",
+      hr,
+      "",
+      "> No security issues were detected in the analyzed changes.",
+      ""
+    ].join(`
+`);
   }
-  body += `${BADGES.issues}
-
-`;
-  body += `> The security review identified **${total}** potential security ` + `finding${total === 1 ? "" : "s"}. Findings are sorted by severity and ` + `should be reviewed before merging.
-
-`;
-  body += `### Summary
-
-`;
-  body += `| Severity | Count |
-`;
-  body += `| :--- | ---: |
-`;
-  if (highCount > 0) {
-    body += `| ${BADGES.high} | **${highCount}** |
-`;
-  }
-  if (mediumCount > 0) {
-    body += `| ${BADGES.medium} | **${mediumCount}** |
-`;
-  }
-  if (lowCount > 0) {
-    body += `| ${BADGES.low} | **${lowCount}** |
-`;
-  }
-  body += `
-`;
-  body += `### Detailed Findings
-
-`;
-  body += `| Severity | File | Line | Issue |
-`;
-  body += `| :--- | :--- | ---: | :--- |
-`;
+  const severities = ["high", "medium", "low"];
+  const summaryRows = severities.filter((s) => counts[s] > 0).map((s) => `| ${severityBadge(s)} | **${counts[s]}** |`);
   const sortedReviews = [...reviews].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
-  for (const review2 of sortedReviews) {
-    const badge = BADGES[review2.severity];
-    const fileRef = `\`${review2.file.replace(/\|/g, "\\|")}\``;
-    const safeComment = review2.comment.replace(/\n/g, " ").replace(/\|/g, "\\|").trim();
-    body += `| ${badge} | ${fileRef} | ${review2.line} | ${safeComment} |
-`;
-  }
-  return body;
+  const findingRows = sortedReviews.map((r) => {
+    const file2 = `\`${r.file.replace(/\|/g, "\\|")}\``;
+    const issue3 = r.problem.replace(/\n/g, " ").replace(/\|/g, "\\|").trim();
+    return `| ${severityBadge(r.severity)} | ${file2} | \`${r.line}\` | ${issue3} |`;
+  });
+  return [
+    "## Security Review",
+    "",
+    STATUS_ISSUES,
+    "",
+    hr,
+    "",
+    `> **${total} finding${total === 1 ? "" : "s"}** identified. ` + "Resolve all high-severity issues before merging.",
+    "",
+    "### Summary",
+    "",
+    "| Severity | Count |",
+    "| :--- | ---: |",
+    ...summaryRows,
+    "",
+    "### Findings",
+    "",
+    "| Severity | File | Line | Issue |",
+    "| :--- | :--- | :---: | :--- |",
+    ...findingRows,
+    ""
+  ].join(`
+`);
 }
 // src/features/pr/octokit/to-comment.ts
-var toComment = (f) => ({
-  body: `${BADGES[f.severity]}
-
-${f.comment}`,
-  line: f.line,
-  path: f.file
-});
+var SEV_LABEL2 = {
+  high: "High severity",
+  low: "Low severity",
+  medium: "Medium severity"
+};
+var SEV_COLOR2 = {
+  high: "B60205",
+  low: "0075CA",
+  medium: "E4A11B"
+};
+function severityBadge2(sev) {
+  const label = SEV_LABEL2[sev];
+  return `![${label}](https://img.shields.io/badge/${encodeURIComponent(label).replace(/%20/g, "_")}-${SEV_COLOR2[sev]}?style=flat-square&labelColor=1a1a1a)`;
+}
+var toComment = (r) => {
+  const parts = [
+    `${severityBadge2(r.severity)}  \`${r.file}:${r.line}\``,
+    "",
+    "---",
+    "",
+    "**Problem**",
+    "",
+    r.problem
+  ];
+  if (r.solution) {
+    parts.push("", "**Solution**", "", r.solution);
+  }
+  if (r.prompt) {
+    parts.push("", "**AI prompt**", "", "```text", r.prompt, "```");
+  }
+  return {
+    body: parts.join(`
+`),
+    line: r.line,
+    path: r.file
+  };
+};
 // src/features/pr/security-engine/engine.ts
 function runSecurityEngine(diffs) {
   const reviews = [];
@@ -56395,9 +56452,9 @@ function runSecurityEngine(diffs) {
           continue;
         }
         reviews.push({
-          comment: rule.description,
           file: fileDiff.file,
           line: addedLine.lineNumber,
+          problem: rule.description,
           severity: rule.severity
         });
       }
@@ -56495,7 +56552,7 @@ async function handlePullRequest({
   }
   const dependencyScan = dependencyScanResult ?? { reviews: [] };
   const securityScan = runSecurityEngine(parsedDiff);
-  const [llmError, llmReviewResult] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
+  const [llmError, LLMReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
   if (llmError) {
     if (llmError instanceof LLMCallError) {
       warning("AI review encountered an unexpected error.");
@@ -56509,16 +56566,12 @@ async function handlePullRequest({
       debug(String(llmError));
     }
   }
-  const llmReview = llmReviewResult ?? { reviews: [] };
-  const allReviews = [
-    ...dependencyScan.reviews,
-    ...securityScan.reviews,
-    ...llmReview.reviews
-  ];
-  return {
-    comments: allReviews.map(toComment),
-    summary: generateSummary(allReviews)
-  };
+  if (LLMReviews) {
+    return {
+      comments: LLMReviews.reviews.map(toComment),
+      summary: generateSummary(LLMReviews.reviews)
+    };
+  }
 }
 
 // src/index.ts

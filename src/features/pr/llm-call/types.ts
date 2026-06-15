@@ -4,10 +4,12 @@ import { z } from "zod/v4";
 export const SeveritySchema = z.enum(["high", "medium", "low"]);
 
 export const ReviewSchema = z.object({
-  comment: z.string(),
   file: z.string(),
   line: z.number(),
+  problem: z.string(),
+  prompt: z.string().optional(),
   severity: SeveritySchema,
+  solution: z.string().optional(),
 });
 export type Review = z.infer<typeof ReviewSchema>;
 

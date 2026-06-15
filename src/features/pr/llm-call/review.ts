@@ -58,7 +58,7 @@ export async function callLLM(
   const reviews = results
     .flatMap((result) => result.reviews)
     .filter((review) => {
-      const key = `${review.file}:${review.line}:${review.comment}`;
+      const key = `${review.file}:${review.line}:${review.problem}`;
       if (seen.has(key)) {
         return false;
       }

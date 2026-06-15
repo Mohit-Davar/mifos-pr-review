@@ -56262,9 +56262,9 @@ var ReviewSchema = exports_external.object({
   file: exports_external.string(),
   line: exports_external.number(),
   problem: exports_external.string(),
-  prompt: exports_external.string().optional(),
+  prompt: exports_external.string(),
   severity: SeveritySchema,
-  solution: exports_external.string().optional()
+  solution: exports_external.string()
 });
 var ReviewsSchema = exports_external.object({
   reviews: exports_external.array(ReviewSchema)

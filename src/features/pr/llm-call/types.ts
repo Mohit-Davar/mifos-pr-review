@@ -7,9 +7,9 @@ export const ReviewSchema = z.object({
   file: z.string(),
   line: z.number(),
   problem: z.string(),
-  prompt: z.string().optional(),
+  prompt: z.string(),
   severity: SeveritySchema,
-  solution: z.string().optional(),
+  solution: z.string(),
 });
 export type Review = z.infer<typeof ReviewSchema>;
 

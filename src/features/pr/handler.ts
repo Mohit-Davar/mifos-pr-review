@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { checkVulnerabilities } from "@src/features/pr/cve-detection";
 import { parseGitDiff } from "@src/features/pr/git-diff";
-import { callLLM } from "@src/features/pr/llm-call";
+import { callLLM, LLMCallError } from "@src/features/pr/llm-call";
 import {
   generateSummary,
   getPullRequestDiff,
@@ -52,12 +52,16 @@ export async function handlePullRequest({
   const [llmError, LLMReviews] = await expectError(
     callLLM(parsedDiff, securityScan, dependencyScan, apiKey)
   );
-  if (llmError) {
-    core.error(
-      llmError instanceof Error
-        ? `${llmError.message}\n${llmError.stack}`
-        : String(llmError)
-    );
+  if (llmError instanceof LLMCallError) {
+    core.error(`Message: ${llmError.message}`);
+    core.error(`Retryable: ${String(llmError.retryable)}`);
+
+    if (llmError.cause instanceof Error) {
+      core.error(`Cause: ${llmError.cause.message}`);
+      core.error(llmError.cause.stack ?? "");
+    } else {
+      core.error(`Cause: ${JSON.stringify(llmError.cause, null, 2)}`);
+    }
 
     throw llmError;
   }

@@ -56553,9 +56553,15 @@ async function handlePullRequest({
   const dependencyScan = dependencyScanResult ?? { reviews: [] };
   const securityScan = runSecurityEngine(parsedDiff);
   const [llmError, LLMReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
-  if (llmError) {
-    error(llmError instanceof Error ? `${llmError.message}
-${llmError.stack}` : String(llmError));
+  if (llmError instanceof LLMCallError) {
+    error(`Message: ${llmError.message}`);
+    error(`Retryable: ${String(llmError.retryable)}`);
+    if (llmError.cause instanceof Error) {
+      error(`Cause: ${llmError.cause.message}`);
+      error(llmError.cause.stack ?? "");
+    } else {
+      error(`Cause: ${JSON.stringify(llmError.cause, null, 2)}`);
+    }
     throw llmError;
   }
   if (LLMReviews) {

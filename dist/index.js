@@ -56554,17 +56554,9 @@ async function handlePullRequest({
   const securityScan = runSecurityEngine(parsedDiff);
   const [llmError, LLMReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
   if (llmError) {
-    if (llmError instanceof LLMCallError) {
-      warning("AI review encountered an unexpected error.");
-      debug(JSON.stringify({
-        cause: llmError.cause,
-        message: llmError.message,
-        retryable: llmError.retryable
-      }));
-    } else {
-      warning("AI review encountered an unexpected error.");
-      debug(String(llmError));
-    }
+    error(llmError instanceof Error ? `${llmError.message}
+${llmError.stack}` : String(llmError));
+    throw llmError;
   }
   if (LLMReviews) {
     return {

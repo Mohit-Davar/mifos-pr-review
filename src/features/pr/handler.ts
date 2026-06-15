@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { checkVulnerabilities } from "@src/features/pr/cve-detection";
 import { parseGitDiff } from "@src/features/pr/git-diff";
-import { callLLM, LLMCallError } from "@src/features/pr/llm-call";
+import { callLLM } from "@src/features/pr/llm-call";
 import {
   generateSummary,
   getPullRequestDiff,
@@ -53,19 +53,13 @@ export async function handlePullRequest({
     callLLM(parsedDiff, securityScan, dependencyScan, apiKey)
   );
   if (llmError) {
-    if (llmError instanceof LLMCallError) {
-      core.warning("AI review encountered an unexpected error.");
-      core.debug(
-        JSON.stringify({
-          cause: llmError.cause,
-          message: llmError.message,
-          retryable: llmError.retryable,
-        })
-      );
-    } else {
-      core.warning("AI review encountered an unexpected error.");
-      core.debug(String(llmError));
-    }
+    core.error(
+      llmError instanceof Error
+        ? `${llmError.message}\n${llmError.stack}`
+        : String(llmError)
+    );
+
+    throw llmError;
   }
   if (LLMReviews) {
     return {

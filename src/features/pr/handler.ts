@@ -43,7 +43,7 @@ export async function handlePullRequest({
     core.warning("Dependency vulnerability scan failed.");
     core.debug(String(dependencyError));
   }
-  const dependencyScan = dependencyScanResult ?? { reviews: [] };
+  const dependencyScan = dependencyScanResult ?? [];
 
   // Regex based security scan
   const securityScan = runSecurityEngine(parsedDiff);
@@ -52,23 +52,25 @@ export async function handlePullRequest({
   const [llmError, LLMReviews] = await expectError(
     callLLM(parsedDiff, securityScan, dependencyScan, apiKey)
   );
-  if (llmError instanceof LLMCallError) {
-    core.error(`Message: ${llmError.message}`);
-    core.error(`Retryable: ${String(llmError.retryable)}`);
-
-    if (llmError.cause instanceof Error) {
-      core.error(`Cause: ${llmError.cause.message}`);
-      core.error(llmError.cause.stack ?? "");
+  if (llmError) {
+    if (llmError instanceof LLMCallError) {
+      core.warning("AI review encountered an unexpected error.");
+      core.debug(
+        JSON.stringify({
+          cause: llmError.cause,
+          message: llmError.message,
+          retryable: llmError.retryable,
+        })
+      );
     } else {
-      core.error(`Cause: ${JSON.stringify(llmError.cause, null, 2)}`);
+      core.warning("AI review encountered an unexpected error.");
+      core.debug(String(llmError));
     }
-
-    throw llmError;
   }
   if (LLMReviews) {
     return {
-      comments: LLMReviews.reviews.map(toComment),
-      summary: generateSummary(LLMReviews.reviews),
+      comments: LLMReviews.map(toComment),
+      summary: generateSummary(LLMReviews),
     };
   }
 }

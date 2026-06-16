@@ -7,35 +7,21 @@ const SEV_COLOR: Record<Severity, string> = {
   medium: "E4A11B",
 };
 
-const SEV_LABEL: Record<Severity, string> = {
-  high: "High",
-  low: "Low",
-  medium: "Medium",
-};
-
 function severityBadge(sev: Severity): string {
-  return `![${SEV_LABEL[sev]}](https://img.shields.io/badge/severity-${SEV_LABEL[sev].toLowerCase()}-${SEV_COLOR[sev]}?style=flat-square&labelColor=1a1a1a)`;
+  return `![severity: ${sev}](https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square)`;
 }
 
 const STATUS_CLEAN =
-  "![Clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square&labelColor=1a1a1a)";
-
+  "![security: clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square)";
 const STATUS_ISSUES =
-  "![Issues Found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square&labelColor=1a1a1a)";
+  "![security: issues found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square)";
 
-const severityWeight: Record<Severity, number> = {
-  high: 3,
-  low: 1,
-  medium: 2,
-};
+const severityWeight: Record<Severity, number> = { high: 3, low: 1, medium: 2 };
 
 export function generateSummary(reviews: Review[]): string {
   const total = reviews.length;
-
   const counts: Record<Severity, number> = { high: 0, low: 0, medium: 0 };
   for (const r of reviews) counts[r.severity]++;
-
-  const hr = "---";
 
   if (total === 0) {
     return [
@@ -43,7 +29,7 @@ export function generateSummary(reviews: Review[]): string {
       "",
       STATUS_CLEAN,
       "",
-      hr,
+      "---",
       "",
       "> No security issues were detected in the analyzed changes.",
       "",
@@ -54,39 +40,62 @@ export function generateSummary(reviews: Review[]): string {
 
   const summaryRows = severities
     .filter((s) => counts[s] > 0)
-    .map((s) => `| ${severityBadge(s)} | **${counts[s]}** |`);
+    .map(
+      (s) =>
+        `    <tr><td>${severityBadge(s)}</td><td><strong>${counts[s]}</strong></td></tr>`
+    )
+    .join("\n");
 
   const sortedReviews = [...reviews].sort(
     (a, b) => severityWeight[b.severity] - severityWeight[a.severity]
   );
 
-  const findingRows = sortedReviews.map((r) => {
-    const file = `\`${r.file.replace(/\|/g, "\\|")}\``;
-    const issue = r.problem.replace(/\n/g, " ").replace(/\|/g, "\\|").trim();
-    return `| ${severityBadge(r.severity)} | ${file} | \`${r.line}\` | ${issue} |`;
-  });
+  const findingRows = sortedReviews
+    .map((r) => {
+      const location = `\`${r.file}:${r.line}\``;
+      const issue = r.problem.replace(/\n/g, " ").trim();
+      return `    <tr><td>${severityBadge(r.severity)}</td><td>${location}</td><td>${issue}</td></tr>`;
+    })
+    .join("\n");
 
   return [
     "## Security Review",
     "",
     STATUS_ISSUES,
     "",
-    hr,
+    "---",
     "",
-    `> **${total} finding${total === 1 ? "" : "s"}** identified. ` +
-      "Resolve all high-severity issues before merging.",
+    `> **${total} finding${total === 1 ? "" : "s"}** identified.` +
+      " Resolve all high-severity issues before merging.",
     "",
     "### Summary",
     "",
-    "| Severity | Count |",
-    "| :--- | ---: |",
-    ...summaryRows,
+    "<table>",
+    "  <thead>",
+    "    <tr>",
+    '      <th width="50%">Severity</th>',
+    '      <th width="50%">Count</th>',
+    "    </tr>",
+    "  </thead>",
+    "  <tbody>",
+    summaryRows,
+    "  </tbody>",
+    "</table>",
     "",
     "### Findings",
     "",
-    "| Severity | File | Line | Issue |",
-    "| :--- | :--- | :---: | :--- |",
-    ...findingRows,
+    "<table>",
+    "  <thead>",
+    "    <tr>",
+    '      <th width="25%">Severity</th>',
+    '      <th width="25%">Location</th>',
+    '      <th width="50%">Issue</th>',
+    "    </tr>",
+    "  </thead>",
+    "  <tbody>",
+    findingRows,
+    "  </tbody>",
+    "</table>",
     "",
   ].join("\n");
 }

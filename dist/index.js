@@ -29218,7 +29218,7 @@ var DEPENDENCY_FILES = [
   "build.gradle.kts"
 ];
 async function checkVulnerabilities(diffs) {
-  const reviews = [];
+  const findings = [];
   const newDependecies = [];
   for (const diff of diffs) {
     let isDependencyFile = false;
@@ -29244,7 +29244,7 @@ async function checkVulnerabilities(diffs) {
     }
   }
   if (newDependecies.length === 0) {
-    return { reviews };
+    return findings;
   }
   const allDeps = newDependecies.map((d) => d.dep);
   const seenKeys = new Set;
@@ -29263,14 +29263,14 @@ async function checkVulnerabilities(diffs) {
     if (!vulnerabilities || vulnerabilities.length === 0) {
       continue;
     }
-    reviews.push({
+    findings.push({
+      description: `Added dependency \`${item.dep.package.name}@${item.dep.version}\` has known vulnerabilities: ${vulnerabilities.join(", ")}.`,
       file: item.file,
       line: item.line,
-      problem: `Added dependency \`${item.dep.package.name}@${item.dep.version}\` has known vulnerabilities: ${vulnerabilities.join(", ")}.`,
       severity: "high"
     });
   }
-  return { reviews };
+  return findings;
 }
 // src/features/pr/cve-detection/extract-dependencies.ts
 function extractDependency(fileName, content) {
@@ -36879,7 +36879,7 @@ function parseGitDiff(diff) {
             changesList.push({ content, lineNumber: change.ln, prefix: "-" });
             break;
           case "normal":
-            context3.push({ content, lineNumber: change.ln1 });
+            context3.push({ content, lineNumber: change.ln2 });
             changesList.push({
               content,
               lineNumber: change.ln2,
@@ -55952,91 +55952,85 @@ function chunkDiffs(diffs) {
 }
 function createFindingsTable(findings) {
   const index = new Map;
-  findings.reviews.forEach((review) => {
-    const existing = index.get(review.file);
+  findings.forEach((finding) => {
+    const existing = index.get(finding.file);
     if (existing) {
-      existing.push(review);
+      existing.push(finding);
       return;
     }
-    index.set(review.file, [review]);
+    index.set(finding.file, [finding]);
   });
   return index;
 }
 function getRelevantChunkFindings(chunk, findingsIndex) {
-  const reviews = [];
+  const findings = [];
   chunk.diffs.forEach((diff) => {
-    const fileReviews = findingsIndex.get(diff.file);
-    if (!fileReviews) {
+    const fileFindings = findingsIndex.get(diff.file);
+    if (!fileFindings) {
       return;
     }
-    reviews.push(...fileReviews);
+    findings.push(...fileFindings);
   });
-  return { reviews };
+  return findings;
 }
 // src/features/pr/llm-call/prompts.ts
 var SYSTEM_PROMPT = `
-You are an expert Application Security reviewer performing a pull request security review.
+Expert AppSec PR reviewer.
 
-Your goals:
-1. Find real security vulnerabilities introduced in the added code.
-2. Validate findings from automated security scanners.
-3. Ignore false positives.
-4. Identify vulnerable dependencies when evidence exists.
+Review ONLY added code.
 
-Focus:
-- SQL Injection
-- Command Injection
-- XSS
-- SSRF
-- Path Traversal
-- LDAP Injection
-- Template Injection
-- Unsafe Deserialization
-- Authentication flaws
-- Authorization flaws (IDOR, privilege escalation)
-- Session management issues
-- Sensitive data exposure
-- Cryptographic misuse
-- Business logic vulnerabilities
-- Dependency vulnerabilities
+Report ONLY:
+- Real vulnerabilities introduced by the diff
+- Valid scanner findings
+- Dependency vulnerabilities with evidence
+
+Ignore:
+- Style issues
+- Best practices without security impact
+- Speculation
+- False positives
+
+Targets:
+SQLi, Command Injection, XSS, SSRF, Path Traversal, LDAP Injection,
+Template Injection, Unsafe Deserialization, Auth/AuthZ flaws,
+IDOR, Privilege Escalation, Session flaws, Sensitive Data Exposure,
+Crypto misuse, Business Logic flaws, Vulnerable Dependencies.
 
 Rules:
-- Use the exact added diff line number.
-- Do not speculate.
-- Do not assume external context.
-- If exploitation cannot be reasonably inferred from the diff, do not report it.
+- Use exact added diff line numbers.
+- Base findings only on evidence visible in the diff.
+- Do not assume framework protections or missing protections.
+- If exploitation cannot be reasonably inferred, do not report.
 - Prefer false negatives over false positives.
-- Only report findings with clear evidence.
+- Report only actionable findings.
 
-Severity guidelines:
-- high: Exploitable vulnerability that may lead to unauthorised access, remote code execution, data exposure, privilege escalation, authentication bypass, or major security compromise.
-- medium: Security weakness with realistic impact but requiring additional conditions or limited attacker control.
-- low: Defense-in-depth issue or security weakness with limited impact.
+Severity:
+high   = likely compromise, auth bypass, RCE, privilege escalation, significant data exposure
+medium = realistic security impact with extra conditions
+low    = limited-impact security weakness or defense-in-depth gap
 
-For every finding:
-- Explain the vulnerability.
-- Explain why it is risky.
-- Provide a concrete remediation.
-- Provide a prompt to another AI to fix this vulnerability.
+Each finding must include:
+- vulnerability description
+- risk explanation
+- concrete remediation
+- prompt for another AI to implement the fix
 
-Return ONLY valid JSON.
+Return ONLY valid JSON:
 
-Schema:
 {
   "reviews": [
     {
       "file": "path/to/file",
       "line": 42,
       "severity": "high|medium|low",
-      "problem": "Description of the vulnerability and why it is risky",
-      "solution": "Concrete remediation steps",
-      "prompt": "Give a prompt to another AI to fix this vulnerability"
+      "problem": "vulnerability and risk",
+      "solution": "markdown explanation with examples in code block",
+      "prompt": "AI fix prompt"
     }
   ]
 }
 
-If no valid security findings exist:
-
+No findings:
 {"reviews":[]}
 `;
 function formatFileDiff(fileDiff) {
@@ -56046,12 +56040,12 @@ function formatFileDiff(fileDiff) {
 ${body}`;
 }
 function formatFindings(label, findings) {
-  if (findings.reviews.length === 0) {
+  if (findings.length === 0) {
     return `${label}: none`;
   }
   const lines = [];
-  findings.reviews.forEach((review) => {
-    lines.push(`${review.file}:${review.line} ${review.severity} ${review.problem}`);
+  findings.forEach((finding) => {
+    lines.push(`${finding.file}:${finding.line} ${finding.severity} ${finding.description}`);
   });
   return `${label}
 ${lines.join(`
@@ -56233,20 +56227,20 @@ async function callLLM(diffs, securityFindings, cveFindings, apiKey) {
   const openai = createLLMClient(apiKey);
   const model2 = getConfig().model || "gpt-5-nano";
   const chunks = chunkDiffs(diffs);
-  const securityIndex = createFindingsTable(securityFindings);
-  const cveIndex = createFindingsTable(cveFindings);
+  const securityLookupTable = createFindingsTable(securityFindings);
+  const cveLookupTable = createFindingsTable(cveFindings);
   if (chunks.length === 1) {
     const chunk = chunks[0];
-    const message = buildUserMessage(chunk, getRelevantChunkFindings(chunk, securityIndex), getRelevantChunkFindings(chunk, cveIndex));
+    const message = buildUserMessage(chunk, getRelevantChunkFindings(chunk, securityLookupTable), getRelevantChunkFindings(chunk, cveLookupTable));
     return callWithRetry(openai, model2, message);
   }
   const limit2 = pLimit(MAX_CONCURRENT_CHUNKS);
   const results = await Promise.all(chunks.map((chunk) => limit2(async () => {
-    const message = buildUserMessage(chunk, getRelevantChunkFindings(chunk, securityIndex), getRelevantChunkFindings(chunk, cveIndex));
+    const message = buildUserMessage(chunk, getRelevantChunkFindings(chunk, securityLookupTable), getRelevantChunkFindings(chunk, cveLookupTable));
     return callWithRetry(openai, model2, message);
   })));
   const seen = new Set;
-  const reviews = results.flatMap((result) => result.reviews).filter((review) => {
+  const reviews = results.flat().filter((review) => {
     const key = `${review.file}:${review.line}:${review.problem}`;
     if (seen.has(key)) {
       return false;
@@ -56254,7 +56248,7 @@ async function callLLM(diffs, securityFindings, cveFindings, apiKey) {
     seen.add(key);
     return true;
   });
-  return { reviews };
+  return reviews;
 }
 // src/features/pr/llm-call/types.ts
 var SeveritySchema = exports_external.enum(["high", "medium", "low"]);
@@ -56266,9 +56260,7 @@ var ReviewSchema = exports_external.object({
   severity: SeveritySchema,
   solution: exports_external.string()
 });
-var ReviewsSchema = exports_external.object({
-  reviews: exports_external.array(ReviewSchema)
-});
+var ReviewsSchema = exports_external.array(ReviewSchema);
 
 class LLMCallError extends Error {
   cause;
@@ -56318,34 +56310,24 @@ var SEV_COLOR = {
   low: "0075CA",
   medium: "E4A11B"
 };
-var SEV_LABEL = {
-  high: "High",
-  low: "Low",
-  medium: "Medium"
-};
 function severityBadge(sev) {
-  return `![${SEV_LABEL[sev]}](https://img.shields.io/badge/severity-${SEV_LABEL[sev].toLowerCase()}-${SEV_COLOR[sev]}?style=flat-square&labelColor=1a1a1a)`;
+  return `![severity: ${sev}](https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square)`;
 }
-var STATUS_CLEAN = "![Clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square&labelColor=1a1a1a)";
-var STATUS_ISSUES = "![Issues Found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square&labelColor=1a1a1a)";
-var severityWeight = {
-  high: 3,
-  low: 1,
-  medium: 2
-};
+var STATUS_CLEAN = "![security: clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square)";
+var STATUS_ISSUES = "![security: issues found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square)";
+var severityWeight = { high: 3, low: 1, medium: 2 };
 function generateSummary(reviews) {
   const total = reviews.length;
   const counts = { high: 0, low: 0, medium: 0 };
   for (const r of reviews)
     counts[r.severity]++;
-  const hr = "---";
   if (total === 0) {
     return [
       "## Security Review",
       "",
       STATUS_CLEAN,
       "",
-      hr,
+      "---",
       "",
       "> No security issues were detected in the analyzed changes.",
       ""
@@ -56353,55 +56335,68 @@ function generateSummary(reviews) {
 `);
   }
   const severities = ["high", "medium", "low"];
-  const summaryRows = severities.filter((s) => counts[s] > 0).map((s) => `| ${severityBadge(s)} | **${counts[s]}** |`);
+  const summaryRows = severities.filter((s) => counts[s] > 0).map((s) => `    <tr><td>${severityBadge(s)}</td><td><strong>${counts[s]}</strong></td></tr>`).join(`
+`);
   const sortedReviews = [...reviews].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
   const findingRows = sortedReviews.map((r) => {
-    const file2 = `\`${r.file.replace(/\|/g, "\\|")}\``;
-    const issue3 = r.problem.replace(/\n/g, " ").replace(/\|/g, "\\|").trim();
-    return `| ${severityBadge(r.severity)} | ${file2} | \`${r.line}\` | ${issue3} |`;
-  });
+    const location = `\`${r.file}:${r.line}\``;
+    const issue3 = r.problem.replace(/\n/g, " ").trim();
+    return `    <tr><td>${severityBadge(r.severity)}</td><td>${location}</td><td>${issue3}</td></tr>`;
+  }).join(`
+`);
   return [
     "## Security Review",
     "",
     STATUS_ISSUES,
     "",
-    hr,
+    "---",
     "",
-    `> **${total} finding${total === 1 ? "" : "s"}** identified. ` + "Resolve all high-severity issues before merging.",
+    `> **${total} finding${total === 1 ? "" : "s"}** identified.` + " Resolve all high-severity issues before merging.",
     "",
     "### Summary",
     "",
-    "| Severity | Count |",
-    "| :--- | ---: |",
-    ...summaryRows,
+    "<table>",
+    "  <thead>",
+    "    <tr>",
+    '      <th width="50%">Severity</th>',
+    '      <th width="50%">Count</th>',
+    "    </tr>",
+    "  </thead>",
+    "  <tbody>",
+    summaryRows,
+    "  </tbody>",
+    "</table>",
     "",
     "### Findings",
     "",
-    "| Severity | File | Line | Issue |",
-    "| :--- | :--- | :---: | :--- |",
-    ...findingRows,
+    "<table>",
+    "  <thead>",
+    "    <tr>",
+    '      <th width="25%">Severity</th>',
+    '      <th width="25%">Location</th>',
+    '      <th width="50%">Issue</th>',
+    "    </tr>",
+    "  </thead>",
+    "  <tbody>",
+    findingRows,
+    "  </tbody>",
+    "</table>",
     ""
   ].join(`
 `);
 }
 // src/features/pr/octokit/to-comment.ts
-var SEV_LABEL2 = {
-  high: "High severity",
-  low: "Low severity",
-  medium: "Medium severity"
-};
 var SEV_COLOR2 = {
   high: "B60205",
   low: "0075CA",
   medium: "E4A11B"
 };
 function severityBadge2(sev) {
-  const label = SEV_LABEL2[sev];
-  return `![${label}](https://img.shields.io/badge/${encodeURIComponent(label).replace(/%20/g, "_")}-${SEV_COLOR2[sev]}?style=flat-square&labelColor=1a1a1a)`;
+  return `![severity: ${sev}](https://img.shields.io/badge/severity-${sev}-${SEV_COLOR2[sev]}?style=flat-square)`;
 }
 var toComment = (r) => {
   const parts = [
-    `${severityBadge2(r.severity)}  \`${r.file}:${r.line}\``,
+    `${severityBadge2(r.severity)} \`${r.file}:${r.line}\``,
     "",
     "---",
     "",
@@ -56413,7 +56408,7 @@ var toComment = (r) => {
     parts.push("", "**Solution**", "", r.solution);
   }
   if (r.prompt) {
-    parts.push("", "**AI prompt**", "", "```text", r.prompt, "```");
+    parts.push("", "**AI Prompt**", "", "```text", r.prompt, "```");
   }
   return {
     body: parts.join(`
@@ -56424,12 +56419,12 @@ var toComment = (r) => {
 };
 // src/features/pr/security-engine/engine.ts
 function runSecurityEngine(diffs) {
-  const reviews = [];
+  const findings = [];
   const config3 = getConfig();
-  const allRules = [...rules];
+  const rules2 = [...rules];
   if (config3.rules) {
     for (const rule of config3.rules) {
-      allRules.push({
+      rules2.push({
         description: rule.description,
         fileExtensions: rule.fileExtensions,
         id: rule.id,
@@ -56440,7 +56435,7 @@ function runSecurityEngine(diffs) {
   }
   for (const fileDiff of diffs) {
     const fileExtension = fileDiff.file.substring(fileDiff.file.lastIndexOf("."));
-    const applicableRules = allRules.filter((rule) => {
+    const applicableRules = rules2.filter((rule) => {
       if (!rule.fileExtensions) {
         return true;
       }
@@ -56451,16 +56446,16 @@ function runSecurityEngine(diffs) {
         if (!rule.pattern.test(addedLine.content)) {
           continue;
         }
-        reviews.push({
+        findings.push({
+          description: rule.description,
           file: fileDiff.file,
           line: addedLine.lineNumber,
-          problem: rule.description,
           severity: rule.severity
         });
       }
     }
   }
-  return { reviews };
+  return findings;
 }
 // src/features/pr/security-engine/rules.ts
 var rules = [
@@ -56550,24 +56545,26 @@ async function handlePullRequest({
     warning("Dependency vulnerability scan failed.");
     debug(String(dependencyError));
   }
-  const dependencyScan = dependencyScanResult ?? { reviews: [] };
+  const dependencyScan = dependencyScanResult ?? [];
   const securityScan = runSecurityEngine(parsedDiff);
   const [llmError, LLMReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
-  if (llmError instanceof LLMCallError) {
-    error(`Message: ${llmError.message}`);
-    error(`Retryable: ${String(llmError.retryable)}`);
-    if (llmError.cause instanceof Error) {
-      error(`Cause: ${llmError.cause.message}`);
-      error(llmError.cause.stack ?? "");
+  if (llmError) {
+    if (llmError instanceof LLMCallError) {
+      warning("AI review encountered an unexpected error.");
+      debug(JSON.stringify({
+        cause: llmError.cause,
+        message: llmError.message,
+        retryable: llmError.retryable
+      }));
     } else {
-      error(`Cause: ${JSON.stringify(llmError.cause, null, 2)}`);
+      warning("AI review encountered an unexpected error.");
+      debug(String(llmError));
     }
-    throw llmError;
   }
   if (LLMReviews) {
     return {
-      comments: LLMReviews.reviews.map(toComment),
-      summary: generateSummary(LLMReviews.reviews)
+      comments: LLMReviews.map(toComment),
+      summary: generateSummary(LLMReviews)
     };
   }
 }

@@ -1,70 +1,66 @@
 import type { ParsedFileDiff } from "@src/features/pr/git-diff";
-import type { DiffChunk, Reviews } from "@src/features/pr/llm-call";
+import type { DiffChunk } from "@src/features/pr/llm-call";
+
+import type { Findings } from "../security-engine";
 
 // Security review instructions
 export const SYSTEM_PROMPT = `
-You are an expert Application Security reviewer performing a pull request security review.
+Expert AppSec PR reviewer.
 
-Your goals:
-1. Find real security vulnerabilities introduced in the added code.
-2. Validate findings from automated security scanners.
-3. Ignore false positives.
-4. Identify vulnerable dependencies when evidence exists.
+Review ONLY added code.
 
-Focus:
-- SQL Injection
-- Command Injection
-- XSS
-- SSRF
-- Path Traversal
-- LDAP Injection
-- Template Injection
-- Unsafe Deserialization
-- Authentication flaws
-- Authorization flaws (IDOR, privilege escalation)
-- Session management issues
-- Sensitive data exposure
-- Cryptographic misuse
-- Business logic vulnerabilities
-- Dependency vulnerabilities
+Report ONLY:
+- Real vulnerabilities introduced by the diff
+- Valid scanner findings
+- Dependency vulnerabilities with evidence
+
+Ignore:
+- Style issues
+- Best practices without security impact
+- Speculation
+- False positives
+
+Targets:
+SQLi, Command Injection, XSS, SSRF, Path Traversal, LDAP Injection,
+Template Injection, Unsafe Deserialization, Auth/AuthZ flaws,
+IDOR, Privilege Escalation, Session flaws, Sensitive Data Exposure,
+Crypto misuse, Business Logic flaws, Vulnerable Dependencies.
 
 Rules:
-- Use the exact added diff line number.
-- Do not speculate.
-- Do not assume external context.
-- If exploitation cannot be reasonably inferred from the diff, do not report it.
+- Use exact added diff line numbers.
+- Base findings only on evidence visible in the diff.
+- Do not assume framework protections or missing protections.
+- If exploitation cannot be reasonably inferred, do not report.
 - Prefer false negatives over false positives.
-- Only report findings with clear evidence.
+- Report only actionable findings.
 
-Severity guidelines:
-- high: Exploitable vulnerability that may lead to unauthorised access, remote code execution, data exposure, privilege escalation, authentication bypass, or major security compromise.
-- medium: Security weakness with realistic impact but requiring additional conditions or limited attacker control.
-- low: Defense-in-depth issue or security weakness with limited impact.
+Severity:
+high   = likely compromise, auth bypass, RCE, privilege escalation, significant data exposure
+medium = realistic security impact with extra conditions
+low    = limited-impact security weakness or defense-in-depth gap
 
-For every finding:
-- Explain the vulnerability.
-- Explain why it is risky.
-- Provide a concrete remediation.
-- Provide a prompt to another AI to fix this vulnerability.
+Each finding must include:
+- vulnerability description
+- risk explanation
+- concrete remediation
+- prompt for another AI to implement the fix
 
-Return ONLY valid JSON.
+Return ONLY valid JSON:
 
-Schema:
 {
   "reviews": [
     {
       "file": "path/to/file",
       "line": 42,
       "severity": "high|medium|low",
-      "problem": "Description of the vulnerability and why it is risky",
-      "solution": "Concrete remediation steps",
-      "prompt": "Give a prompt to another AI to fix this vulnerability"
+      "problem": "vulnerability and risk",
+      "solution": "markdown explanation with examples in code block",
+      "prompt": "AI fix prompt"
     }
   ]
 }
 
-If no valid security findings exist:
-
+No findings:
 {"reviews":[]}
 `;
 
@@ -88,14 +84,14 @@ function formatFileDiff(fileDiff: ParsedFileDiff): string {
 // Regex Scan:
 // path/to/file.ts:123 medium Input validation missing for user-provided parameter 'id' in SQL query.
 // path/to/another/file.ts:45 high Unsanitised user input in 'comment' field could lead to XSS.
-function formatFindings(label: string, findings: Reviews): string {
-  if (findings.reviews.length === 0) {
+function formatFindings(label: string, findings: Findings[]): string {
+  if (findings.length === 0) {
     return `${label}: none`;
   }
   const lines: string[] = [];
-  findings.reviews.forEach((review) => {
+  findings.forEach((finding) => {
     lines.push(
-      `${review.file}:${review.line} ${review.severity} ${review.problem}`
+      `${finding.file}:${finding.line} ${finding.severity} ${finding.description}`
     );
   });
 
@@ -105,8 +101,8 @@ function formatFindings(label: string, findings: Reviews): string {
 // Build LLM message
 export function buildUserMessage(
   chunk: DiffChunk,
-  securityFindings: Reviews,
-  cveFindings: Reviews
+  securityFindings: Findings[],
+  cveFindings: Findings[]
 ): string {
   const parts: string[] = [];
 

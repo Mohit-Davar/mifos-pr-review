@@ -56314,7 +56314,7 @@ var SEV_COLOR = {
   medium: "E4A11B"
 };
 function severityBadge(sev) {
-  return `![severity: ${sev}](https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square)`;
+  return `<img src="https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square" alt="severity: ${sev}">`;
 }
 var STATUS_CLEAN = "![security: clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square)";
 var STATUS_ISSUES = "![security: issues found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square)";
@@ -56342,7 +56342,7 @@ function generateSummary(reviews) {
 `);
   const sortedReviews = [...reviews].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
   const findingRows = sortedReviews.map((r) => {
-    const location = `\`${r.file}:${r.line}\``;
+    const location = `<code>${r.file}:${r.line}</code>`;
     const issue3 = r.problem.replace(/\n/g, " ").trim();
     return `    <tr><td>${severityBadge(r.severity)}</td><td>${location}</td><td>${issue3}</td></tr>`;
   }).join(`

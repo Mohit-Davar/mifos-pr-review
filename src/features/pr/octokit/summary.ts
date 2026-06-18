@@ -8,7 +8,7 @@ const SEV_COLOR: Record<Severity, string> = {
 };
 
 function severityBadge(sev: Severity): string {
-  return `![severity: ${sev}](https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square)`;
+  return `<img src="https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square" alt="severity: ${sev}">`;
 }
 
 const STATUS_CLEAN =
@@ -52,7 +52,7 @@ export function generateSummary(reviews: Review[]): string {
 
   const findingRows = sortedReviews
     .map((r) => {
-      const location = `\`${r.file}:${r.line}\``;
+      const location = `<code>${r.file}:${r.line}</code>`;
       const issue = r.problem.replace(/\n/g, " ").trim();
       return `    <tr><td>${severityBadge(r.severity)}</td><td>${location}</td><td>${issue}</td></tr>`;
     })

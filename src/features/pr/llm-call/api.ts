@@ -54,7 +54,7 @@ export async function callWithRetry(
           retryable: false,
         });
       }
-      return response.output_parsed;
+      return response.output_parsed.reviews;
     } catch (error) {
       lastError = error;
       if (!isRetryableError(error) || attempt === MAX_RETRIES) {

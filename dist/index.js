@@ -55604,7 +55604,7 @@ async function callWithRetry(openai, model2, userMessage) {
           retryable: false
         });
       }
-      return response.output_parsed;
+      return response.output_parsed.reviews;
     } catch (error50) {
       lastError = error50;
       if (!isRetryableError(error50) || attempt === MAX_RETRIES) {
@@ -56261,7 +56261,9 @@ var ReviewSchema = exports_external.object({
   severity: SeveritySchema,
   solution: exports_external.string()
 });
-var ReviewsSchema = exports_external.array(ReviewSchema);
+var ReviewsSchema = exports_external.object({
+  reviews: exports_external.array(ReviewSchema)
+});
 
 class LLMCallError extends Error {
   cause;

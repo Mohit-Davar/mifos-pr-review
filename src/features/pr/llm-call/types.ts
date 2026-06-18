@@ -13,8 +13,10 @@ export const ReviewSchema = z.object({
 });
 export type Review = z.infer<typeof ReviewSchema>;
 
-export const ReviewsSchema = z.array(ReviewSchema);
-export type Reviews = z.infer<typeof ReviewsSchema>;
+export const ReviewsSchema = z.object({
+  reviews: z.array(ReviewSchema),
+});
+export type Reviews = Review[];
 
 export interface DiffChunk {
   chunkIndex: number;

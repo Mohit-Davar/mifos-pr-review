@@ -55608,7 +55608,8 @@ async function callWithRetry(openai, model2, userMessage) {
     } catch (error50) {
       lastError = error50;
       if (!isRetryableError(error50) || attempt === MAX_RETRIES) {
-        throw new LLMCallError(`LLM call failed after ${attempt} attempt(s)`, {
+        const errorMessage = error50 instanceof Error ? error50.message : JSON.stringify(error50);
+        throw new LLMCallError(`LLM call failed after ${attempt} attempt(s): ${errorMessage}`, {
           attempts: attempt,
           cause: error50,
           retryable: isRetryableError(error50)
@@ -56550,15 +56551,15 @@ async function handlePullRequest({
   const [llmError, LLMReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
   if (llmError) {
     if (llmError instanceof LLMCallError) {
-      warning("AI review encountered an unexpected error.");
-      debug(JSON.stringify({
-        cause: llmError.cause,
-        message: llmError.message,
-        retryable: llmError.retryable
-      }));
+      error([
+        "AI review encountered an unexpected error.",
+        `Message: ${llmError.message}`,
+        `Retryable: ${llmError.retryable}`,
+        `Cause: ${llmError.cause instanceof Error ? llmError.cause.stack ?? llmError.cause.message : JSON.stringify(llmError.cause, null, 2)}`
+      ].join(`
+`));
     } else {
-      warning("AI review encountered an unexpected error.");
-      debug(String(llmError));
+      error(llmError instanceof Error ? llmError.stack ?? llmError.message : JSON.stringify(llmError, null, 2));
     }
   }
   if (LLMReviews) {

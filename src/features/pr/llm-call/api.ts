@@ -58,11 +58,17 @@ export async function callWithRetry(
     } catch (error) {
       lastError = error;
       if (!isRetryableError(error) || attempt === MAX_RETRIES) {
-        throw new LLMCallError(`LLM call failed after ${attempt} attempt(s)`, {
-          attempts: attempt,
-          cause: error,
-          retryable: isRetryableError(error),
-        });
+        const errorMessage =
+          error instanceof Error ? error.message : JSON.stringify(error);
+
+        throw new LLMCallError(
+          `LLM call failed after ${attempt} attempt(s): ${errorMessage}`,
+          {
+            attempts: attempt,
+            cause: error,
+            retryable: isRetryableError(error),
+          }
+        );
       }
       const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
       core.warning(`Error in LLM call. Retrying in ${delay}ms.`);

@@ -54,17 +54,24 @@ export async function handlePullRequest({
   );
   if (llmError) {
     if (llmError instanceof LLMCallError) {
-      core.warning("AI review encountered an unexpected error.");
-      core.debug(
-        JSON.stringify({
-          cause: llmError.cause,
-          message: llmError.message,
-          retryable: llmError.retryable,
-        })
+      core.error(
+        [
+          "AI review encountered an unexpected error.",
+          `Message: ${llmError.message}`,
+          `Retryable: ${llmError.retryable}`,
+          `Cause: ${
+            llmError.cause instanceof Error
+              ? (llmError.cause.stack ?? llmError.cause.message)
+              : JSON.stringify(llmError.cause, null, 2)
+          }`,
+        ].join("\n")
       );
     } else {
-      core.warning("AI review encountered an unexpected error.");
-      core.debug(String(llmError));
+      core.error(
+        llmError instanceof Error
+          ? (llmError.stack ?? llmError.message)
+          : JSON.stringify(llmError, null, 2)
+      );
     }
   }
   if (LLMReviews) {

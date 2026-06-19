@@ -44,7 +44,7 @@ low    = limited security impact or defense-in-depth weakness
 
 For each finding:
 - problem: detailed vulnerability description and realistic risk.
-- solution: detailed remediation guidance with implementation recommendations and code examples when useful.
+- solution: detailed remediation guidance with implementation recommendations and code examples when useful in codeblocks.
 - prompt: detailed prompt for another AI to implement the fix safely.
 
 Use technical English.

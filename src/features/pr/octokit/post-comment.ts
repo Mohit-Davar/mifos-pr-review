@@ -2,7 +2,6 @@ import * as core from "@actions/core";
 import { getOctokit } from "@actions/github";
 import {
   encodeState,
-  findingToComment,
   type FixedFinding,
   type MatchedFinding,
   type PersistedFinding,
@@ -27,6 +26,22 @@ export async function postReviewComment(
 ): Promise<void> {
   const octokit = getOctokit(token);
   const newFindings: PersistedFinding[] = [];
+
+  // To ensure the summary appears at the top, create it first if it doesn't exist.
+  let currentSummaryCommentId = summaryCommentId;
+  if (currentSummaryCommentId === null) {
+    try {
+      const { data } = await octokit.rest.issues.createComment({
+        body: `${SUMMARY_MARKER}\n\n_Processing findings..._`,
+        issue_number: pullNumber,
+        owner,
+        repo,
+      });
+      currentSummaryCommentId = data.id;
+    } catch (err) {
+      core.warning(`Failed to create initial summary comment — ${String(err)}`);
+    }
+  }
 
   // Keep existing comment IDs for findings that are still present.
   for (const m of matched) {
@@ -54,17 +69,21 @@ export async function postReviewComment(
       continue;
     }
 
-    let payload:
-      | ReturnType<typeof toComment>
-      | ReturnType<typeof findingToComment>;
-    let severity: PersistedFinding["severity"];
-    if (m.source === "llm") {
-      payload = toComment(m.review);
-      severity = m.review.severity;
-    } else {
-      payload = findingToComment(m.finding, m.source);
-      severity = m.finding.severity;
+    if (m.source !== "llm") {
+      // Do not post review comments for OSV or scan findings.
+      newFindings.push({
+        commentId: null,
+        file: m.finding.file,
+        fingerprint: m.fingerprint,
+        line: m.finding.line,
+        severity: m.finding.severity,
+        source: m.source,
+      });
+      continue;
     }
+
+    const payload = toComment(m.review);
+    const severity = m.review.severity;
 
     try {
       const { data: comment } = await octokit.rest.pulls.createReviewComment({
@@ -94,6 +113,10 @@ export async function postReviewComment(
 
   // Mark findings that no longer exist as resolved.
   for (const f of fixed) {
+    if (f.previous.commentId === null) {
+      continue;
+    }
+
     try {
       const { data: existing } = await octokit.rest.pulls.getReviewComment({
         comment_id: f.previous.commentId,
@@ -124,17 +147,17 @@ export async function postReviewComment(
   const summaryBody = `${SUMMARY_MARKER}\n\n${summary}${encodeState(newState)}`;
 
   try {
-    if (summaryCommentId === null) {
-      await octokit.rest.issues.createComment({
+    if (currentSummaryCommentId !== null) {
+      await octokit.rest.issues.updateComment({
         body: summaryBody,
-        issue_number: pullNumber,
+        comment_id: currentSummaryCommentId,
         owner,
         repo,
       });
     } else {
-      await octokit.rest.issues.updateComment({
+      await octokit.rest.issues.createComment({
         body: summaryBody,
-        comment_id: summaryCommentId,
+        issue_number: pullNumber,
         owner,
         repo,
       });

@@ -21,7 +21,7 @@ export async function callLLM(
 ): Promise<Reviews> {
   // LLM setup
   const openai = createLLMClient(apiKey);
-  const model = getConfig().model || "gpt-5-nano";
+  const model = getConfig().model || "gpt-5-mini";
 
   // Prepare review context
   const chunks = chunkDiffs(diffs);

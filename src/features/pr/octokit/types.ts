@@ -2,7 +2,7 @@ import type { Review } from "@src/features/pr/llm-call";
 import type { Findings, Severity } from "@src/features/pr/security-engine";
 
 export interface PersistedFinding {
-  commentId: number; // PR comment created for this finding.
+  commentId: number | null; // PR comment created for this finding, or null if no comment was posted.
   file: string;
   fingerprint: string; // Unique ID used to track the finding across runs.
   line: number;

@@ -1,5 +1,5 @@
 import type { Review } from "@src/features/pr/llm-call";
-import type { Findings, Severity } from "@src/features/pr/security-engine";
+import type { Severity } from "@src/features/pr/security-engine";
 
 const SEV_COLOR: Record<Severity, string> = {
   high: "B60205",
@@ -35,30 +35,5 @@ export const toComment = (review: Review) => {
     body: parts.join("\n"),
     line: review.line,
     path: review.file,
-  };
-};
-
-// Convert a static-analysis or dependency finding into
-// a GitHub review comment.
-export const findingToComment = (
-  finding: Findings,
-  source: "static" | "osv"
-) => {
-  const label = source === "osv" ? "Vulnerable Dependency" : "Security Finding";
-
-  const parts: string[] = [
-    `${severityBadge(finding.severity)} \`${finding.file}:${finding.line}\``,
-    "",
-    "---",
-    "",
-    `**${label}**`,
-    "",
-    finding.description,
-  ];
-
-  return {
-    body: parts.join("\n"),
-    line: finding.line,
-    path: finding.file,
   };
 };

@@ -55985,7 +55985,7 @@ function countFileTokens(file2) {
     `FILE ${file2.file}`,
     ...file2.changes.map((line) => `${line.prefix}${line.lineNumber} ${line.content}`)
   ];
-  const encoder = encodingForModel("gpt-5-nano");
+  const encoder = encodingForModel("gpt-5-mini");
   return encoder.encode(lines.join(`
 `)).length;
 }
@@ -56274,7 +56274,7 @@ function validateConcurrency(concurrency) {
 var MAX_CONCURRENT_CHUNKS = 3;
 async function callLLM(diffs, securityFindings, cveFindings, apiKey) {
   const openai = createLLMClient(apiKey);
-  const model2 = getConfig().model || "gpt-5-nano";
+  const model2 = getConfig().model || "gpt-5-mini";
   const chunks = chunkDiffs(diffs);
   const securityLookupTable = createFindingsTable(securityFindings);
   const cveLookupTable = createFindingsTable(cveFindings);
@@ -56479,6 +56479,22 @@ var RESOLVED_PREFIX = `> ~~**Resolved** — this issue was fixed in a later comm
 async function postReviewComment(token, owner, repo, pullNumber, commitSha, matched, fixed, summary2, summaryCommentId) {
   const octokit = getOctokit(token);
   const newFindings = [];
+  let currentSummaryCommentId = summaryCommentId;
+  if (currentSummaryCommentId === null) {
+    try {
+      const { data } = await octokit.rest.issues.createComment({
+        body: `${SUMMARY_MARKER}
+
+_Processing findings..._`,
+        issue_number: pullNumber,
+        owner,
+        repo
+      });
+      currentSummaryCommentId = data.id;
+    } catch (err) {
+      warning(`Failed to create initial summary comment — ${String(err)}`);
+    }
+  }
   for (const m of matched) {
     if (m.status !== "active" || !m.previous) {
       continue;
@@ -56498,15 +56514,19 @@ async function postReviewComment(token, owner, repo, pullNumber, commitSha, matc
     if (m.status !== "new") {
       continue;
     }
-    let payload;
-    let severity;
-    if (m.source === "llm") {
-      payload = toComment(m.review);
-      severity = m.review.severity;
-    } else {
-      payload = findingToComment(m.finding, m.source);
-      severity = m.finding.severity;
+    if (m.source !== "llm") {
+      newFindings.push({
+        commentId: null,
+        file: m.finding.file,
+        fingerprint: m.fingerprint,
+        line: m.finding.line,
+        severity: m.finding.severity,
+        source: m.source
+      });
+      continue;
     }
+    const payload = toComment(m.review);
+    const severity = m.review.severity;
     try {
       const { data: comment } = await octokit.rest.pulls.createReviewComment({
         body: payload.body,
@@ -56531,6 +56551,9 @@ async function postReviewComment(token, owner, repo, pullNumber, commitSha, matc
     }
   }
   for (const f of fixed) {
+    if (f.previous.commentId === null) {
+      continue;
+    }
     try {
       const { data: existing } = await octokit.rest.pulls.getReviewComment({
         comment_id: f.previous.commentId,
@@ -56555,17 +56578,17 @@ async function postReviewComment(token, owner, repo, pullNumber, commitSha, matc
 
 ${summary2}${encodeState(newState)}`;
   try {
-    if (summaryCommentId === null) {
-      await octokit.rest.issues.createComment({
+    if (currentSummaryCommentId !== null) {
+      await octokit.rest.issues.updateComment({
         body: summaryBody,
-        issue_number: pullNumber,
+        comment_id: currentSummaryCommentId,
         owner,
         repo
       });
     } else {
-      await octokit.rest.issues.updateComment({
+      await octokit.rest.issues.createComment({
         body: summaryBody,
-        comment_id: summaryCommentId,
+        issue_number: pullNumber,
         owner,
         repo
       });
@@ -56789,24 +56812,6 @@ var toComment = (review2) => {
 `),
     line: review2.line,
     path: review2.file
-  };
-};
-var findingToComment = (finding, source) => {
-  const label = source === "osv" ? "Vulnerable Dependency" : "Security Finding";
-  const parts = [
-    `${severityBadge2(finding.severity)} \`${finding.file}:${finding.line}\``,
-    "",
-    "---",
-    "",
-    `**${label}**`,
-    "",
-    finding.description
-  ];
-  return {
-    body: parts.join(`
-`),
-    line: finding.line,
-    path: finding.file
   };
 };
 // src/features/pr/security-engine/engine.ts

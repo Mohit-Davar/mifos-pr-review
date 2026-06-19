@@ -14,7 +14,7 @@ export function countFileTokens(file: ParsedFileDiff): number {
       (line) => `${line.prefix}${line.lineNumber} ${line.content}`
     ),
   ];
-  const encoder = encodingForModel("gpt-5-nano");
+  const encoder = encodingForModel("gpt-5-mini");
   return encoder.encode(lines.join("\n")).length;
 }
 

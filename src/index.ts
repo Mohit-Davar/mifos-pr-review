@@ -24,16 +24,32 @@ async function run() {
   }
 
   const { owner, repo } = context.repo;
+  const commitSha = pr["head"].sha as string;
 
   const [analysisError, result] = await expectError(
-    handlePullRequest({ apiKey, owner, prNumber: pr.number, repo, token })
+    handlePullRequest({
+      apiKey,
+      owner,
+      prNumber: pr.number,
+      repo,
+      token,
+    })
   );
   if (analysisError) {
     core.error(`Security analysis failed: ${analysisError.message}`);
     core.setFailed(analysisError.message);
     return;
   }
-  if (!result || (result.comments.length === 0 && !result.summary)) {
+
+  // Null means the diff was empty — nothing to review
+  if (!result) return;
+
+  // Nothing to post and no summary comment to update yet
+  if (
+    result.matched.length === 0 &&
+    result.fixed.length === 0 &&
+    result.summaryCommentId === null
+  ) {
     return;
   }
 
@@ -43,8 +59,11 @@ async function run() {
       owner,
       repo,
       pr.number,
-      result.comments,
-      result.summary
+      commitSha,
+      result.matched,
+      result.fixed,
+      result.summary,
+      result.summaryCommentId
     )
   );
   if (postError) {

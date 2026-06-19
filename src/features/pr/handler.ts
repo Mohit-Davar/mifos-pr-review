@@ -3,12 +3,23 @@ import { checkVulnerabilities } from "@src/features/pr/cve-detection";
 import { parseGitDiff } from "@src/features/pr/git-diff";
 import { callLLM, LLMCallError } from "@src/features/pr/llm-call";
 import {
+  EMPTY_STATE,
+  type FixedFinding,
   generateSummary,
   getPullRequestDiff,
-  toComment,
+  loadState,
+  type MatchedFinding,
+  matchFindings,
 } from "@src/features/pr/octokit";
 import { runSecurityEngine } from "@src/features/pr/security-engine";
 import { expectError } from "@src/shared";
+
+export interface HandlePullRequestResult {
+  fixed: FixedFinding[];
+  matched: MatchedFinding[];
+  summary: string;
+  summaryCommentId: number | null;
+}
 
 export async function handlePullRequest({
   apiKey,
@@ -22,7 +33,17 @@ export async function handlePullRequest({
   prNumber: number;
   repo: string;
   token: string;
-}) {
+}): Promise<HandlePullRequestResult | null> {
+  // Load previous state
+  const [loadError, loadedState] = await expectError(
+    loadState(token, owner, repo, prNumber)
+  );
+  const previousState = loadedState?.state ?? EMPTY_STATE;
+  const summaryCommentId = loadedState?.summaryCommentId ?? null;
+  if (loadError) {
+    core.warning(`Failed to load previous state: ${loadError.message}`);
+  }
+
   const [diffError, rawDiff] = await expectError(
     getPullRequestDiff(token, owner, repo, prNumber)
   );
@@ -35,7 +56,6 @@ export async function handlePullRequest({
     return null;
   }
 
-  // Check for dependency vulnerabilities
   const [dependencyError, dependencyScanResult] = await expectError(
     checkVulnerabilities(parsedDiff)
   );
@@ -45,11 +65,9 @@ export async function handlePullRequest({
   }
   const dependencyScan = dependencyScanResult ?? [];
 
-  // Regex based security scan
   const securityScan = runSecurityEngine(parsedDiff);
 
-  // LLM Review
-  const [llmError, LLMReviews] = await expectError(
+  const [llmError, llmReviews] = await expectError(
     callLLM(parsedDiff, securityScan, dependencyScan, apiKey)
   );
   if (llmError) {
@@ -74,10 +92,22 @@ export async function handlePullRequest({
       );
     }
   }
-  if (LLMReviews) {
-    return {
-      comments: LLMReviews.map(toComment),
-      summary: generateSummary(LLMReviews),
-    };
-  }
+
+  // Match current findings against previous state
+  const { fixed, matched } = matchFindings(
+    securityScan,
+    dependencyScan,
+    llmReviews ?? [],
+    parsedDiff,
+    previousState
+  );
+
+  const summary = generateSummary(matched, fixed);
+
+  return {
+    fixed,
+    matched,
+    summary,
+    summaryCommentId,
+  };
 }

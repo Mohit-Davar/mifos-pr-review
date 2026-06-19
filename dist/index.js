@@ -25309,6 +25309,67 @@ var require_base64_js = __commonJS((exports) => {
   }
 });
 
+// node_modules/string-similarity/src/index.js
+var require_src = __commonJS((exports, module) => {
+  module.exports = {
+    compareTwoStrings,
+    findBestMatch
+  };
+  function compareTwoStrings(first, second) {
+    first = first.replace(/\s+/g, "");
+    second = second.replace(/\s+/g, "");
+    if (first === second)
+      return 1;
+    if (first.length < 2 || second.length < 2)
+      return 0;
+    let firstBigrams = new Map;
+    for (let i = 0;i < first.length - 1; i++) {
+      const bigram = first.substring(i, i + 2);
+      const count = firstBigrams.has(bigram) ? firstBigrams.get(bigram) + 1 : 1;
+      firstBigrams.set(bigram, count);
+    }
+    let intersectionSize = 0;
+    for (let i = 0;i < second.length - 1; i++) {
+      const bigram = second.substring(i, i + 2);
+      const count = firstBigrams.has(bigram) ? firstBigrams.get(bigram) : 0;
+      if (count > 0) {
+        firstBigrams.set(bigram, count - 1);
+        intersectionSize++;
+      }
+    }
+    return 2 * intersectionSize / (first.length + second.length - 2);
+  }
+  function findBestMatch(mainString, targetStrings) {
+    if (!areArgsValid(mainString, targetStrings))
+      throw new Error("Bad arguments: First argument should be a string, second should be an array of strings");
+    const ratings = [];
+    let bestMatchIndex = 0;
+    for (let i = 0;i < targetStrings.length; i++) {
+      const currentTargetString = targetStrings[i];
+      const currentRating = compareTwoStrings(mainString, currentTargetString);
+      ratings.push({ target: currentTargetString, rating: currentRating });
+      if (currentRating > ratings[bestMatchIndex].rating) {
+        bestMatchIndex = i;
+      }
+    }
+    const bestMatch = ratings[bestMatchIndex];
+    return { ratings, bestMatch, bestMatchIndex };
+  }
+  function areArgsValid(mainString, targetStrings) {
+    if (typeof mainString !== "string")
+      return false;
+    if (!Array.isArray(targetStrings))
+      return false;
+    if (!targetStrings.length)
+      return false;
+    if (targetStrings.find(function(s) {
+      return typeof s !== "string";
+    }))
+      return false;
+    return true;
+  }
+});
+
 // node_modules/@actions/core/lib/command.js
 import * as os from "os";
 
@@ -55976,63 +56037,50 @@ function getRelevantChunkFindings(chunk, findingsIndex) {
 }
 // src/features/pr/llm-call/prompts.ts
 var SYSTEM_PROMPT = `
-Expert AppSec PR reviewer.
+Expert Application Security reviewer.
 
-Review ONLY added code.
+Review ONLY added code from the diff.
 
 Report ONLY:
 - Real vulnerabilities introduced by the diff
-- Valid scanner findings
-- Dependency vulnerabilities with evidence
+- Verified dependency vulnerabilities
+- Valid security scanner findings
 
-Ignore:
+Do NOT report:
 - Style issues
-- Best practices without security impact
+- Code quality issues without security impact
+- Best practices
 - Speculation
+- Potential issues without evidence
 - False positives
 
-Targets:
-SQLi, Command Injection, XSS, SSRF, Path Traversal, LDAP Injection,
-Template Injection, Unsafe Deserialization, Auth/AuthZ flaws,
-IDOR, Privilege Escalation, Session flaws, Sensitive Data Exposure,
-Crypto misuse, Business Logic flaws, Vulnerable Dependencies.
+Focus on:
+SQL Injection, Command Injection, XSS, SSRF, Path Traversal,
+LDAP Injection, Template Injection, Unsafe Deserialization,
+Authentication flaws, Authorization flaws, IDOR,
+Privilege Escalation, Session Management flaws,
+Sensitive Data Exposure, Cryptography misuse,
+Business Logic vulnerabilities, Vulnerable Dependencies.
 
-Rules:
+Requirements:
 - Use exact added diff line numbers.
 - Base findings only on evidence visible in the diff.
-- Do not assume framework protections or missing protections.
+- Do not assume protections or missing protections.
 - If exploitation cannot be reasonably inferred, do not report.
 - Prefer false negatives over false positives.
-- Report only actionable findings.
 
 Severity:
-high   = likely compromise, auth bypass, RCE, privilege escalation, significant data exposure
-medium = realistic security impact with extra conditions
-low    = limited-impact security weakness or defense-in-depth gap
+high   = authentication bypass, privilege escalation, RCE, significant data exposure
+medium = realistic security impact with additional conditions
+low    = limited security impact or defense-in-depth weakness
 
-Each finding must include:
-- vulnerability description
-- risk explanation
-- concrete remediation
-- prompt for another AI to implement the fix
+For each finding:
+- problem: detailed vulnerability description and realistic risk.
+- solution: detailed remediation guidance with implementation recommendations and code examples when useful.
+- prompt: detailed prompt for another AI to implement the fix safely.
 
-Return ONLY valid JSON:
-
-{
-  "reviews": [
-    {
-      "file": "path/to/file",
-      "line": 42,
-      "severity": "high|medium|low",
-      "problem": "vulnerability and risk",
-      "solution": "markdown explanation with examples in code block",
-      "prompt": "AI fix prompt"
-    }
-  ]
-}
-
-No findings:
-{"reviews":[]}
+Use technical English.
+Be direct, precise, and actionable.
 `;
 function formatFileDiff(fileDiff) {
   const body = fileDiff.changes.map((line) => `${line.prefix}${line.lineNumber} ${line.content}`).join(`
@@ -56277,6 +56325,20 @@ class LLMCallError extends Error {
     this.retryable = options.retryable;
   }
 }
+// src/features/pr/octokit/fingerprint.ts
+function normaliseSnippet(snippet, maxLength = 120) {
+  return snippet.trim().replace(/\s+/g, " ").toLowerCase().slice(0, maxLength);
+}
+function fingerprintStatic(ruleId, file2, lineContent) {
+  return `static:${ruleId}:${file2}:${normaliseSnippet(lineContent)}`;
+}
+function fingerprintOSV(pkgName, pkgVersion, osvIds) {
+  const ids = [...osvIds].sort().join(",");
+  return `osv:${pkgName}@${pkgVersion}:${ids}`;
+}
+function fingerprintLLM(file2, lineContent) {
+  return `llm:${file2}:${normaliseSnippet(lineContent)}`;
+}
 // src/features/pr/octokit/get-diff.ts
 async function getPullRequestDiff(token, owner, repo, pullNumber) {
   const octokit = getOctokit(token);
@@ -56288,24 +56350,284 @@ async function getPullRequestDiff(token, owner, repo, pullNumber) {
   });
   return response.data;
 }
-// src/features/pr/octokit/post-comment.ts
-async function postReviewComment(token, owner, repo, pullNumber, comments, summary2) {
-  const octokit = getOctokit(token);
-  const payload = {
-    body: summary2,
-    event: "COMMENT",
-    owner,
-    pull_number: pullNumber,
-    repo,
-    ...comments.length > 0 && {
-      comments: comments.map((c) => ({
-        body: c.body,
-        line: c.line,
-        path: c.path
-      }))
-    }
+// src/features/pr/octokit/matcher.ts
+var import_string_similarity = __toESM(require_src(), 1);
+var FUZZY_THRESHOLD = 0.7;
+function getLineContent(file2, line, diffs) {
+  return diffs.find((d) => d.file === file2)?.added.find((a) => a.lineNumber === line)?.content ?? "";
+}
+function parseOSVDescription(description) {
+  const pkg = description.match(/`([^@`]+)@([^`]+)`/);
+  const pkgName = pkg?.[1] ?? "unknown";
+  const pkgVersion = pkg?.[2] ?? "unknown";
+  const idMatches = [
+    ...description.matchAll(/\b(CVE-\d{4}-\d+|GHSA-[a-z0-9-]+)\b/gi)
+  ];
+  const osvIds = idMatches.map((match2) => match2[0].toUpperCase());
+  return {
+    osvIds,
+    pkgName,
+    pkgVersion
   };
-  await octokit.rest.pulls.createReview(payload);
+}
+function inferRuleId(description) {
+  return description.trim().slice(0, 40).toLowerCase().replace(/\s+/g, "-");
+}
+function matchFindings(staticFindings, osvFindings, llmReviews, diffs, previous) {
+  const previousFindings = new Map(previous.findings.map((finding) => [finding.fingerprint, finding]));
+  const matchedPrevious = new Set;
+  const matched = [];
+  function findPrevious(fingerprint) {
+    const finding = previousFindings.get(fingerprint);
+    if (finding) {
+      matchedPrevious.add(fingerprint);
+    }
+    return finding;
+  }
+  for (const finding of staticFindings) {
+    const lineContent = getLineContent(finding.file, finding.line, diffs);
+    const ruleId = inferRuleId(finding.description);
+    const fingerprint = fingerprintStatic(ruleId, finding.file, lineContent);
+    const previousFinding = findPrevious(fingerprint);
+    matched.push({
+      finding,
+      fingerprint,
+      previous: previousFinding ?? null,
+      source: "static",
+      status: previousFinding ? "active" : "new"
+    });
+  }
+  for (const finding of osvFindings) {
+    const { osvIds, pkgName, pkgVersion } = parseOSVDescription(finding.description);
+    const fingerprint = fingerprintOSV(pkgName, pkgVersion, osvIds);
+    const previousFinding = findPrevious(fingerprint);
+    matched.push({
+      finding,
+      fingerprint,
+      previous: previousFinding ?? null,
+      source: "osv",
+      status: previousFinding ? "active" : "new"
+    });
+  }
+  for (const review2 of llmReviews) {
+    const lineContent = getLineContent(review2.file, review2.line, diffs);
+    const fingerprint = fingerprintLLM(review2.file, lineContent);
+    const exactMatch = findPrevious(fingerprint);
+    if (exactMatch) {
+      matched.push({
+        fingerprint,
+        previous: exactMatch,
+        review: review2,
+        source: "llm",
+        status: "active"
+      });
+      continue;
+    }
+    const normalisedCurrentSnippet = normaliseSnippet(lineContent);
+    let bestScore = 0;
+    let bestMatch = null;
+    for (const [previousFingerprint, previousFinding] of previousFindings) {
+      if (matchedPrevious.has(previousFingerprint) || previousFinding.source !== "llm") {
+        continue;
+      }
+      const prefix = `llm:${previousFinding.file}:`;
+      const previousSnippet = previousFingerprint.startsWith(prefix) ? previousFingerprint.slice(prefix.length) : "";
+      const score = import_string_similarity.default.compareTwoStrings(normalisedCurrentSnippet, previousSnippet);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = previousFinding;
+      }
+    }
+    if (bestScore >= FUZZY_THRESHOLD && bestMatch) {
+      matchedPrevious.add(bestMatch.fingerprint);
+      matched.push({
+        fingerprint,
+        previous: bestMatch,
+        review: review2,
+        source: "llm",
+        status: "active"
+      });
+      continue;
+    }
+    matched.push({
+      fingerprint,
+      previous: null,
+      review: review2,
+      source: "llm",
+      status: "new"
+    });
+  }
+  const fixed = [];
+  for (const [fingerprint, previousFinding] of previousFindings) {
+    if (!matchedPrevious.has(fingerprint)) {
+      fixed.push({
+        previous: previousFinding
+      });
+    }
+  }
+  return {
+    fixed,
+    matched
+  };
+}
+// src/features/pr/octokit/post-comment.ts
+var RESOLVED_PREFIX = `> ~~**Resolved** — this issue was fixed in a later commit.~~
+
+---
+
+`;
+async function postReviewComment(token, owner, repo, pullNumber, commitSha, matched, fixed, summary2, summaryCommentId) {
+  const octokit = getOctokit(token);
+  const newFindings = [];
+  for (const m of matched) {
+    if (m.status !== "active" || !m.previous) {
+      continue;
+    }
+    let file2;
+    let line;
+    if (m.source === "llm") {
+      file2 = m.review.file;
+      line = m.review.line;
+    } else {
+      file2 = m.finding.file;
+      line = m.finding.line;
+    }
+    newFindings.push({ ...m.previous, file: file2, line });
+  }
+  for (const m of matched) {
+    if (m.status !== "new") {
+      continue;
+    }
+    let payload;
+    let severity;
+    if (m.source === "llm") {
+      payload = toComment(m.review);
+      severity = m.review.severity;
+    } else {
+      payload = findingToComment(m.finding, m.source);
+      severity = m.finding.severity;
+    }
+    try {
+      const { data: comment } = await octokit.rest.pulls.createReviewComment({
+        body: payload.body,
+        commit_id: commitSha,
+        line: payload.line,
+        owner,
+        path: payload.path,
+        pull_number: pullNumber,
+        repo,
+        side: "RIGHT"
+      });
+      newFindings.push({
+        commentId: comment.id,
+        file: payload.path,
+        fingerprint: m.fingerprint,
+        line: payload.line,
+        severity,
+        source: m.source
+      });
+    } catch (err) {
+      warning(`Failed to post comment for ${payload.path}:${payload.line} — ${String(err)}`);
+    }
+  }
+  for (const f of fixed) {
+    try {
+      const { data: existing } = await octokit.rest.pulls.getReviewComment({
+        comment_id: f.previous.commentId,
+        owner,
+        repo
+      });
+      if (existing.body.startsWith(RESOLVED_PREFIX)) {
+        continue;
+      }
+      await octokit.rest.pulls.updateReviewComment({
+        body: RESOLVED_PREFIX + existing.body,
+        comment_id: f.previous.commentId,
+        owner,
+        repo
+      });
+    } catch (err) {
+      warning(`Failed to resolve comment ${f.previous.commentId} — ${String(err)}`);
+    }
+  }
+  const newState = { findings: newFindings, version: 1 };
+  const summaryBody = `${SUMMARY_MARKER}
+
+${summary2}${encodeState(newState)}`;
+  try {
+    if (summaryCommentId === null) {
+      await octokit.rest.issues.createComment({
+        body: summaryBody,
+        issue_number: pullNumber,
+        owner,
+        repo
+      });
+    } else {
+      await octokit.rest.issues.updateComment({
+        body: summaryBody,
+        comment_id: summaryCommentId,
+        owner,
+        repo
+      });
+    }
+  } catch (err) {
+    error(`Failed to upsert summary comment — ${String(err)}`);
+    throw err;
+  }
+}
+// src/features/pr/octokit/state.ts
+var SUMMARY_MARKER = "<!-- summary -->";
+var STATE_OPEN = "<!-- state";
+var STATE_CLOSE = "-->";
+var EMPTY_STATE = { findings: [], version: 1 };
+function encodeState(state) {
+  const serializedState = JSON.stringify(state);
+  const encodedState = Buffer.from(serializedState, "utf-8").toString("base64");
+  return ["", STATE_OPEN, encodedState, STATE_CLOSE].join(`
+`);
+}
+function decodeState(body) {
+  try {
+    const stateStart = body.indexOf(STATE_OPEN);
+    if (stateStart === -1) {
+      return null;
+    }
+    const contentStart = body.indexOf(`
+`, stateStart) + 1;
+    const stateEnd = body.indexOf(STATE_CLOSE, contentStart);
+    if (stateEnd === -1) {
+      return null;
+    }
+    const encodedState = body.slice(contentStart, stateEnd).trim();
+    const decodedState = Buffer.from(encodedState, "base64").toString("utf-8");
+    const state = JSON.parse(decodedState);
+    if (state.version !== 1 || !Array.isArray(state.findings)) {
+      return null;
+    }
+    return state;
+  } catch {
+    return null;
+  }
+}
+async function loadState(token, owner, repo, pullNumber) {
+  const octokit = getOctokit(token);
+  const { data: comments } = await octokit.rest.issues.listComments({
+    issue_number: pullNumber,
+    owner,
+    per_page: 100,
+    repo
+  });
+  const summaryComment = comments.find((comment) => comment.body?.includes(SUMMARY_MARKER));
+  if (!summaryComment?.body) {
+    return {
+      state: EMPTY_STATE,
+      summaryCommentId: null
+    };
+  }
+  return {
+    state: decodeState(summaryComment.body) ?? EMPTY_STATE,
+    summaryCommentId: summaryComment.id
+  };
 }
 // src/features/pr/octokit/summary.ts
 var SEV_COLOR = {
@@ -56319,12 +56641,33 @@ function severityBadge(sev) {
 var STATUS_CLEAN = "![security: clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square)";
 var STATUS_ISSUES = "![security: issues found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square)";
 var severityWeight = { high: 3, low: 1, medium: 2 };
-function generateSummary(reviews) {
-  const total = reviews.length;
-  const counts = { high: 0, low: 0, medium: 0 };
-  for (const r of reviews)
-    counts[r.severity]++;
-  if (total === 0) {
+function extractRow(m) {
+  if (m.status === "fixed")
+    return null;
+  if (m.source === "llm") {
+    return {
+      file: m.review.file,
+      line: m.review.line,
+      problem: m.review.problem,
+      severity: m.review.severity,
+      status: m.status
+    };
+  }
+  return {
+    file: m.finding.file,
+    line: m.finding.line,
+    problem: m.finding.description,
+    severity: m.finding.severity,
+    status: m.status
+  };
+}
+function generateSummary(matched, fixed) {
+  const rows = matched.map(extractRow).filter((r) => r !== null);
+  const newCount = matched.filter((m) => m.status === "new").length;
+  const activeCount = matched.filter((m) => m.status === "active").length;
+  const fixedCount = fixed.length;
+  const total = rows.length;
+  if (total === 0 && fixedCount === 0) {
     return [
       "## Security Review",
       "",
@@ -56338,53 +56681,81 @@ function generateSummary(reviews) {
 `);
   }
   const severities = ["high", "medium", "low"];
+  const counts = { high: 0, low: 0, medium: 0 };
+  for (const r of rows)
+    counts[r.severity]++;
+  const statusRows = [
+    `    <tr><td>New</td><td><strong>${newCount}</strong></td></tr>`,
+    `    <tr><td>Active</td><td><strong>${activeCount}</strong></td></tr>`,
+    `    <tr><td>Fixed</td><td><strong>${fixedCount}</strong></td></tr>`
+  ].join(`
+`);
   const summaryRows = severities.filter((s) => counts[s] > 0).map((s) => `    <tr><td>${severityBadge(s)}</td><td><strong>${counts[s]}</strong></td></tr>`).join(`
 `);
-  const sortedReviews = [...reviews].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
-  const findingRows = sortedReviews.map((r) => {
+  const sortedRows = [...rows].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
+  const findingRows = sortedRows.map((r) => {
     const location = `<code>${r.file}:${r.line}</code>`;
     const issue3 = r.problem.replace(/\n/g, " ").trim();
-    return `    <tr><td>${severityBadge(r.severity)}</td><td>${location}</td><td>${issue3}</td></tr>`;
+    const status = r.status === "new" ? "New" : "Active";
+    return `    <tr><td>${severityBadge(r.severity)}</td><td>${location}</td><td>${issue3}</td><td>${status}</td></tr>`;
   }).join(`
 `);
+  const intro = total > 0 ? `> **${total} finding${total === 1 ? "" : "s"}** detected` + (newCount > 0 ? ` (${newCount} new)` : "") + `. Review and resolve issues before merging.` : `> All previously reported findings have been resolved.`;
   return [
     "## Security Review",
     "",
-    STATUS_ISSUES,
+    total > 0 ? STATUS_ISSUES : STATUS_CLEAN,
     "",
     "---",
     "",
-    `> **${total} finding${total === 1 ? "" : "s"}** identified.` + " Resolve all high-severity issues before merging.",
+    intro,
     "",
-    "### Summary",
+    "### Status",
     "",
     "<table>",
     "  <thead>",
     "    <tr>",
-    '      <th width="50%">Severity</th>',
+    '      <th width="50%">State</th>',
     '      <th width="50%">Count</th>',
     "    </tr>",
     "  </thead>",
     "  <tbody>",
-    summaryRows,
+    statusRows,
     "  </tbody>",
     "</table>",
     "",
-    "### Findings",
-    "",
-    "<table>",
-    "  <thead>",
-    "    <tr>",
-    '      <th width="25%">Severity</th>',
-    '      <th width="25%">Location</th>',
-    '      <th width="50%">Issue</th>',
-    "    </tr>",
-    "  </thead>",
-    "  <tbody>",
-    findingRows,
-    "  </tbody>",
-    "</table>",
-    ""
+    ...total > 0 ? [
+      "### Summary",
+      "",
+      "<table>",
+      "  <thead>",
+      "    <tr>",
+      '      <th width="50%">Severity</th>',
+      '      <th width="50%">Count</th>',
+      "    </tr>",
+      "  </thead>",
+      "  <tbody>",
+      summaryRows,
+      "  </tbody>",
+      "</table>",
+      "",
+      "### Findings",
+      "",
+      "<table>",
+      "  <thead>",
+      "    <tr>",
+      '      <th width="20%">Severity</th>',
+      '      <th width="25%">Location</th>',
+      '      <th width="45%">Issue</th>',
+      '      <th width="10%">State</th>',
+      "    </tr>",
+      "  </thead>",
+      "  <tbody>",
+      findingRows,
+      "  </tbody>",
+      "</table>",
+      ""
+    ] : []
   ].join(`
 `);
 }
@@ -56394,30 +56765,48 @@ var SEV_COLOR2 = {
   low: "0075CA",
   medium: "E4A11B"
 };
-function severityBadge2(sev) {
-  return `![severity: ${sev}](https://img.shields.io/badge/severity-${sev}-${SEV_COLOR2[sev]}?style=flat-square)`;
+function severityBadge2(severity) {
+  return `![severity: ${severity}](https://img.shields.io/badge/severity-${severity}-${SEV_COLOR2[severity]}?style=flat-square)`;
 }
-var toComment = (r) => {
+var toComment = (review2) => {
   const parts = [
-    `${severityBadge2(r.severity)} \`${r.file}:${r.line}\``,
+    `${severityBadge2(review2.severity)} \`${review2.file}:${review2.line}\``,
     "",
     "---",
     "",
     "**Problem**",
     "",
-    r.problem
+    review2.problem
   ];
-  if (r.solution) {
-    parts.push("", "**Solution**", "", r.solution);
+  if (review2.solution) {
+    parts.push("", "**Solution**", "", review2.solution);
   }
-  if (r.prompt) {
-    parts.push("", "**AI Prompt**", "", "```text", r.prompt, "```");
+  if (review2.prompt) {
+    parts.push("", "**AI Prompt**", "", "```text", review2.prompt, "```");
   }
   return {
     body: parts.join(`
 `),
-    line: r.line,
-    path: r.file
+    line: review2.line,
+    path: review2.file
+  };
+};
+var findingToComment = (finding, source) => {
+  const label = source === "osv" ? "Vulnerable Dependency" : "Security Finding";
+  const parts = [
+    `${severityBadge2(finding.severity)} \`${finding.file}:${finding.line}\``,
+    "",
+    "---",
+    "",
+    `**${label}**`,
+    "",
+    finding.description
+  ];
+  return {
+    body: parts.join(`
+`),
+    line: finding.line,
+    path: finding.file
   };
 };
 // src/features/pr/security-engine/engine.ts
@@ -56535,6 +56924,12 @@ async function handlePullRequest({
   repo,
   token
 }) {
+  const [loadError, loadedState] = await expectError(loadState(token, owner, repo, prNumber));
+  const previousState = loadedState?.state ?? EMPTY_STATE;
+  const summaryCommentId = loadedState?.summaryCommentId ?? null;
+  if (loadError) {
+    warning(`Failed to load previous state: ${loadError.message}`);
+  }
   const [diffError, rawDiff] = await expectError(getPullRequestDiff(token, owner, repo, prNumber));
   if (diffError) {
     throw new Error("Failed to fetch pull request diff.");
@@ -56550,7 +56945,7 @@ async function handlePullRequest({
   }
   const dependencyScan = dependencyScanResult ?? [];
   const securityScan = runSecurityEngine(parsedDiff);
-  const [llmError, LLMReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
+  const [llmError, llmReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
   if (llmError) {
     if (llmError instanceof LLMCallError) {
       error([
@@ -56564,12 +56959,14 @@ async function handlePullRequest({
       error(llmError instanceof Error ? llmError.stack ?? llmError.message : JSON.stringify(llmError, null, 2));
     }
   }
-  if (LLMReviews) {
-    return {
-      comments: LLMReviews.map(toComment),
-      summary: generateSummary(LLMReviews)
-    };
-  }
+  const { fixed, matched } = matchFindings(securityScan, dependencyScan, llmReviews ?? [], parsedDiff, previousState);
+  const summary3 = generateSummary(matched, fixed);
+  return {
+    fixed,
+    matched,
+    summary: summary3,
+    summaryCommentId
+  };
 }
 
 // src/index.ts
@@ -56588,16 +56985,25 @@ async function run() {
     return;
   }
   const { owner, repo } = context3.repo;
-  const [analysisError, result] = await expectError(handlePullRequest({ apiKey, owner, prNumber: pr.number, repo, token }));
+  const commitSha = pr["head"].sha;
+  const [analysisError, result] = await expectError(handlePullRequest({
+    apiKey,
+    owner,
+    prNumber: pr.number,
+    repo,
+    token
+  }));
   if (analysisError) {
     error(`Security analysis failed: ${analysisError.message}`);
     setFailed(analysisError.message);
     return;
   }
-  if (!result || result.comments.length === 0 && !result.summary) {
+  if (!result)
+    return;
+  if (result.matched.length === 0 && result.fixed.length === 0 && result.summaryCommentId === null) {
     return;
   }
-  const [postError] = await expectError(postReviewComment(token, owner, repo, pr.number, result.comments, result.summary));
+  const [postError] = await expectError(postReviewComment(token, owner, repo, pr.number, commitSha, result.matched, result.fixed, result.summary, result.summaryCommentId));
   if (postError) {
     error(`Failed to publish review comments: ${postError.message}`);
     setFailed(postError.message);

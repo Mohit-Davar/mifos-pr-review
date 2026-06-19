@@ -21,6 +21,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/bun": "latest",
+    "@types/string-similarity": "^4.0.2",
     "eslint": "^9.39.2",
     "eslint-plugin-perfectionist": "^5.9.0",
     "eslint-plugin-simple-import-sort": "^13.0.0",
@@ -45,6 +46,7 @@
     "openai": "^6.18.0",
     "p-limit": "^7.3.0",
     "parse-diff": "^0.11.1",
+    "string-similarity": "^4.0.4",
     "yaml": "^2.9.0",
     "zod": "^4.3.6"
   }

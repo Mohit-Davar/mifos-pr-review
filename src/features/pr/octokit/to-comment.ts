@@ -1,5 +1,5 @@
 import type { Review } from "@src/features/pr/llm-call";
-import type { Severity } from "@src/features/pr/security-engine";
+import type { Findings, Severity } from "@src/features/pr/security-engine";
 
 const SEV_COLOR: Record<Severity, string> = {
   high: "B60205",
@@ -7,32 +7,58 @@ const SEV_COLOR: Record<Severity, string> = {
   medium: "E4A11B",
 };
 
-function severityBadge(sev: Severity): string {
-  return `![severity: ${sev}](https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square)`;
+function severityBadge(severity: Severity): string {
+  return `![severity: ${severity}](https://img.shields.io/badge/severity-${severity}-${SEV_COLOR[severity]}?style=flat-square)`;
 }
 
-export const toComment = (r: Review) => {
+// Convert an LLM review into a GitHub review comment.
+export const toComment = (review: Review) => {
   const parts: string[] = [
-    `${severityBadge(r.severity)} \`${r.file}:${r.line}\``,
+    `${severityBadge(review.severity)} \`${review.file}:${review.line}\``,
     "",
     "---",
     "",
     "**Problem**",
     "",
-    r.problem,
+    review.problem,
   ];
 
-  if (r.solution) {
-    parts.push("", "**Solution**", "", r.solution);
+  if (review.solution) {
+    parts.push("", "**Solution**", "", review.solution);
   }
 
-  if (r.prompt) {
-    parts.push("", "**AI Prompt**", "", "```text", r.prompt, "```");
+  if (review.prompt) {
+    parts.push("", "**AI Prompt**", "", "```text", review.prompt, "```");
   }
 
   return {
     body: parts.join("\n"),
-    line: r.line,
-    path: r.file,
+    line: review.line,
+    path: review.file,
+  };
+};
+
+// Convert a static-analysis or dependency finding into
+// a GitHub review comment.
+export const findingToComment = (
+  finding: Findings,
+  source: "static" | "osv"
+) => {
+  const label = source === "osv" ? "Vulnerable Dependency" : "Security Finding";
+
+  const parts: string[] = [
+    `${severityBadge(finding.severity)} \`${finding.file}:${finding.line}\``,
+    "",
+    "---",
+    "",
+    `**${label}**`,
+    "",
+    finding.description,
+  ];
+
+  return {
+    body: parts.join("\n"),
+    line: finding.line,
+    path: finding.file,
   };
 };

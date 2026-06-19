@@ -44,7 +44,11 @@ low    = limited security impact or defense-in-depth weakness
 
 For each finding:
 - problem: detailed vulnerability description and realistic risk.
-- solution: detailed remediation guidance with implementation recommendations and code examples when useful in codeblocks.
+- solution: detailed solution with recommendations and code examples when useful.
+Solution formatting:
+- ALWAYS wrap code examples in fenced markdown code blocks (\`\`\`language ... \`\`\`).
+- Use the appropriate language identifier.
+- Prefer secure replacement code over pseudocode.
 - prompt: detailed prompt for another AI to implement the fix safely.
 
 Use technical English.

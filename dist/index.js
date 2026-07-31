@@ -57850,50 +57850,86 @@ async function handleMerge({
   }
 }
 
+// src/features/push/octokit/get-pr.ts
+async function getPullRequestNumberFromCommit({
+  commitSha,
+  owner,
+  repo,
+  token
+}) {
+  const octokit = getOctokit(token);
+  const { data } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
+    commit_sha: commitSha,
+    owner,
+    repo
+  });
+  if (data.length === 0) {
+    return null;
+  }
+  const pr = data.at(0);
+  if (!pr) {
+    return null;
+  }
+  return pr.number;
+}
+
 // src/index.ts
 async function run() {
   const token = getInput("github-token");
   const { context: context3 } = exports_github;
   const { owner, repo } = context3.repo;
-  if (context3.eventName !== "pull_request") {
-    notice(`Unsupported event: "${context3.eventName}".`);
-    return;
-  }
-  const pr = context3.payload.pull_request;
-  if (!pr) {
-    setFailed("Pull request payload was not found.");
-    return;
-  }
-  if (context3.payload.action === "closed" && pr["merged"]) {
-    const [error51] = await expectError(handleMerge({
-      credentials: {
-        confluence: {
-          apiToken: getInput("confluence-api-token"),
-          baseUrl: getInput("confluence-base-url"),
-          username: getInput("confluence-username")
+  switch (context3.eventName) {
+    case "pull_request": {
+      const pr = context3.payload.pull_request;
+      if (!pr) {
+        setFailed("Pull request payload was not found.");
+        return;
+      }
+      const [error51] = await expectError(handlePullRequest({
+        commitSha: pr["head"]["sha"],
+        owner,
+        prNumber: pr["number"],
+        repo,
+        token
+      }));
+      if (error51) {
+        exitFailedAction("Pull request workflow failed", error51);
+      }
+      break;
+    }
+    case "push": {
+      const prNumber = await getPullRequestNumberFromCommit({
+        commitSha: context3.payload["after"],
+        owner,
+        repo,
+        token
+      });
+      if (!prNumber) {
+        notice("No merged pull request found for this push.");
+        return;
+      }
+      const [error51] = await expectError(handleMerge({
+        credentials: {
+          confluence: {
+            apiToken: getInput("confluence-api-token"),
+            baseUrl: getInput("confluence-base-url"),
+            username: getInput("confluence-username")
+          },
+          docsGithubToken: getInput("docs-token")
         },
-        docsGithubToken: getInput("docs-token")
-      },
-      owner,
-      prNumber: pr.number,
-      repo,
-      token
-    }));
-    if (error51) {
-      exitFailedAction("Prowl documentation workflow failed", error51);
+        owner,
+        prNumber,
+        repo,
+        token
+      }));
+      if (error51) {
+        exitFailedAction("Documentation workflow failed", error51);
+      }
+      break;
     }
-    return;
-  } else {
-    const [error51] = await expectError(handlePullRequest({
-      commitSha: pr["head"]["sha"],
-      owner,
-      prNumber: pr.number,
-      repo,
-      token
-    }));
-    if (error51) {
-      exitFailedAction("Pull request workflow failed", error51);
-    }
+    default:
+      notice(`Unsupported event: "${context3.eventName}".`);
   }
 }
+run();
 run();

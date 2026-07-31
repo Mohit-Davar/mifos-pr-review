@@ -1,9 +1,11 @@
-import type { ParsedFileDiff } from "@src/features/pr/git-diff";
-import type { DiffChunk } from "@src/features/pr/llm-call";
+import type { PRContext } from "@src/features/pr/octokit";
+import type { Findings } from "@src/features/pr/security-engine";
+import type { DiffChunk, ParsedFileDiff } from "@src/shared";
 
-import type { Findings } from "../security-engine";
-
-// Security review instructions
+/**
+ * The system prompt that instructs the LLM on how to perform the security review.
+ * It sets the persona, rules, and output requirements for the model.
+ */
 export const SYSTEM_PROMPT = `
 Expert Application Security reviewer.
 
@@ -37,44 +39,37 @@ Requirements:
 - If exploitation cannot be reasonably inferred, do not report.
 - Prefer false negatives over false positives.
 
-Severity:
-high   = authentication bypass, privilege escalation, RCE, significant data exposure
-medium = realistic security impact with additional conditions
-low    = limited security impact or defense-in-depth weakness
-
-For each finding:
-- problem: detailed vulnerability description and realistic risk.
-- solution: detailed solution with recommendations and code examples when useful.
-Solution formatting:
-- ALWAYS wrap code examples in fenced markdown code blocks (\`\`\`language ... \`\`\`).
-- Use the appropriate language identifier.
-- Prefer secure replacement code over pseudocode.
-- prompt: detailed prompt for another AI to implement the fix safely.
-
 Use technical English.
 Be direct, precise, and actionable.
 `;
 
-// Format a single file diff
-// Output:
-// FILE src/auth/login.ts
-//  10 const user = getUser();
-// +11 const query = `SELECT * FROM users WHERE id=${id}`;
-// -11 const query = db.prepare(...);
-//  12 return user;
+/**
+ * Formats a single parsed file diff into a plain text block for the LLM.
+ * @param fileDiff - The parsed file diff to format.
+ * @returns A string representation of the file diff.
+ * @example
+ * FILE src/auth/login.ts
+ *  10 const user = getUser();
+ * +11 const query = `SELECT * FROM users WHERE id=${id}`;
+ * -11 const query = db.prepare(...);
+ *  12 return user;
+ */
 function formatFileDiff(fileDiff: ParsedFileDiff): string {
   const body = fileDiff.changes
     .map((line) => `${line.prefix}${line.lineNumber} ${line.content}`)
     .join("\n");
-
   return `FILE ${fileDiff.file}\n${body}`;
 }
 
-// Format existing findings
-// Output:
-// Regex Scan:
-// path/to/file.ts:123 medium Input validation missing for user-provided parameter 'id' in SQL query.
-// path/to/another/file.ts:45 high Unsanitised user input in 'comment' field could lead to XSS.
+/**
+ * Formats an array of findings from a security scanner into a plain text block.
+ * @param label - The label for the findings section (e.g., "SECURITY_SCAN").
+ * @param findings - The array of findings to format.
+ * @returns A string representation of the findings.
+ * @example
+ * SECURITY_SCAN
+ * path/to/file.ts:123 medium Input validation missing...
+ */
 function formatFindings(label: string, findings: Findings[]): string {
   if (findings.length === 0) {
     return `${label}: none`;
@@ -85,26 +80,63 @@ function formatFindings(label: string, findings: Findings[]): string {
       `${finding.file}:${finding.line} ${finding.severity} ${finding.description}`
     );
   });
-
   return `${label}\n${lines.join("\n")}`;
 }
 
-// Build LLM message
+/**
+ * Formats the pull request context (title, description, etc.) into a plain text block.
+ * @param ctx - The PR context object.
+ * @returns A string representation of the PR context.
+ */
+function formatPRContext(ctx: PRContext): string {
+  const lines: string[] = [];
+  lines.push(`PR TITLE: ${ctx.title}`);
+  if (ctx.description) {
+    lines.push(`PR DESCRIPTION:\n${ctx.description}`);
+  }
+  if (ctx.commitMessages.length > 0) {
+    lines.push(
+      `COMMIT MESSAGES:\n${ctx.commitMessages.map((m) => `- ${m}`).join("\n")}`
+    );
+  }
+  if (ctx.linkedIssues.length > 0) {
+    lines.push(
+      `LINKED ISSUES:\n${ctx.linkedIssues
+        .map((i) => `- #${i.number}: ${i.title}`)
+        .join("\n")}`
+    );
+  }
+  return lines.join("\n\n");
+}
+
+/**
+ * Builds the complete user message to be sent to the LLM for a review chunk.
+ *
+ * @param chunk - The diff chunk to be reviewed.
+ * @param securityFindings - Findings from the static security scanner relevant to this chunk.
+ * @param cveFindings - Findings from the CVE scanner relevant to this chunk.
+ * @param prContext - The context of the pull request.
+ * @returns The complete, formatted user message string.
+ *
+ * @remarks
+ * This function assembles the PR context, the formatted diffs, and the findings from
+ * various scanners into a single message that provides the LLM with all the necessary
+ * information to perform its review.
+ */
 export function buildUserMessage(
   chunk: DiffChunk,
   securityFindings: Findings[],
-  cveFindings: Findings[]
+  cveFindings: Findings[],
+  prContext: PRContext
 ): string {
   const parts: string[] = [];
-
   if (chunk.totalChunks > 1) {
     parts.push(`Chunk ${chunk.chunkIndex + 1}/${chunk.totalChunks}`);
   }
 
+  parts.push(formatPRContext(prContext));
   parts.push(chunk.diffs.map(formatFileDiff).join("\n\n"));
-
   parts.push(formatFindings("SECURITY_SCAN", securityFindings));
-
   parts.push(formatFindings("CVE_SCAN", cveFindings));
 
   return parts.join("\n\n");

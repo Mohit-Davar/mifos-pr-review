@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # Enforce Conventional Commits and Jira Key on the PR Title
+  lint-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR Title Format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Define acceptable conventional types
+          types: |
+            feat
+            fix
+            chore
+            docs
+            style
+            refactor
+            perf
+            test
+            ci
+          # e.g., feat(PROJ-123): description
+          subjectPattern: ^\([A-Z]+-[0-9]+\):\s.*$
+          subjectPatternError: |
+            Your PR title does not match the required format!
+
+            Expected format: <type>(JIRA-KEY): <description>
+            Example: feat(VZB-42): implement caching for user check
+
+  # Testing pipeline
+  test-lint-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint Code
+        run: bun run lint
+
+      - name: Run Tests
+        run: bun run test
+
+      - name: Build Action
+        run: bun run build

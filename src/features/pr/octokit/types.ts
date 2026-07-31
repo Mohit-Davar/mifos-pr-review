@@ -1,53 +1,43 @@
-import type { Review } from "@src/features/pr/llm-call";
-import type { Findings, Severity } from "@src/features/pr/security-engine";
-
-export interface PersistedFinding {
-  commentId: number | null; // PR comment created for this finding, or null if no comment was posted.
-  file: string;
-  fingerprint: string; // Unique ID used to track the finding across runs.
-  line: number;
-  severity: Severity;
-  source: "static" | "osv" | "llm"; // Detector that reported the finding.
-}
-
-export interface PersistedState {
-  findings: PersistedFinding[]; // Previously saved findings.
-  version: 1; // State format version.
-}
-
-export interface LoadedState {
-  state: PersistedState; // Previously saved findings.
-  summaryCommentId: number | null; // Summary comment ID, null on first run.
-}
-
-export type FindingStatus = "new" | "active" | "fixed";
+import type { StoredReviewState } from "@src/features/pr/compare-state";
+import type { Severity } from "@src/features/pr/security-engine";
 
 /**
- * A finding from the current run, cross-referenced against previous state.
- * Discriminated by `source` so callers get proper narrowing.
+ * Represents the state loaded from a PR, including the parsed state object
+ * and the ID of the summary comment it was loaded from.
  */
-export type MatchedFinding =
-  | {
-      finding: Findings;
-      fingerprint: string;
-      previous: PersistedFinding | null;
-      source: "static" | "osv";
-      status: FindingStatus;
-    }
-  | {
-      fingerprint: string;
-      previous: PersistedFinding | null;
-      review: Review;
-      source: "llm";
-      status: FindingStatus;
-    };
-
-/** A finding from a previous run that has no match in the current run. */
-export interface FixedFinding {
-  previous: PersistedFinding;
+export interface LoadedReviewState {
+  /** The parsed state from the previous run. */
+  state: StoredReviewState;
+  /** The ID of the summary comment. */
+  summaryCommentId: number | null;
 }
 
-export interface MatchResult {
-  fixed: FixedFinding[];
-  matched: MatchedFinding[];
+/**
+ * A normalized representation of a finding for display in the summary table.
+ */
+export interface SummaryRow {
+  file: string;
+  line: number;
+  problem: string;
+  severity: Severity;
+  status: "new" | "active";
+}
+
+/**
+ * Aggregated metadata structure containing git and issue tracker information for a target Pull Request.
+ */
+export interface PRContext {
+  /** An array of first-line subject text strings extracted from each commit in the Pull Request. */
+  commitMessages: string[];
+  /** The sanitized, markdown-stripped description body text of the Pull Request. */
+  description: string;
+  /** A deterministically ordered list of validated tracking issues referenced within the pull scope. */
+  linkedIssues: Array<{
+    /** The unique identifier or issue number on the tracker. */
+    number: number;
+    /** The summary title text retrieved from the issue definition. */
+    title: string;
+  }>;
+  /** The top-level title string of the Pull Request. */
+  title: string;
 }

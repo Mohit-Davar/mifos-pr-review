@@ -17556,12 +17556,12 @@ var require_lib = __commonJS((exports) => {
           throw new Error("Client has already been disposed.");
         }
         const parsedUrl = new URL(requestUrl);
-        let info = this._prepareRequest(verb, parsedUrl, headers);
+        let info2 = this._prepareRequest(verb, parsedUrl, headers);
         const maxTries = this._allowRetries && RetryableHttpVerbs.includes(verb) ? this._maxRetries + 1 : 1;
         let numTries = 0;
         let response;
         do {
-          response = yield this.requestRaw(info, data);
+          response = yield this.requestRaw(info2, data);
           if (response && response.message && response.message.statusCode === HttpCodes2.Unauthorized) {
             let authenticationHandler;
             for (const handler of this.handlers) {
@@ -17571,7 +17571,7 @@ var require_lib = __commonJS((exports) => {
               }
             }
             if (authenticationHandler) {
-              return authenticationHandler.handleAuthentication(this, info, data);
+              return authenticationHandler.handleAuthentication(this, info2, data);
             } else {
               return response;
             }
@@ -17594,8 +17594,8 @@ var require_lib = __commonJS((exports) => {
                 }
               }
             }
-            info = this._prepareRequest(verb, parsedRedirectUrl, headers);
-            response = yield this.requestRaw(info, data);
+            info2 = this._prepareRequest(verb, parsedRedirectUrl, headers);
+            response = yield this.requestRaw(info2, data);
             redirectsRemaining--;
           }
           if (!response.message.statusCode || !HttpResponseRetryCodes2.includes(response.message.statusCode)) {
@@ -17616,7 +17616,7 @@ var require_lib = __commonJS((exports) => {
       }
       this._disposed = true;
     }
-    requestRaw(info, data) {
+    requestRaw(info2, data) {
       return __awaiter2(this, undefined, undefined, function* () {
         return new Promise((resolve, reject) => {
           function callbackForResult(err, res) {
@@ -17628,16 +17628,16 @@ var require_lib = __commonJS((exports) => {
               resolve(res);
             }
           }
-          this.requestRawWithCallback(info, data, callbackForResult);
+          this.requestRawWithCallback(info2, data, callbackForResult);
         });
       });
     }
-    requestRawWithCallback(info, data, onResult) {
+    requestRawWithCallback(info2, data, onResult) {
       if (typeof data === "string") {
-        if (!info.options.headers) {
-          info.options.headers = {};
+        if (!info2.options.headers) {
+          info2.options.headers = {};
         }
-        info.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
+        info2.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
       }
       let callbackCalled = false;
       function handleResult(err, res) {
@@ -17646,7 +17646,7 @@ var require_lib = __commonJS((exports) => {
           onResult(err, res);
         }
       }
-      const req = info.httpModule.request(info.options, (msg) => {
+      const req = info2.httpModule.request(info2.options, (msg) => {
         const res = new HttpClientResponse(msg);
         handleResult(undefined, res);
       });
@@ -17658,7 +17658,7 @@ var require_lib = __commonJS((exports) => {
         if (socket) {
           socket.end();
         }
-        handleResult(new Error(`Request timeout: ${info.options.path}`));
+        handleResult(new Error(`Request timeout: ${info2.options.path}`));
       });
       req.on("error", function(err) {
         handleResult(err);
@@ -17689,27 +17689,27 @@ var require_lib = __commonJS((exports) => {
       return this._getProxyAgentDispatcher(parsedUrl, proxyUrl);
     }
     _prepareRequest(method, requestUrl, headers) {
-      const info = {};
-      info.parsedUrl = requestUrl;
-      const usingSsl = info.parsedUrl.protocol === "https:";
-      info.httpModule = usingSsl ? https : http;
+      const info2 = {};
+      info2.parsedUrl = requestUrl;
+      const usingSsl = info2.parsedUrl.protocol === "https:";
+      info2.httpModule = usingSsl ? https : http;
       const defaultPort = usingSsl ? 443 : 80;
-      info.options = {};
-      info.options.host = info.parsedUrl.hostname;
-      info.options.port = info.parsedUrl.port ? parseInt(info.parsedUrl.port) : defaultPort;
-      info.options.path = (info.parsedUrl.pathname || "") + (info.parsedUrl.search || "");
-      info.options.method = method;
-      info.options.headers = this._mergeHeaders(headers);
+      info2.options = {};
+      info2.options.host = info2.parsedUrl.hostname;
+      info2.options.port = info2.parsedUrl.port ? parseInt(info2.parsedUrl.port) : defaultPort;
+      info2.options.path = (info2.parsedUrl.pathname || "") + (info2.parsedUrl.search || "");
+      info2.options.method = method;
+      info2.options.headers = this._mergeHeaders(headers);
       if (this.userAgent != null) {
-        info.options.headers["user-agent"] = this.userAgent;
+        info2.options.headers["user-agent"] = this.userAgent;
       }
-      info.options.agent = this._getAgent(info.parsedUrl);
+      info2.options.agent = this._getAgent(info2.parsedUrl);
       if (this.handlers) {
         for (const handler of this.handlers) {
-          handler.prepareRequest(info.options);
+          handler.prepareRequest(info2.options);
         }
       }
-      return info;
+      return info2;
     }
     _mergeHeaders(headers) {
       if (this.requestOptions && this.requestOptions.headers) {
@@ -17903,6 +17903,67 @@ var require_lib = __commonJS((exports) => {
   }
   exports.HttpClient = HttpClient2;
   var lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => (c[k.toLowerCase()] = obj[k], c), {});
+});
+
+// node_modules/string-similarity/src/index.js
+var require_src = __commonJS((exports, module) => {
+  module.exports = {
+    compareTwoStrings,
+    findBestMatch
+  };
+  function compareTwoStrings(first, second) {
+    first = first.replace(/\s+/g, "");
+    second = second.replace(/\s+/g, "");
+    if (first === second)
+      return 1;
+    if (first.length < 2 || second.length < 2)
+      return 0;
+    let firstBigrams = new Map;
+    for (let i = 0;i < first.length - 1; i++) {
+      const bigram = first.substring(i, i + 2);
+      const count = firstBigrams.has(bigram) ? firstBigrams.get(bigram) + 1 : 1;
+      firstBigrams.set(bigram, count);
+    }
+    let intersectionSize = 0;
+    for (let i = 0;i < second.length - 1; i++) {
+      const bigram = second.substring(i, i + 2);
+      const count = firstBigrams.has(bigram) ? firstBigrams.get(bigram) : 0;
+      if (count > 0) {
+        firstBigrams.set(bigram, count - 1);
+        intersectionSize++;
+      }
+    }
+    return 2 * intersectionSize / (first.length + second.length - 2);
+  }
+  function findBestMatch(mainString, targetStrings) {
+    if (!areArgsValid(mainString, targetStrings))
+      throw new Error("Bad arguments: First argument should be a string, second should be an array of strings");
+    const ratings = [];
+    let bestMatchIndex = 0;
+    for (let i = 0;i < targetStrings.length; i++) {
+      const currentTargetString = targetStrings[i];
+      const currentRating = compareTwoStrings(mainString, currentTargetString);
+      ratings.push({ target: currentTargetString, rating: currentRating });
+      if (currentRating > ratings[bestMatchIndex].rating) {
+        bestMatchIndex = i;
+      }
+    }
+    const bestMatch = ratings[bestMatchIndex];
+    return { ratings, bestMatch, bestMatchIndex };
+  }
+  function areArgsValid(mainString, targetStrings) {
+    if (typeof mainString !== "string")
+      return false;
+    if (!Array.isArray(targetStrings))
+      return false;
+    if (!targetStrings.length)
+      return false;
+    if (targetStrings.find(function(s) {
+      return typeof s !== "string";
+    }))
+      return false;
+    return true;
+  }
 });
 
 // node_modules/yaml/dist/nodes/identity.js
@@ -18182,13 +18243,13 @@ var require_directives = __commonJS((exports) => {
             onError(0, "%YAML directive should contain exactly one part");
             return false;
           }
-          const [version] = parts;
-          if (version === "1.1" || version === "1.2") {
-            this.yaml.version = version;
+          const [version2] = parts;
+          if (version2 === "1.1" || version2 === "1.2") {
+            this.yaml.version = version2;
             return true;
           } else {
-            const isValid = /^\d+\.\d+$/.test(version);
-            onError(6, `Unsupported YAML version ${version}`, isValid);
+            const isValid2 = /^\d+\.\d+$/.test(version2);
+            onError(6, `Unsupported YAML version ${version2}`, isValid2);
             return false;
           }
         }
@@ -18221,8 +18282,8 @@ var require_directives = __commonJS((exports) => {
       if (prefix) {
         try {
           return prefix + decodeURIComponent(suffix);
-        } catch (error2) {
-          onError(String(error2));
+        } catch (error50) {
+          onError(String(error50));
           return null;
         }
       }
@@ -18238,13 +18299,13 @@ var require_directives = __commonJS((exports) => {
       }
       return tag[0] === "!" ? tag : `!<${tag}>`;
     }
-    toString(doc) {
+    toString(doc2) {
       const lines = this.yaml.explicit ? [`%YAML ${this.yaml.version || "1.2"}`] : [];
       const tagEntries = Object.entries(this.tags);
       let tagNames;
-      if (doc && tagEntries.length > 0 && identity.isNode(doc.contents)) {
+      if (doc2 && tagEntries.length > 0 && identity.isNode(doc2.contents)) {
         const tags = {};
-        visit.visit(doc.contents, (_key, node) => {
+        visit.visit(doc2.contents, (_key, node) => {
           if (identity.isNode(node) && node.tag)
             tags[node.tag] = true;
         });
@@ -18254,7 +18315,7 @@ var require_directives = __commonJS((exports) => {
       for (const [handle, prefix] of tagEntries) {
         if (handle === "!!" && prefix === "tag:yaml.org,2002:")
           continue;
-        if (!doc || tagNames.some((tn) => tn.startsWith(prefix)))
+        if (!doc2 || tagNames.some((tn) => tn.startsWith(prefix)))
           lines.push(`%TAG ${handle} ${prefix}`);
       }
       return lines.join(`
@@ -18295,14 +18356,14 @@ var require_anchors = __commonJS((exports) => {
         return name;
     }
   }
-  function createNodeAnchors(doc, prefix) {
+  function createNodeAnchors(doc2, prefix) {
     const aliasObjects = [];
     const sourceObjects = new Map;
     let prevAnchors = null;
     return {
       onAnchor: (source) => {
         aliasObjects.push(source);
-        prevAnchors ?? (prevAnchors = anchorNames(doc));
+        prevAnchors ?? (prevAnchors = anchorNames(doc2));
         const anchor = findNewAnchor(prefix, prevAnchors);
         prevAnchors.add(anchor);
         return anchor;
@@ -18313,9 +18374,9 @@ var require_anchors = __commonJS((exports) => {
           if (typeof ref === "object" && ref.anchor && (identity.isScalar(ref.node) || identity.isCollection(ref.node))) {
             ref.node.anchor = ref.anchor;
           } else {
-            const error2 = new Error("Failed to resolve repeated object (this should not happen)");
-            error2.source = source;
-            throw error2;
+            const error50 = new Error("Failed to resolve repeated object (this should not happen)");
+            error50.source = source;
+            throw error50;
           }
         }
       },
@@ -18418,12 +18479,12 @@ var require_Node = __commonJS((exports) => {
         copy.range = this.range.slice();
       return copy;
     }
-    toJS(doc, { mapAsMap, maxAliasCount, onAnchor, reviver } = {}) {
-      if (!identity.isDocument(doc))
+    toJS(doc2, { mapAsMap, maxAliasCount, onAnchor, reviver } = {}) {
+      if (!identity.isDocument(doc2))
         throw new TypeError("A document argument is required");
       const ctx = {
         anchors: new Map,
-        doc,
+        doc: doc2,
         keep: true,
         mapAsMap: mapAsMap === true,
         mapKeyWarned: false,
@@ -18457,7 +18518,7 @@ var require_Alias = __commonJS((exports) => {
         }
       });
     }
-    resolve(doc, ctx) {
+    resolve(doc2, ctx) {
       if (ctx?.maxAliasCount === 0)
         throw new ReferenceError("Alias resolution is disabled");
       let nodes;
@@ -18465,7 +18526,7 @@ var require_Alias = __commonJS((exports) => {
         nodes = ctx.aliasResolveCache;
       } else {
         nodes = [];
-        visit.visit(doc, {
+        visit.visit(doc2, {
           Node: (_key, node) => {
             if (identity.isAlias(node) || identity.hasAnchor(node))
               nodes.push(node);
@@ -18486,8 +18547,8 @@ var require_Alias = __commonJS((exports) => {
     toJSON(_arg, ctx) {
       if (!ctx)
         return { source: this.source };
-      const { anchors: anchors2, doc, maxAliasCount } = ctx;
-      const source = this.resolve(doc, ctx);
+      const { anchors: anchors2, doc: doc2, maxAliasCount } = ctx;
+      const source = this.resolve(doc2, ctx);
       if (!source) {
         const msg = `Unresolved alias (the anchor must be set before the alias): ${this.source}`;
         throw new ReferenceError(msg);
@@ -18504,7 +18565,7 @@ var require_Alias = __commonJS((exports) => {
       if (maxAliasCount >= 0) {
         data.count += 1;
         if (data.aliasCount === 0)
-          data.aliasCount = getAliasCount(doc, source, anchors2);
+          data.aliasCount = getAliasCount(doc2, source, anchors2);
         if (data.count * data.aliasCount > maxAliasCount) {
           const msg = "Excessive alias count indicates a resource exhaustion attack";
           throw new ReferenceError(msg);
@@ -18526,22 +18587,22 @@ var require_Alias = __commonJS((exports) => {
       return src;
     }
   }
-  function getAliasCount(doc, node, anchors2) {
+  function getAliasCount(doc2, node, anchors2) {
     if (identity.isAlias(node)) {
-      const source = node.resolve(doc);
+      const source = node.resolve(doc2);
       const anchor = anchors2 && source && anchors2.get(source);
       return anchor ? anchor.count * anchor.aliasCount : 0;
     } else if (identity.isCollection(node)) {
       let count = 0;
       for (const item of node.items) {
-        const c = getAliasCount(doc, item, anchors2);
+        const c = getAliasCount(doc2, item, anchors2);
         if (c > count)
           count = c;
       }
       return count;
     } else if (identity.isPair(node)) {
-      const kc = getAliasCount(doc, node.key, anchors2);
-      const vc = getAliasCount(doc, node.value, anchors2);
+      const kc = getAliasCount(doc2, node.key, anchors2);
+      const vc = getAliasCount(doc2, node.value, anchors2);
       return Math.max(kc, vc);
     }
     return 1;
@@ -18599,9 +18660,9 @@ var require_createNode = __commonJS((exports) => {
     if (identity.isNode(value))
       return value;
     if (identity.isPair(value)) {
-      const map = ctx.schema[identity.MAP].createNode?.(ctx.schema, null, ctx);
-      map.items.push(value);
-      return map;
+      const map3 = ctx.schema[identity.MAP].createNode?.(ctx.schema, null, ctx);
+      map3.items.push(value);
+      return map3;
     }
     if (value instanceof String || value instanceof Number || value instanceof Boolean || typeof BigInt !== "undefined" && value instanceof BigInt) {
       value = value.valueOf();
@@ -18948,27 +19009,27 @@ var require_stringifyString = __commonJS((exports) => {
     return true;
   }
   function doubleQuotedString(value, ctx) {
-    const json = JSON.stringify(value);
+    const json2 = JSON.stringify(value);
     if (ctx.options.doubleQuotedAsJSON)
-      return json;
+      return json2;
     const { implicitKey } = ctx;
     const minMultiLineLength = ctx.options.doubleQuotedMinMultiLineLength;
     const indent = ctx.indent || (containsDocumentMarker(value) ? "  " : "");
     let str = "";
     let start = 0;
-    for (let i = 0, ch = json[i];ch; ch = json[++i]) {
-      if (ch === " " && json[i + 1] === "\\" && json[i + 2] === "n") {
-        str += json.slice(start, i) + "\\ ";
+    for (let i = 0, ch = json2[i];ch; ch = json2[++i]) {
+      if (ch === " " && json2[i + 1] === "\\" && json2[i + 2] === "n") {
+        str += json2.slice(start, i) + "\\ ";
         i += 1;
         start = i;
         ch = "\\";
       }
       if (ch === "\\")
-        switch (json[i + 1]) {
+        switch (json2[i + 1]) {
           case "u":
             {
-              str += json.slice(start, i);
-              const code = json.substr(i + 2, 4);
+              str += json2.slice(start, i);
+              const code = json2.substr(i + 2, 4);
               switch (code) {
                 case "0000":
                   str += "\\0";
@@ -18998,26 +19059,26 @@ var require_stringifyString = __commonJS((exports) => {
                   if (code.substr(0, 2) === "00")
                     str += "\\x" + code.substr(2);
                   else
-                    str += json.substr(i, 6);
+                    str += json2.substr(i, 6);
               }
               i += 5;
               start = i + 1;
             }
             break;
           case "n":
-            if (implicitKey || json[i + 2] === '"' || json.length < minMultiLineLength) {
+            if (implicitKey || json2[i + 2] === '"' || json2.length < minMultiLineLength) {
               i += 1;
             } else {
-              str += json.slice(start, i) + `
+              str += json2.slice(start, i) + `
 
 `;
-              while (json[i + 2] === "\\" && json[i + 3] === "n" && json[i + 4] !== '"') {
+              while (json2[i + 2] === "\\" && json2[i + 3] === "n" && json2[i + 4] !== '"') {
                 str += `
 `;
                 i += 2;
               }
               str += indent;
-              if (json[i + 2] === " ")
+              if (json2[i + 2] === " ")
                 str += "\\";
               i += 1;
               start = i + 1;
@@ -19027,7 +19088,7 @@ var require_stringifyString = __commonJS((exports) => {
             i += 1;
         }
     }
-    str = start ? str + json.slice(start) : json;
+    str = start ? str + json2.slice(start) : json2;
     return implicitKey ? str : foldFlowLines.foldFlowLines(str, indent, foldFlowLines.FOLD_QUOTED, getFoldOptions(ctx, false));
   }
   function singleQuotedString(value, ctx) {
@@ -19071,9 +19132,9 @@ ${indent}`) + "'";
       return quotedString(value, ctx);
     }
     const indent = ctx.indent || (ctx.forceBlockIndent || containsDocumentMarker(value) ? "  " : "");
-    const literal = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value, lineWidth, indent.length);
+    const literal3 = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value, lineWidth, indent.length);
     if (!value)
-      return literal ? `|
+      return literal3 ? `|
 ` : `>
 `;
     let chomp;
@@ -19128,7 +19189,7 @@ ${indent}`) + "'";
       if (onComment)
         onComment();
     }
-    if (!literal) {
+    if (!literal3) {
       const foldedValue = value.replace(/\n+/g, `
 $&`).replace(/(?:^|\n)([\t ].*)(?:([\n\t ]*)\n(?![\n\t ]))?/g, "$1$2").replace(/\n+/g, `$&${indent}`);
       let literalFallback = false;
@@ -19174,8 +19235,8 @@ ${indent}${start}${value}${end}`;
 ${indent}`);
     if (actualString) {
       const test = (tag) => tag.default && tag.tag !== "tag:yaml.org,2002:str" && tag.test?.test(str);
-      const { compat, tags } = ctx.doc.schema;
-      if (tags.some(test) || compat?.some(test))
+      const { compat: compat2, tags } = ctx.doc.schema;
+      if (tags.some(test) || compat2?.some(test))
         return quotedString(value, ctx);
     }
     return implicitKey ? str : foldFlowLines.foldFlowLines(str, indent, foldFlowLines.FOLD_FLOW, getFoldOptions(ctx, false));
@@ -19222,7 +19283,7 @@ var require_stringify = __commonJS((exports) => {
   var identity = require_identity();
   var stringifyComment = require_stringifyComment();
   var stringifyString = require_stringifyString();
-  function createStringifyContext(doc, options) {
+  function createStringifyContext(doc2, options) {
     const opt = Object.assign({
       blockQuote: true,
       commentString: stringifyComment.stringifyComment,
@@ -19242,7 +19303,7 @@ var require_stringify = __commonJS((exports) => {
       trailingComma: false,
       trueStr: "true",
       verifyAliasOrder: true
-    }, doc.schema.toStringOptions, options);
+    }, doc2.schema.toStringOptions, options);
     let inFlow;
     switch (opt.collectionStyle) {
       case "block":
@@ -19256,7 +19317,7 @@ var require_stringify = __commonJS((exports) => {
     }
     return {
       anchors: new Set,
-      doc,
+      doc: doc2,
       flowCollectionPadding: opt.flowCollectionPadding ? " " : "",
       indent: "",
       indentStep: typeof opt.indent === "number" ? " ".repeat(opt.indent) : "  ",
@@ -19291,8 +19352,8 @@ var require_stringify = __commonJS((exports) => {
     }
     return tagObj;
   }
-  function stringifyProps(node, tagObj, { anchors: anchors$1, doc }) {
-    if (!doc.directives)
+  function stringifyProps(node, tagObj, { anchors: anchors$1, doc: doc2 }) {
+    if (!doc2.directives)
       return "";
     const props = [];
     const anchor = (identity.isScalar(node) || identity.isCollection(node)) && node.anchor;
@@ -19302,7 +19363,7 @@ var require_stringify = __commonJS((exports) => {
     }
     const tag = node.tag ?? (tagObj.default ? null : tagObj.tag);
     if (tag)
-      props.push(doc.directives.tagString(tag));
+      props.push(doc2.directives.tagString(tag));
     return props.join(" ");
   }
   function stringify(item, ctx, onComment, onChompKeep) {
@@ -19344,7 +19405,7 @@ var require_stringifyPair = __commonJS((exports) => {
   var stringify = require_stringify();
   var stringifyComment = require_stringifyComment();
   function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
-    const { allNullValues, doc, indent, indentStep, options: { commentString, indentSeq, simpleKeys } } = ctx;
+    const { allNullValues, doc: doc2, indent, indentStep, options: { commentString, indentSeq, simpleKeys } } = ctx;
     let keyComment = identity.isNode(key) && key.comment || null;
     if (simpleKeys) {
       if (keyComment) {
@@ -19405,7 +19466,7 @@ ${indent}:`;
       vcb = null;
       valueComment = null;
       if (value && typeof value === "object")
-        value = doc.createNode(value);
+        value = doc2.createNode(value);
     }
     ctx.implicitKey = false;
     if (!explicitKey && !keyComment && identity.isScalar(value))
@@ -19497,7 +19558,7 @@ var require_merge = __commonJS((exports) => {
   var identity = require_identity();
   var Scalar = require_Scalar();
   var MERGE_KEY = "<<";
-  var merge2 = {
+  var merge3 = {
     identify: (value) => value === MERGE_KEY || typeof value === "symbol" && value.description === MERGE_KEY,
     default: "key",
     tag: "tag:yaml.org,2002:merge",
@@ -19507,31 +19568,31 @@ var require_merge = __commonJS((exports) => {
     }),
     stringify: () => MERGE_KEY
   };
-  var isMergeKey = (ctx, key) => (merge2.identify(key) || identity.isScalar(key) && (!key.type || key.type === Scalar.Scalar.PLAIN) && merge2.identify(key.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge2.tag && tag.default);
-  function addMergeToJSMap(ctx, map, value) {
+  var isMergeKey = (ctx, key) => (merge3.identify(key) || identity.isScalar(key) && (!key.type || key.type === Scalar.Scalar.PLAIN) && merge3.identify(key.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge3.tag && tag.default);
+  function addMergeToJSMap(ctx, map3, value) {
     const source = resolveAliasValue(ctx, value);
     if (identity.isSeq(source))
       for (const it of source.items)
-        mergeValue(ctx, map, it);
+        mergeValue(ctx, map3, it);
     else if (Array.isArray(source))
       for (const it of source)
-        mergeValue(ctx, map, it);
+        mergeValue(ctx, map3, it);
     else
-      mergeValue(ctx, map, source);
+      mergeValue(ctx, map3, source);
   }
-  function mergeValue(ctx, map, value) {
+  function mergeValue(ctx, map3, value) {
     const source = resolveAliasValue(ctx, value);
     if (!identity.isMap(source))
       throw new Error("Merge sources must be maps or map aliases");
     const srcMap = source.toJSON(null, ctx, Map);
     for (const [key, value2] of srcMap) {
-      if (map instanceof Map) {
-        if (!map.has(key))
-          map.set(key, value2);
-      } else if (map instanceof Set) {
-        map.add(key);
-      } else if (!Object.prototype.hasOwnProperty.call(map, key)) {
-        Object.defineProperty(map, key, {
+      if (map3 instanceof Map) {
+        if (!map3.has(key))
+          map3.set(key, value2);
+      } else if (map3 instanceof Set) {
+        map3.add(key);
+      } else if (!Object.prototype.hasOwnProperty.call(map3, key)) {
+        Object.defineProperty(map3, key, {
           value: value2,
           writable: true,
           enumerable: true,
@@ -19539,49 +19600,49 @@ var require_merge = __commonJS((exports) => {
         });
       }
     }
-    return map;
+    return map3;
   }
   function resolveAliasValue(ctx, value) {
     return ctx && identity.isAlias(value) ? value.resolve(ctx.doc, ctx) : value;
   }
   exports.addMergeToJSMap = addMergeToJSMap;
   exports.isMergeKey = isMergeKey;
-  exports.merge = merge2;
+  exports.merge = merge3;
 });
 
 // node_modules/yaml/dist/nodes/addPairToJSMap.js
 var require_addPairToJSMap = __commonJS((exports) => {
   var log = require_log();
-  var merge2 = require_merge();
+  var merge3 = require_merge();
   var stringify = require_stringify();
   var identity = require_identity();
   var toJS = require_toJS();
-  function addPairToJSMap(ctx, map, { key, value }) {
+  function addPairToJSMap(ctx, map3, { key, value }) {
     if (identity.isNode(key) && key.addToJSMap)
-      key.addToJSMap(ctx, map, value);
-    else if (merge2.isMergeKey(ctx, key))
-      merge2.addMergeToJSMap(ctx, map, value);
+      key.addToJSMap(ctx, map3, value);
+    else if (merge3.isMergeKey(ctx, key))
+      merge3.addMergeToJSMap(ctx, map3, value);
     else {
       const jsKey = toJS.toJS(key, "", ctx);
-      if (map instanceof Map) {
-        map.set(jsKey, toJS.toJS(value, jsKey, ctx));
-      } else if (map instanceof Set) {
-        map.add(jsKey);
+      if (map3 instanceof Map) {
+        map3.set(jsKey, toJS.toJS(value, jsKey, ctx));
+      } else if (map3 instanceof Set) {
+        map3.add(jsKey);
       } else {
         const stringKey = stringifyKey(key, jsKey, ctx);
         const jsValue = toJS.toJS(value, stringKey, ctx);
-        if (stringKey in map)
-          Object.defineProperty(map, stringKey, {
+        if (stringKey in map3)
+          Object.defineProperty(map3, stringKey, {
             value: jsValue,
             writable: true,
             enumerable: true,
             configurable: true
           });
         else
-          map[stringKey] = jsValue;
+          map3[stringKey] = jsValue;
       }
     }
-    return map;
+    return map3;
   }
   function stringifyKey(key, jsKey, ctx) {
     if (jsKey === null)
@@ -19831,14 +19892,14 @@ var require_YAMLMap = __commonJS((exports) => {
     }
     static from(schema, obj, ctx) {
       const { keepUndefined, replacer } = ctx;
-      const map = new this(schema);
+      const map3 = new this(schema);
       const add = (key, value) => {
         if (typeof replacer === "function")
           value = replacer.call(obj, key, value);
         else if (Array.isArray(replacer) && !replacer.includes(key))
           return;
         if (value !== undefined || keepUndefined)
-          map.items.push(Pair.createPair(key, value, ctx));
+          map3.items.push(Pair.createPair(key, value, ctx));
       };
       if (obj instanceof Map) {
         for (const [key, value] of obj)
@@ -19848,9 +19909,9 @@ var require_YAMLMap = __commonJS((exports) => {
           add(key, obj[key]);
       }
       if (typeof schema.sortMapEntries === "function") {
-        map.items.sort(schema.sortMapEntries);
+        map3.items.sort(schema.sortMapEntries);
       }
-      return map;
+      return map3;
     }
     add(pair, overwrite) {
       let _pair;
@@ -19898,12 +19959,12 @@ var require_YAMLMap = __commonJS((exports) => {
       this.add(new Pair.Pair(key, value), true);
     }
     toJSON(_, ctx, Type) {
-      const map = Type ? new Type : ctx?.mapAsMap ? new Map : {};
+      const map3 = Type ? new Type : ctx?.mapAsMap ? new Map : {};
       if (ctx?.onCreate)
-        ctx.onCreate(map);
+        ctx.onCreate(map3);
       for (const item of this.items)
-        addPairToJSMap.addPairToJSMap(ctx, map, item);
-      return map;
+        addPairToJSMap.addPairToJSMap(ctx, map3, item);
+      return map3;
     }
     toString(ctx, onComment, onChompKeep) {
       if (!ctx)
@@ -19931,19 +19992,19 @@ var require_YAMLMap = __commonJS((exports) => {
 var require_map = __commonJS((exports) => {
   var identity = require_identity();
   var YAMLMap = require_YAMLMap();
-  var map = {
+  var map3 = {
     collection: "map",
     default: true,
     nodeClass: YAMLMap.YAMLMap,
     tag: "tag:yaml.org,2002:map",
-    resolve(map2, onError) {
-      if (!identity.isMap(map2))
+    resolve(map4, onError) {
+      if (!identity.isMap(map4))
         onError("Expected a mapping for this tag");
-      return map2;
+      return map4;
     },
     createNode: (schema, obj, ctx) => YAMLMap.YAMLMap.from(schema, obj, ctx)
   };
-  exports.map = map;
+  exports.map = map3;
 });
 
 // node_modules/yaml/dist/nodes/YAMLSeq.js
@@ -20061,7 +20122,7 @@ var require_seq = __commonJS((exports) => {
 // node_modules/yaml/dist/schema/common/string.js
 var require_string = __commonJS((exports) => {
   var stringifyString = require_stringifyString();
-  var string = {
+  var string5 = {
     identify: (value) => typeof value === "string",
     default: true,
     tag: "tag:yaml.org,2002:str",
@@ -20071,7 +20132,7 @@ var require_string = __commonJS((exports) => {
       return stringifyString.stringifyString(item, ctx, onComment, onChompKeep);
     }
   };
-  exports.string = string;
+  exports.string = string5;
 });
 
 // node_modules/yaml/dist/schema/common/null.js
@@ -20197,7 +20258,7 @@ var require_int = __commonJS((exports) => {
     resolve: (str, _onError, opt) => intResolve(str, 2, 8, opt),
     stringify: (node) => intStringify(node, 8, "0o")
   };
-  var int = {
+  var int2 = {
     identify: intIdentify,
     default: true,
     tag: "tag:yaml.org,2002:int",
@@ -20214,29 +20275,29 @@ var require_int = __commonJS((exports) => {
     resolve: (str, _onError, opt) => intResolve(str, 2, 16, opt),
     stringify: (node) => intStringify(node, 16, "0x")
   };
-  exports.int = int;
+  exports.int = int2;
   exports.intHex = intHex;
   exports.intOct = intOct;
 });
 
 // node_modules/yaml/dist/schema/core/schema.js
 var require_schema = __commonJS((exports) => {
-  var map = require_map();
-  var _null = require_null();
+  var map3 = require_map();
+  var _null4 = require_null();
   var seq = require_seq();
-  var string = require_string();
+  var string5 = require_string();
   var bool = require_bool();
   var float = require_float();
-  var int = require_int();
+  var int2 = require_int();
   var schema = [
-    map.map,
+    map3.map,
     seq.seq,
-    string.string,
-    _null.nullTag,
+    string5.string,
+    _null4.nullTag,
     bool.boolTag,
-    int.intOct,
-    int.int,
-    int.intHex,
+    int2.intOct,
+    int2.int,
+    int2.intHex,
     float.floatNaN,
     float.floatExp,
     float.float
@@ -20247,7 +20308,7 @@ var require_schema = __commonJS((exports) => {
 // node_modules/yaml/dist/schema/json/schema.js
 var require_schema2 = __commonJS((exports) => {
   var Scalar = require_Scalar();
-  var map = require_map();
+  var map3 = require_map();
   var seq = require_seq();
   function intIdentify(value) {
     return typeof value === "bigint" || Number.isInteger(value);
@@ -20304,7 +20365,7 @@ var require_schema2 = __commonJS((exports) => {
       return str;
     }
   };
-  var schema = [map.map, seq.seq].concat(jsonScalars, jsonError);
+  var schema = [map3.map, seq.seq].concat(jsonScalars, jsonError);
   exports.schema = schema;
 });
 
@@ -20459,9 +20520,9 @@ var require_omap = __commonJS((exports) => {
     toJSON(_, ctx) {
       if (!ctx)
         return super.toJSON(_);
-      const map = new Map;
+      const map3 = new Map;
       if (ctx?.onCreate)
-        ctx.onCreate(map);
+        ctx.onCreate(map3);
       for (const pair of this.items) {
         let key, value;
         if (identity.isPair(pair)) {
@@ -20470,11 +20531,11 @@ var require_omap = __commonJS((exports) => {
         } else {
           key = toJS.toJS(pair, "", ctx);
         }
-        if (map.has(key))
+        if (map3.has(key))
           throw new Error("Ordered maps must not include duplicate keys");
-        map.set(key, value);
+        map3.set(key, value);
       }
-      return map;
+      return map3;
     }
     static from(schema, iterable, ctx) {
       const pairs$1 = pairs.createPairs(schema, iterable, ctx);
@@ -20638,7 +20699,7 @@ var require_int2 = __commonJS((exports) => {
     resolve: (str, _onError, opt) => intResolve(str, 1, 8, opt),
     stringify: (node) => intStringify(node, 8, "0")
   };
-  var int = {
+  var int2 = {
     identify: intIdentify,
     default: true,
     tag: "tag:yaml.org,2002:int",
@@ -20655,7 +20716,7 @@ var require_int2 = __commonJS((exports) => {
     resolve: (str, _onError, opt) => intResolve(str, 2, 16, opt),
     stringify: (node) => intStringify(node, 16, "0x")
   };
-  exports.int = int;
+  exports.int = int2;
   exports.intBin = intBin;
   exports.intHex = intHex;
   exports.intOct = intOct;
@@ -20711,37 +20772,37 @@ var require_set = __commonJS((exports) => {
     }
     static from(schema, iterable, ctx) {
       const { replacer } = ctx;
-      const set2 = new this(schema);
+      const set4 = new this(schema);
       if (iterable && Symbol.iterator in Object(iterable))
         for (let value of iterable) {
           if (typeof replacer === "function")
             value = replacer.call(iterable, value, value);
-          set2.items.push(Pair.createPair(value, null, ctx));
+          set4.items.push(Pair.createPair(value, null, ctx));
         }
-      return set2;
+      return set4;
     }
   }
   YAMLSet.tag = "tag:yaml.org,2002:set";
-  var set = {
+  var set3 = {
     collection: "map",
     identify: (value) => value instanceof Set,
     nodeClass: YAMLSet,
     default: false,
     tag: "tag:yaml.org,2002:set",
     createNode: (schema, iterable, ctx) => YAMLSet.from(schema, iterable, ctx),
-    resolve(map, onError) {
-      if (identity.isMap(map)) {
-        if (map.hasAllNullValues(true))
-          return Object.assign(new YAMLSet, map);
+    resolve(map3, onError) {
+      if (identity.isMap(map3)) {
+        if (map3.hasAllNullValues(true))
+          return Object.assign(new YAMLSet, map3);
         else
           onError("Set items must all have null values");
       } else
         onError("Expected a mapping for this tag");
-      return map;
+      return map3;
     }
   };
   exports.YAMLSet = YAMLSet;
-  exports.set = set;
+  exports.set = set3;
 });
 
 // node_modules/yaml/dist/schema/yaml-1.1/timestamp.js
@@ -20809,15 +20870,15 @@ var require_timestamp = __commonJS((exports) => {
         throw new Error("!!timestamp expects a date, starting with yyyy-mm-dd");
       const [, year, month, day, hour, minute, second] = match.map(Number);
       const millisec = match[7] ? Number((match[7] + "00").substr(1, 3)) : 0;
-      let date = Date.UTC(year, month - 1, day, hour || 0, minute || 0, second || 0, millisec);
+      let date6 = Date.UTC(year, month - 1, day, hour || 0, minute || 0, second || 0, millisec);
       const tz = match[8];
       if (tz && tz !== "Z") {
         let d = parseSexagesimal(tz, false);
         if (Math.abs(d) < 30)
           d *= 60;
-        date -= 60000 * d;
+        date6 -= 60000 * d;
       }
-      return new Date(date);
+      return new Date(date6);
     },
     stringify: ({ value }) => value?.toISOString().replace(/(T00:00:00)?\.000Z$/, "") ?? ""
   };
@@ -20828,38 +20889,38 @@ var require_timestamp = __commonJS((exports) => {
 
 // node_modules/yaml/dist/schema/yaml-1.1/schema.js
 var require_schema3 = __commonJS((exports) => {
-  var map = require_map();
-  var _null = require_null();
+  var map3 = require_map();
+  var _null4 = require_null();
   var seq = require_seq();
-  var string = require_string();
+  var string5 = require_string();
   var binary = require_binary();
   var bool = require_bool2();
   var float = require_float2();
-  var int = require_int2();
-  var merge2 = require_merge();
+  var int2 = require_int2();
+  var merge3 = require_merge();
   var omap = require_omap();
   var pairs = require_pairs();
-  var set = require_set();
+  var set3 = require_set();
   var timestamp = require_timestamp();
   var schema = [
-    map.map,
+    map3.map,
     seq.seq,
-    string.string,
-    _null.nullTag,
+    string5.string,
+    _null4.nullTag,
     bool.trueTag,
     bool.falseTag,
-    int.intBin,
-    int.intOct,
-    int.int,
-    int.intHex,
+    int2.intBin,
+    int2.intOct,
+    int2.int,
+    int2.intHex,
     float.floatNaN,
     float.floatExp,
     float.float,
     binary.binary,
-    merge2.merge,
+    merge3.merge,
     omap.omap,
     pairs.pairs,
-    set.set,
+    set3.set,
     timestamp.intTime,
     timestamp.floatTime,
     timestamp.timestamp
@@ -20869,25 +20930,25 @@ var require_schema3 = __commonJS((exports) => {
 
 // node_modules/yaml/dist/schema/tags.js
 var require_tags = __commonJS((exports) => {
-  var map = require_map();
-  var _null = require_null();
+  var map3 = require_map();
+  var _null4 = require_null();
   var seq = require_seq();
-  var string = require_string();
+  var string5 = require_string();
   var bool = require_bool();
   var float = require_float();
-  var int = require_int();
+  var int2 = require_int();
   var schema = require_schema();
   var schema$1 = require_schema2();
   var binary = require_binary();
-  var merge2 = require_merge();
+  var merge3 = require_merge();
   var omap = require_omap();
   var pairs = require_pairs();
   var schema$2 = require_schema3();
-  var set = require_set();
+  var set3 = require_set();
   var timestamp = require_timestamp();
-  var schemas = new Map([
+  var schemas3 = new Map([
     ["core", schema.schema],
-    ["failsafe", [map.map, seq.seq, string.string]],
+    ["failsafe", [map3.map, seq.seq, string5.string]],
     ["json", schema$1.schema],
     ["yaml11", schema$2.schema],
     ["yaml-1.1", schema$2.schema]
@@ -20899,38 +20960,38 @@ var require_tags = __commonJS((exports) => {
     floatExp: float.floatExp,
     floatNaN: float.floatNaN,
     floatTime: timestamp.floatTime,
-    int: int.int,
-    intHex: int.intHex,
-    intOct: int.intOct,
+    int: int2.int,
+    intHex: int2.intHex,
+    intOct: int2.intOct,
     intTime: timestamp.intTime,
-    map: map.map,
-    merge: merge2.merge,
-    null: _null.nullTag,
+    map: map3.map,
+    merge: merge3.merge,
+    null: _null4.nullTag,
     omap: omap.omap,
     pairs: pairs.pairs,
     seq: seq.seq,
-    set: set.set,
+    set: set3.set,
     timestamp: timestamp.timestamp
   };
   var coreKnownTags = {
     "tag:yaml.org,2002:binary": binary.binary,
-    "tag:yaml.org,2002:merge": merge2.merge,
+    "tag:yaml.org,2002:merge": merge3.merge,
     "tag:yaml.org,2002:omap": omap.omap,
     "tag:yaml.org,2002:pairs": pairs.pairs,
-    "tag:yaml.org,2002:set": set.set,
+    "tag:yaml.org,2002:set": set3.set,
     "tag:yaml.org,2002:timestamp": timestamp.timestamp
   };
   function getTags(customTags, schemaName, addMergeTag) {
-    const schemaTags = schemas.get(schemaName);
+    const schemaTags = schemas3.get(schemaName);
     if (schemaTags && !customTags) {
-      return addMergeTag && !schemaTags.includes(merge2.merge) ? schemaTags.concat(merge2.merge) : schemaTags.slice();
+      return addMergeTag && !schemaTags.includes(merge3.merge) ? schemaTags.concat(merge3.merge) : schemaTags.slice();
     }
     let tags = schemaTags;
     if (!tags) {
       if (Array.isArray(customTags))
         tags = [];
       else {
-        const keys = Array.from(schemas.keys()).filter((key) => key !== "yaml11").map((key) => JSON.stringify(key)).join(", ");
+        const keys = Array.from(schemas3.keys()).filter((key) => key !== "yaml11").map((key) => JSON.stringify(key)).join(", ");
         throw new Error(`Unknown schema "${schemaName}"; use one of ${keys} or define customTags array`);
       }
     }
@@ -20941,7 +21002,7 @@ var require_tags = __commonJS((exports) => {
       tags = customTags(tags.slice());
     }
     if (addMergeTag)
-      tags = tags.concat(merge2.merge);
+      tags = tags.concat(merge3.merge);
     return tags.reduce((tags2, tag) => {
       const tagObj = typeof tag === "string" ? tagsByName[tag] : tag;
       if (!tagObj) {
@@ -20961,21 +21022,21 @@ var require_tags = __commonJS((exports) => {
 // node_modules/yaml/dist/schema/Schema.js
 var require_Schema = __commonJS((exports) => {
   var identity = require_identity();
-  var map = require_map();
+  var map3 = require_map();
   var seq = require_seq();
-  var string = require_string();
+  var string5 = require_string();
   var tags = require_tags();
   var sortMapEntriesByKey = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
 
   class Schema {
-    constructor({ compat, customTags, merge: merge2, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
-      this.compat = Array.isArray(compat) ? tags.getTags(compat, "compat") : compat ? tags.getTags(null, compat) : null;
+    constructor({ compat: compat2, customTags, merge: merge3, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
+      this.compat = Array.isArray(compat2) ? tags.getTags(compat2, "compat") : compat2 ? tags.getTags(null, compat2) : null;
       this.name = typeof schema === "string" && schema || "core";
       this.knownTags = resolveKnownTags ? tags.coreKnownTags : {};
-      this.tags = tags.getTags(customTags, this.name, merge2);
+      this.tags = tags.getTags(customTags, this.name, merge3);
       this.toStringOptions = toStringDefaults ?? null;
-      Object.defineProperty(this, identity.MAP, { value: map.map });
-      Object.defineProperty(this, identity.SCALAR, { value: string.string });
+      Object.defineProperty(this, identity.MAP, { value: map3.map });
+      Object.defineProperty(this, identity.SCALAR, { value: string5.string });
       Object.defineProperty(this, identity.SEQ, { value: seq.seq });
       this.sortMapEntries = typeof sortMapEntries === "function" ? sortMapEntries : sortMapEntries === true ? sortMapEntriesByKey : null;
     }
@@ -20993,42 +21054,42 @@ var require_stringifyDocument = __commonJS((exports) => {
   var identity = require_identity();
   var stringify = require_stringify();
   var stringifyComment = require_stringifyComment();
-  function stringifyDocument(doc, options) {
+  function stringifyDocument(doc2, options) {
     const lines = [];
     let hasDirectives = options.directives === true;
-    if (options.directives !== false && doc.directives) {
-      const dir = doc.directives.toString(doc);
+    if (options.directives !== false && doc2.directives) {
+      const dir = doc2.directives.toString(doc2);
       if (dir) {
         lines.push(dir);
         hasDirectives = true;
-      } else if (doc.directives.docStart)
+      } else if (doc2.directives.docStart)
         hasDirectives = true;
     }
     if (hasDirectives)
       lines.push("---");
-    const ctx = stringify.createStringifyContext(doc, options);
+    const ctx = stringify.createStringifyContext(doc2, options);
     const { commentString } = ctx.options;
-    if (doc.commentBefore) {
+    if (doc2.commentBefore) {
       if (lines.length !== 1)
         lines.unshift("");
-      const cs = commentString(doc.commentBefore);
+      const cs = commentString(doc2.commentBefore);
       lines.unshift(stringifyComment.indentComment(cs, ""));
     }
     let chompKeep = false;
     let contentComment = null;
-    if (doc.contents) {
-      if (identity.isNode(doc.contents)) {
-        if (doc.contents.spaceBefore && hasDirectives)
+    if (doc2.contents) {
+      if (identity.isNode(doc2.contents)) {
+        if (doc2.contents.spaceBefore && hasDirectives)
           lines.push("");
-        if (doc.contents.commentBefore) {
-          const cs = commentString(doc.contents.commentBefore);
+        if (doc2.contents.commentBefore) {
+          const cs = commentString(doc2.contents.commentBefore);
           lines.push(stringifyComment.indentComment(cs, ""));
         }
-        ctx.forceBlockIndent = !!doc.comment;
-        contentComment = doc.contents.comment;
+        ctx.forceBlockIndent = !!doc2.comment;
+        contentComment = doc2.contents.comment;
       }
       const onChompKeep = contentComment ? undefined : () => chompKeep = true;
-      let body = stringify.stringify(doc.contents, ctx, () => contentComment = null, onChompKeep);
+      let body = stringify.stringify(doc2.contents, ctx, () => contentComment = null, onChompKeep);
       if (contentComment)
         body += stringifyComment.lineComment(body, "", commentString(contentComment));
       if ((body[0] === "|" || body[0] === ">") && lines[lines.length - 1] === "---") {
@@ -21036,11 +21097,11 @@ var require_stringifyDocument = __commonJS((exports) => {
       } else
         lines.push(body);
     } else {
-      lines.push(stringify.stringify(doc.contents, ctx));
+      lines.push(stringify.stringify(doc2.contents, ctx));
     }
-    if (doc.directives?.docEnd) {
-      if (doc.comment) {
-        const cs = commentString(doc.comment);
+    if (doc2.directives?.docEnd) {
+      if (doc2.comment) {
+        const cs = commentString(doc2.comment);
         if (cs.includes(`
 `)) {
           lines.push("...");
@@ -21052,7 +21113,7 @@ var require_stringifyDocument = __commonJS((exports) => {
         lines.push("...");
       }
     } else {
-      let dc = doc.comment;
+      let dc = doc2.comment;
       if (dc && chompKeep)
         dc = dc.replace(/^\n+/, "");
       if (dc) {
@@ -21107,14 +21168,14 @@ var require_Document = __commonJS((exports) => {
         version: "1.2"
       }, options);
       this.options = opt;
-      let { version } = opt;
+      let { version: version2 } = opt;
       if (options?._directives) {
         this.directives = options._directives.atDocument();
         if (this.directives.yaml.explicit)
-          version = this.directives.yaml.version;
+          version2 = this.directives.yaml.version;
       } else
-        this.directives = new directives.Directives({ version });
-      this.setSchema(version, options);
+        this.directives = new directives.Directives({ version: version2 });
+      this.setSchema(version2, options);
       this.contents = value === undefined ? null : this.createNode(value, _replacer, options);
     }
     clone() {
@@ -21230,11 +21291,11 @@ var require_Document = __commonJS((exports) => {
         this.contents.setIn(path, value);
       }
     }
-    setSchema(version, options = {}) {
-      if (typeof version === "number")
-        version = String(version);
+    setSchema(version2, options = {}) {
+      if (typeof version2 === "number")
+        version2 = String(version2);
       let opt;
-      switch (version) {
+      switch (version2) {
         case "1.1":
           if (this.directives)
             this.directives.yaml.version = "1.1";
@@ -21245,9 +21306,9 @@ var require_Document = __commonJS((exports) => {
         case "1.2":
         case "next":
           if (this.directives)
-            this.directives.yaml.version = version;
+            this.directives.yaml.version = version2;
           else
-            this.directives = new directives.Directives({ version });
+            this.directives = new directives.Directives({ version: version2 });
           opt = { resolveKnownTags: true, schema: "core" };
           break;
         case null:
@@ -21256,7 +21317,7 @@ var require_Document = __commonJS((exports) => {
           opt = null;
           break;
         default: {
-          const sv = JSON.stringify(version);
+          const sv = JSON.stringify(version2);
           throw new Error(`Expected '1.1', '1.2' or null as first argument, but found: ${sv}`);
         }
       }
@@ -21267,11 +21328,11 @@ var require_Document = __commonJS((exports) => {
       else
         throw new Error(`With a null YAML version, the { schema: Schema } option is required`);
     }
-    toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver } = {}) {
+    toJS({ json: json2, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver } = {}) {
       const ctx = {
         anchors: new Map,
         doc: this,
-        keep: !json,
+        keep: !json2,
         mapAsMap: mapAsMap === true,
         mapKeyWarned: false,
         maxAliasCount: typeof maxAliasCount === "number" ? maxAliasCount : 100
@@ -21326,12 +21387,12 @@ var require_errors2 = __commonJS((exports) => {
       super("YAMLWarning", pos, code, message);
     }
   }
-  var prettifyError = (src, lc) => (error2) => {
-    if (error2.pos[0] === -1)
+  var prettifyError2 = (src, lc) => (error50) => {
+    if (error50.pos[0] === -1)
       return;
-    error2.linePos = error2.pos.map((pos) => lc.linePos(pos));
-    const { line, col } = error2.linePos[0];
-    error2.message += ` at line ${line}, column ${col}`;
+    error50.linePos = error50.pos.map((pos) => lc.linePos(pos));
+    const { line, col } = error50.linePos[0];
+    error50.message += ` at line ${line}, column ${col}`;
     let ci = col - 1;
     let lineStr = src.substring(lc.lineStarts[line - 1], lc.lineStarts[line]).replace(/[\n\r]+$/, "");
     if (ci >= 60 && lineStr.length > 80) {
@@ -21350,12 +21411,12 @@ var require_errors2 = __commonJS((exports) => {
     }
     if (/[^ ]/.test(lineStr)) {
       let count = 1;
-      const end = error2.linePos[1];
+      const end = error50.linePos[1];
       if (end?.line === line && end.col > col) {
         count = Math.max(1, Math.min(end.col - col, 80 - ci));
       }
       const pointer = " ".repeat(ci) + "^".repeat(count);
-      error2.message += `:
+      error50.message += `:
 
 ${lineStr}
 ${pointer}
@@ -21365,7 +21426,7 @@ ${pointer}
   exports.YAMLError = YAMLError;
   exports.YAMLParseError = YAMLParseError;
   exports.YAMLWarning = YAMLWarning;
-  exports.prettifyError = prettifyError;
+  exports.prettifyError = prettifyError2;
 });
 
 // node_modules/yaml/dist/compose/resolve-props.js
@@ -21577,7 +21638,7 @@ var require_resolve_block_map = __commonJS((exports) => {
   var startColMsg = "All mapping items must start at the same column";
   function resolveBlockMap({ composeNode, composeEmptyNode }, ctx, bm, onError, tag) {
     const NodeClass = tag?.nodeClass ?? YAMLMap.YAMLMap;
-    const map = new NodeClass(ctx.schema);
+    const map3 = new NodeClass(ctx.schema);
     if (ctx.atRoot)
       ctx.atRoot = false;
     let offset = bm.offset;
@@ -21603,11 +21664,11 @@ var require_resolve_block_map = __commonJS((exports) => {
         if (!keyProps.anchor && !keyProps.tag && !sep2) {
           commentEnd = keyProps.end;
           if (keyProps.comment) {
-            if (map.comment)
-              map.comment += `
+            if (map3.comment)
+              map3.comment += `
 ` + keyProps.comment;
             else
-              map.comment = keyProps.comment;
+              map3.comment = keyProps.comment;
           }
           continue;
         }
@@ -21623,7 +21684,7 @@ var require_resolve_block_map = __commonJS((exports) => {
       if (ctx.schema.compat)
         utilFlowIndentCheck.flowIndentCheck(bm.indent, key, onError);
       ctx.atKey = false;
-      if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
+      if (utilMapIncludes.mapIncludes(ctx, map3.items, keyNode))
         onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
       const valueProps = resolveProps.resolveProps(sep2 ?? [], {
         indicator: "map-value-ind",
@@ -21648,7 +21709,7 @@ var require_resolve_block_map = __commonJS((exports) => {
         const pair = new Pair.Pair(keyNode, valueNode);
         if (ctx.options.keepSourceTokens)
           pair.srcToken = collItem;
-        map.items.push(pair);
+        map3.items.push(pair);
       } else {
         if (implicitKey)
           onError(keyNode.range, "MISSING_CHAR", "Implicit map keys need to be followed by map values");
@@ -21662,13 +21723,13 @@ var require_resolve_block_map = __commonJS((exports) => {
         const pair = new Pair.Pair(keyNode);
         if (ctx.options.keepSourceTokens)
           pair.srcToken = collItem;
-        map.items.push(pair);
+        map3.items.push(pair);
       }
     }
     if (commentEnd && commentEnd < offset)
       onError(commentEnd, "IMPOSSIBLE", "Map comment with trailing content");
-    map.range = [bm.offset, offset, commentEnd ?? offset];
-    return map;
+    map3.range = [bm.offset, offset, commentEnd ?? offset];
+    return map3;
   }
   exports.resolveBlockMap = resolveBlockMap;
 });
@@ -21907,17 +21968,17 @@ var require_resolve_flow_collection = __commonJS((exports) => {
         if (ctx.options.keepSourceTokens)
           pair.srcToken = collItem;
         if (isMap) {
-          const map = coll;
-          if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
+          const map3 = coll;
+          if (utilMapIncludes.mapIncludes(ctx, map3.items, keyNode))
             onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-          map.items.push(pair);
+          map3.items.push(pair);
         } else {
-          const map = new YAMLMap.YAMLMap(ctx.schema);
-          map.flow = true;
-          map.items.push(pair);
+          const map3 = new YAMLMap.YAMLMap(ctx.schema);
+          map3.flow = true;
+          map3.items.push(pair);
           const endRange = (valueNode ?? keyNode).range;
-          map.range = [keyNode.range[0], endRange[1], endRange[2]];
-          coll.items.push(map);
+          map3.range = [keyNode.range[0], endRange[1], endRange[2]];
+          coll.items.push(map3);
         }
         offset = valueNode ? valueNode.range[2] : valueProps.end;
       }
@@ -22145,7 +22206,7 @@ var require_resolve_block_scalar = __commonJS((exports) => {
     const mode = source[0];
     let indent = 0;
     let chomp = "";
-    let error2 = -1;
+    let error50 = -1;
     for (let i = 1;i < source.length; ++i) {
       const ch = source[i];
       if (!chomp && (ch === "-" || ch === "+"))
@@ -22154,12 +22215,12 @@ var require_resolve_block_scalar = __commonJS((exports) => {
         const n = Number(ch);
         if (!indent && n)
           indent = n;
-        else if (error2 === -1)
-          error2 = offset + i;
+        else if (error50 === -1)
+          error50 = offset + i;
       }
     }
-    if (error2 !== -1)
-      onError(error2, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source}`);
+    if (error50 !== -1)
+      onError(error50, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source}`);
     let hasSpace = false;
     let comment = "";
     let length = source.length;
@@ -22446,8 +22507,8 @@ var require_compose_scalar = __commonJS((exports) => {
     try {
       const res = tag.resolve(value, (msg) => onError(tagToken ?? token, "TAG_RESOLVE_FAILED", msg), ctx.options);
       scalar = identity.isScalar(res) ? res : new Scalar.Scalar(res);
-    } catch (error2) {
-      const msg = error2 instanceof Error ? error2.message : String(error2);
+    } catch (error50) {
+      const msg = error50 instanceof Error ? error50.message : String(error50);
       onError(tagToken ?? token, "TAG_RESOLVE_FAILED", msg);
       scalar = new Scalar.Scalar(value);
     }
@@ -22489,10 +22550,10 @@ var require_compose_scalar = __commonJS((exports) => {
   function findScalarTagByTest({ atKey, directives, schema }, value, token, onError) {
     const tag = schema.tags.find((tag2) => (tag2.default === true || atKey && tag2.default === "key") && tag2.test?.test(value)) || schema[identity.SCALAR];
     if (schema.compat) {
-      const compat = schema.compat.find((tag2) => tag2.default && tag2.test?.test(value)) ?? schema[identity.SCALAR];
-      if (tag.tag !== compat.tag) {
+      const compat2 = schema.compat.find((tag2) => tag2.default && tag2.test?.test(value)) ?? schema[identity.SCALAR];
+      if (tag.tag !== compat2.tag) {
         const ts = directives.tagString(tag.tag);
-        const cs = directives.tagString(compat.tag);
+        const cs = directives.tagString(compat2.tag);
         const msg = `Value may be parsed as either ${ts} or ${cs}`;
         onError(token, "TAG_RESOLVE_FAILED", msg, true);
       }
@@ -22564,8 +22625,8 @@ var require_compose_node = __commonJS((exports) => {
           node = composeCollection.composeCollection(CN, ctx, token, props, onError);
           if (anchor)
             node.anchor = anchor.source.substring(1);
-        } catch (error2) {
-          const message = error2 instanceof Error ? error2.message : String(error2);
+        } catch (error50) {
+          const message = error50 instanceof Error ? error50.message : String(error50);
           onError(token, "RESOURCE_EXHAUSTION", message);
         }
         break;
@@ -22640,13 +22701,13 @@ var require_compose_doc = __commonJS((exports) => {
   var resolveProps = require_resolve_props();
   function composeDoc(options, directives, { offset, start, value, end }, onError) {
     const opts = Object.assign({ _directives: directives }, options);
-    const doc = new Document.Document(undefined, opts);
+    const doc2 = new Document.Document(undefined, opts);
     const ctx = {
       atKey: false,
       atRoot: true,
-      directives: doc.directives,
-      options: doc.options,
-      schema: doc.schema
+      directives: doc2.directives,
+      options: doc2.options,
+      schema: doc2.schema
     };
     const props = resolveProps.resolveProps(start, {
       indicator: "doc-start",
@@ -22657,17 +22718,17 @@ var require_compose_doc = __commonJS((exports) => {
       startOnNewline: true
     });
     if (props.found) {
-      doc.directives.docStart = true;
+      doc2.directives.docStart = true;
       if (value && (value.type === "block-map" || value.type === "block-seq") && !props.hasNewline)
         onError(props.end, "MISSING_CHAR", "Block collection cannot start on same line with directives-end marker");
     }
-    doc.contents = value ? composeNode.composeNode(ctx, value, props, onError) : composeNode.composeEmptyNode(ctx, props.end, start, null, props, onError);
-    const contentEnd = doc.contents.range[2];
+    doc2.contents = value ? composeNode.composeNode(ctx, value, props, onError) : composeNode.composeEmptyNode(ctx, props.end, start, null, props, onError);
+    const contentEnd = doc2.contents.range[2];
     const re = resolveEnd.resolveEnd(end, contentEnd, false, onError);
     if (re.comment)
-      doc.comment = re.comment;
-    doc.range = [offset, contentEnd, re.offset];
-    return doc;
+      doc2.comment = re.comment;
+    doc2.range = [offset, contentEnd, re.offset];
+    return doc2;
   }
   exports.composeDoc = composeDoc;
 });
@@ -22677,7 +22738,7 @@ var require_composer = __commonJS((exports) => {
   var node_process = __require("process");
   var directives = require_directives();
   var Document = require_Document();
-  var errors = require_errors2();
+  var errors3 = require_errors2();
   var identity = require_identity();
   var composeDoc = require_compose_doc();
   var resolveEnd = require_resolve_end();
@@ -22728,22 +22789,22 @@ var require_composer = __commonJS((exports) => {
       this.onError = (source, code, message, warning2) => {
         const pos = getErrorPos(source);
         if (warning2)
-          this.warnings.push(new errors.YAMLWarning(pos, code, message));
+          this.warnings.push(new errors3.YAMLWarning(pos, code, message));
         else
-          this.errors.push(new errors.YAMLParseError(pos, code, message));
+          this.errors.push(new errors3.YAMLParseError(pos, code, message));
       };
       this.directives = new directives.Directives({ version: options.version || "1.2" });
       this.options = options;
     }
-    decorate(doc, afterDoc) {
+    decorate(doc2, afterDoc) {
       const { comment, afterEmptyLine } = parsePrelude(this.prelude);
       if (comment) {
-        const dc = doc.contents;
+        const dc = doc2.contents;
         if (afterDoc) {
-          doc.comment = doc.comment ? `${doc.comment}
+          doc2.comment = doc2.comment ? `${doc2.comment}
 ${comment}` : comment;
-        } else if (afterEmptyLine || doc.directives.docStart || !dc) {
-          doc.commentBefore = comment;
+        } else if (afterEmptyLine || doc2.directives.docStart || !dc) {
+          doc2.commentBefore = comment;
         } else if (identity.isCollection(dc) && !dc.flow && dc.items.length > 0) {
           let it = dc.items[0];
           if (identity.isPair(it))
@@ -22759,12 +22820,12 @@ ${cb}` : comment;
       }
       if (afterDoc) {
         for (let i = 0;i < this.errors.length; ++i)
-          doc.errors.push(this.errors[i]);
+          doc2.errors.push(this.errors[i]);
         for (let i = 0;i < this.warnings.length; ++i)
-          doc.warnings.push(this.warnings[i]);
+          doc2.warnings.push(this.warnings[i]);
       } else {
-        doc.errors = this.errors;
-        doc.warnings = this.warnings;
+        doc2.errors = this.errors;
+        doc2.warnings = this.warnings;
       }
       this.prelude = [];
       this.errors = [];
@@ -22797,13 +22858,13 @@ ${cb}` : comment;
           this.atDirectives = true;
           break;
         case "document": {
-          const doc = composeDoc.composeDoc(this.options, this.directives, token, this.onError);
-          if (this.atDirectives && !doc.directives.docStart)
+          const doc2 = composeDoc.composeDoc(this.options, this.directives, token, this.onError);
+          if (this.atDirectives && !doc2.directives.docStart)
             this.onError(token, "MISSING_CHAR", "Missing directives-end/doc-start indicator line");
-          this.decorate(doc, false);
+          this.decorate(doc2, false);
           if (this.doc)
             yield this.doc;
-          this.doc = doc;
+          this.doc = doc2;
           this.atDirectives = false;
           break;
         }
@@ -22816,17 +22877,17 @@ ${cb}` : comment;
           break;
         case "error": {
           const msg = token.source ? `${token.message}: ${JSON.stringify(token.source)}` : token.message;
-          const error2 = new errors.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", msg);
+          const error50 = new errors3.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", msg);
           if (this.atDirectives || !this.doc)
-            this.errors.push(error2);
+            this.errors.push(error50);
           else
-            this.doc.errors.push(error2);
+            this.doc.errors.push(error50);
           break;
         }
         case "doc-end": {
           if (!this.doc) {
             const msg = "Unexpected doc-end without preceding document";
-            this.errors.push(new errors.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", msg));
+            this.errors.push(new errors3.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", msg));
             break;
           }
           this.doc.directives.docEnd = true;
@@ -22841,7 +22902,7 @@ ${end.comment}` : end.comment;
           break;
         }
         default:
-          this.errors.push(new errors.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", `Unsupported token ${token.type}`));
+          this.errors.push(new errors3.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", `Unsupported token ${token.type}`));
       }
     }
     *end(forceDoc = false, endOffset = -1) {
@@ -22851,12 +22912,12 @@ ${end.comment}` : end.comment;
         this.doc = null;
       } else if (forceDoc) {
         const opts = Object.assign({ _directives: this.directives }, this.options);
-        const doc = new Document.Document(undefined, opts);
+        const doc2 = new Document.Document(undefined, opts);
         if (this.atDirectives)
           this.onError(endOffset, "MISSING_CHAR", "Missing directives-end indicator line");
-        doc.range = [0, endOffset, endOffset];
-        this.decorate(doc, false);
-        yield doc;
+        doc2.range = [0, endOffset, endOffset];
+        this.decorate(doc2, false);
+        yield doc2;
       }
     }
   }
@@ -22867,7 +22928,7 @@ ${end.comment}` : end.comment;
 var require_cst_scalar = __commonJS((exports) => {
   var resolveBlockScalar = require_resolve_block_scalar();
   var resolveFlowScalar = require_resolve_flow_scalar();
-  var errors = require_errors2();
+  var errors3 = require_errors2();
   var stringifyString = require_stringifyString();
   function resolveAsScalar(token, strict = true, onError) {
     if (token) {
@@ -22876,7 +22937,7 @@ var require_cst_scalar = __commonJS((exports) => {
         if (onError)
           onError(offset, code, message);
         else
-          throw new errors.YAMLParseError([offset, offset + 1], code, message);
+          throw new errors3.YAMLParseError([offset, offset + 1], code, message);
       };
       switch (token.type) {
         case "scalar":
@@ -24111,8 +24172,8 @@ var require_parser = __commonJS((exports) => {
     peek(n) {
       return this.stack[this.stack.length - n];
     }
-    *pop(error2) {
-      const token = error2 ?? this.stack.pop();
+    *pop(error50) {
+      const token = error50 ?? this.stack.pop();
       if (!token) {
         const message = "Tried to pop an empty stack";
         yield { type: "error", offset: this.offset, source: "", message };
@@ -24196,14 +24257,14 @@ var require_parser = __commonJS((exports) => {
           return;
         case "doc-mode":
         case "doc-start": {
-          const doc = {
+          const doc2 = {
             type: "document",
             offset: this.offset,
             start: []
           };
           if (this.type === "doc-start")
-            doc.start.push(this.sourceToken);
-          this.stack.push(doc);
+            doc2.start.push(this.sourceToken);
+          this.stack.push(doc2);
           return;
         }
       }
@@ -24214,16 +24275,16 @@ var require_parser = __commonJS((exports) => {
         source: this.source
       };
     }
-    *document(doc) {
-      if (doc.value)
-        return yield* this.lineEnd(doc);
+    *document(doc2) {
+      if (doc2.value)
+        return yield* this.lineEnd(doc2);
       switch (this.type) {
         case "doc-start": {
-          if (findNonEmptyIndex(doc.start) !== -1) {
+          if (findNonEmptyIndex(doc2.start) !== -1) {
             yield* this.pop();
             yield* this.step();
           } else
-            doc.start.push(this.sourceToken);
+            doc2.start.push(this.sourceToken);
           return;
         }
         case "anchor":
@@ -24231,10 +24292,10 @@ var require_parser = __commonJS((exports) => {
         case "space":
         case "comment":
         case "newline":
-          doc.start.push(this.sourceToken);
+          doc2.start.push(this.sourceToken);
           return;
       }
-      const bv = this.startBlockValue(doc);
+      const bv = this.startBlockValue(doc2);
       if (bv)
         this.stack.push(bv);
       else {
@@ -24257,14 +24318,14 @@ var require_parser = __commonJS((exports) => {
           delete scalar.end;
         } else
           sep2 = [this.sourceToken];
-        const map = {
+        const map3 = {
           type: "block-map",
           offset: scalar.offset,
           indent: scalar.indent,
           items: [{ start, key: scalar, sep: sep2 }]
         };
         this.onKeyLine = true;
-        this.stack[this.stack.length - 1] = map;
+        this.stack[this.stack.length - 1] = map3;
       } else
         yield* this.lineEnd(scalar);
     }
@@ -24295,8 +24356,8 @@ var require_parser = __commonJS((exports) => {
           yield* this.step();
       }
     }
-    *blockMap(map) {
-      const it = map.items[map.items.length - 1];
+    *blockMap(map3) {
+      const it = map3.items[map3.items.length - 1];
       switch (this.type) {
         case "newline":
           this.onKeyLine = false;
@@ -24306,7 +24367,7 @@ var require_parser = __commonJS((exports) => {
             if (last?.type === "comment")
               end?.push(this.sourceToken);
             else
-              map.items.push({ start: [this.sourceToken] });
+              map3.items.push({ start: [this.sourceToken] });
           } else if (it.sep) {
             it.sep.push(this.sourceToken);
           } else {
@@ -24316,17 +24377,17 @@ var require_parser = __commonJS((exports) => {
         case "space":
         case "comment":
           if (it.value) {
-            map.items.push({ start: [this.sourceToken] });
+            map3.items.push({ start: [this.sourceToken] });
           } else if (it.sep) {
             it.sep.push(this.sourceToken);
           } else {
-            if (this.atIndentedComment(it.start, map.indent)) {
-              const prev = map.items[map.items.length - 2];
+            if (this.atIndentedComment(it.start, map3.indent)) {
+              const prev = map3.items[map3.items.length - 2];
               const end = prev?.value?.end;
               if (Array.isArray(end)) {
                 arrayPushArray(end, it.start);
                 end.push(this.sourceToken);
-                map.items.pop();
+                map3.items.pop();
                 return;
               }
             }
@@ -24334,8 +24395,8 @@ var require_parser = __commonJS((exports) => {
           }
           return;
       }
-      if (this.indent >= map.indent) {
-        const atMapIndent = !this.onKeyLine && this.indent === map.indent;
+      if (this.indent >= map3.indent) {
+        const atMapIndent = !this.onKeyLine && this.indent === map3.indent;
         const atNextItem = atMapIndent && (it.sep || it.explicitKey) && this.type !== "seq-item-ind";
         let start = [];
         if (atNextItem && it.sep && !it.value) {
@@ -24349,7 +24410,7 @@ var require_parser = __commonJS((exports) => {
               case "space":
                 break;
               case "comment":
-                if (st.indent > map.indent)
+                if (st.indent > map3.indent)
                   nl.length = 0;
                 break;
               default:
@@ -24364,7 +24425,7 @@ var require_parser = __commonJS((exports) => {
           case "tag":
             if (atNextItem || it.value) {
               start.push(this.sourceToken);
-              map.items.push({ start });
+              map3.items.push({ start });
               this.onKeyLine = true;
             } else if (it.sep) {
               it.sep.push(this.sourceToken);
@@ -24378,7 +24439,7 @@ var require_parser = __commonJS((exports) => {
               it.explicitKey = true;
             } else if (atNextItem || it.value) {
               start.push(this.sourceToken);
-              map.items.push({ start, explicitKey: true });
+              map3.items.push({ start, explicitKey: true });
             } else {
               this.stack.push({
                 type: "block-map",
@@ -24404,7 +24465,7 @@ var require_parser = __commonJS((exports) => {
                   });
                 }
               } else if (it.value) {
-                map.items.push({ start: [], key: null, sep: [this.sourceToken] });
+                map3.items.push({ start: [], key: null, sep: [this.sourceToken] });
               } else if (includesToken(it.sep, "map-value-ind")) {
                 this.stack.push({
                   type: "block-map",
@@ -24434,7 +24495,7 @@ var require_parser = __commonJS((exports) => {
               if (!it.sep) {
                 Object.assign(it, { key: null, sep: [this.sourceToken] });
               } else if (it.value || atNextItem) {
-                map.items.push({ start, key: null, sep: [this.sourceToken] });
+                map3.items.push({ start, key: null, sep: [this.sourceToken] });
               } else if (includesToken(it.sep, "map-value-ind")) {
                 this.stack.push({
                   type: "block-map",
@@ -24454,7 +24515,7 @@ var require_parser = __commonJS((exports) => {
           case "double-quoted-scalar": {
             const fs2 = this.flowScalar(this.type);
             if (atNextItem || it.value) {
-              map.items.push({ start, key: fs2, sep: [] });
+              map3.items.push({ start, key: fs2, sep: [] });
               this.onKeyLine = true;
             } else if (it.sep) {
               this.stack.push(fs2);
@@ -24465,7 +24526,7 @@ var require_parser = __commonJS((exports) => {
             return;
           }
           default: {
-            const bv = this.startBlockValue(map);
+            const bv = this.startBlockValue(map3);
             if (bv) {
               if (bv.type === "block-seq") {
                 if (!it.explicitKey && it.sep && !includesToken(it.sep, "newline")) {
@@ -24478,7 +24539,7 @@ var require_parser = __commonJS((exports) => {
                   return;
                 }
               } else if (atMapIndent) {
-                map.items.push({ start });
+                map3.items.push({ start });
               }
               this.stack.push(bv);
               return;
@@ -24619,14 +24680,14 @@ var require_parser = __commonJS((exports) => {
           fixFlowSeqItems(fc);
           const sep2 = fc.end.splice(1, fc.end.length);
           sep2.push(this.sourceToken);
-          const map = {
+          const map3 = {
             type: "block-map",
             offset: fc.offset,
             indent: fc.indent,
             items: [{ start, key: fc, sep: sep2 }]
           };
           this.onKeyLine = true;
-          this.stack[this.stack.length - 1] = map;
+          this.stack[this.stack.length - 1] = map3;
         } else {
           yield* this.lineEnd(fc);
         }
@@ -24756,11 +24817,11 @@ var require_parser = __commonJS((exports) => {
 var require_public_api = __commonJS((exports) => {
   var composer = require_composer();
   var Document = require_Document();
-  var errors = require_errors2();
+  var errors3 = require_errors2();
   var log = require_log();
   var identity = require_identity();
   var lineCounter = require_line_counter();
-  var parser = require_parser();
+  var parser2 = require_parser();
   function parseOptions(options) {
     const prettyErrors = options.prettyErrors !== false;
     const lineCounter$1 = options.lineCounter || prettyErrors && new lineCounter.LineCounter || null;
@@ -24768,13 +24829,13 @@ var require_public_api = __commonJS((exports) => {
   }
   function parseAllDocuments(source, options = {}) {
     const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
-    const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
+    const parser$1 = new parser2.Parser(lineCounter2?.addNewLine);
     const composer$1 = new composer.Composer(options);
     const docs = Array.from(composer$1.compose(parser$1.parse(source)));
     if (prettyErrors && lineCounter2)
-      for (const doc of docs) {
-        doc.errors.forEach(errors.prettifyError(source, lineCounter2));
-        doc.warnings.forEach(errors.prettifyError(source, lineCounter2));
+      for (const doc2 of docs) {
+        doc2.errors.forEach(errors3.prettifyError(source, lineCounter2));
+        doc2.warnings.forEach(errors3.prettifyError(source, lineCounter2));
       }
     if (docs.length > 0)
       return docs;
@@ -24782,41 +24843,41 @@ var require_public_api = __commonJS((exports) => {
   }
   function parseDocument(source, options = {}) {
     const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
-    const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
+    const parser$1 = new parser2.Parser(lineCounter2?.addNewLine);
     const composer$1 = new composer.Composer(options);
-    let doc = null;
+    let doc2 = null;
     for (const _doc of composer$1.compose(parser$1.parse(source), true, source.length)) {
-      if (!doc)
-        doc = _doc;
-      else if (doc.options.logLevel !== "silent") {
-        doc.errors.push(new errors.YAMLParseError(_doc.range.slice(0, 2), "MULTIPLE_DOCS", "Source contains multiple documents; please use YAML.parseAllDocuments()"));
+      if (!doc2)
+        doc2 = _doc;
+      else if (doc2.options.logLevel !== "silent") {
+        doc2.errors.push(new errors3.YAMLParseError(_doc.range.slice(0, 2), "MULTIPLE_DOCS", "Source contains multiple documents; please use YAML.parseAllDocuments()"));
         break;
       }
     }
     if (prettyErrors && lineCounter2) {
-      doc.errors.forEach(errors.prettifyError(source, lineCounter2));
-      doc.warnings.forEach(errors.prettifyError(source, lineCounter2));
+      doc2.errors.forEach(errors3.prettifyError(source, lineCounter2));
+      doc2.warnings.forEach(errors3.prettifyError(source, lineCounter2));
     }
-    return doc;
+    return doc2;
   }
-  function parse2(src, reviver, options) {
+  function parse6(src, reviver, options) {
     let _reviver = undefined;
     if (typeof reviver === "function") {
       _reviver = reviver;
     } else if (options === undefined && reviver && typeof reviver === "object") {
       options = reviver;
     }
-    const doc = parseDocument(src, options);
-    if (!doc)
+    const doc2 = parseDocument(src, options);
+    if (!doc2)
       return null;
-    doc.warnings.forEach((warning2) => log.warn(doc.options.logLevel, warning2));
-    if (doc.errors.length > 0) {
-      if (doc.options.logLevel !== "silent")
-        throw doc.errors[0];
+    doc2.warnings.forEach((warning2) => log.warn(doc2.options.logLevel, warning2));
+    if (doc2.errors.length > 0) {
+      if (doc2.options.logLevel !== "silent")
+        throw doc2.errors[0];
       else
-        doc.errors = [];
+        doc2.errors = [];
     }
-    return doc.toJS(Object.assign({ reviver: _reviver }, options));
+    return doc2.toJS(Object.assign({ reviver: _reviver }, options));
   }
   function stringify(value, replacer, options) {
     let _replacer = null;
@@ -24840,7 +24901,7 @@ var require_public_api = __commonJS((exports) => {
       return value.toString(options);
     return new Document.Document(value, _replacer, options).toString(options);
   }
-  exports.parse = parse2;
+  exports.parse = parse6;
   exports.parseAllDocuments = parseAllDocuments;
   exports.parseDocument = parseDocument;
   exports.stringify = stringify;
@@ -24851,7 +24912,7 @@ var require_dist = __commonJS((exports) => {
   var composer = require_composer();
   var Document = require_Document();
   var Schema = require_Schema();
-  var errors = require_errors2();
+  var errors3 = require_errors2();
   var Alias = require_Alias();
   var identity = require_identity();
   var Pair = require_Pair();
@@ -24861,15 +24922,15 @@ var require_dist = __commonJS((exports) => {
   var cst = require_cst();
   var lexer = require_lexer();
   var lineCounter = require_line_counter();
-  var parser = require_parser();
+  var parser2 = require_parser();
   var publicApi = require_public_api();
   var visit = require_visit();
   exports.Composer = composer.Composer;
   exports.Document = Document.Document;
   exports.Schema = Schema.Schema;
-  exports.YAMLError = errors.YAMLError;
-  exports.YAMLParseError = errors.YAMLParseError;
-  exports.YAMLWarning = errors.YAMLWarning;
+  exports.YAMLError = errors3.YAMLError;
+  exports.YAMLParseError = errors3.YAMLParseError;
+  exports.YAMLWarning = errors3.YAMLWarning;
   exports.Alias = Alias.Alias;
   exports.isAlias = identity.isAlias;
   exports.isCollection = identity.isCollection;
@@ -24886,13 +24947,108 @@ var require_dist = __commonJS((exports) => {
   exports.CST = cst;
   exports.Lexer = lexer.Lexer;
   exports.LineCounter = lineCounter.LineCounter;
-  exports.Parser = parser.Parser;
+  exports.Parser = parser2.Parser;
   exports.parse = publicApi.parse;
   exports.parseAllDocuments = publicApi.parseAllDocuments;
   exports.parseDocument = publicApi.parseDocument;
   exports.stringify = publicApi.stringify;
   exports.visit = visit.visit;
   exports.visitAsync = visit.visitAsync;
+});
+
+// node_modules/base64-js/index.js
+var require_base64_js = __commonJS((exports) => {
+  exports.byteLength = byteLength;
+  exports.toByteArray = toByteArray;
+  exports.fromByteArray = fromByteArray;
+  var lookup = [];
+  var revLookup = [];
+  var Arr = typeof Uint8Array !== "undefined" ? Uint8Array : Array;
+  var code = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  for (i = 0, len = code.length;i < len; ++i) {
+    lookup[i] = code[i];
+    revLookup[code.charCodeAt(i)] = i;
+  }
+  var i;
+  var len;
+  revLookup[45] = 62;
+  revLookup[95] = 63;
+  function getLens(b64) {
+    var len2 = b64.length;
+    if (len2 % 4 > 0) {
+      throw new Error("Invalid string. Length must be a multiple of 4");
+    }
+    var validLen = b64.indexOf("=");
+    if (validLen === -1)
+      validLen = len2;
+    var placeHoldersLen = validLen === len2 ? 0 : 4 - validLen % 4;
+    return [validLen, placeHoldersLen];
+  }
+  function byteLength(b64) {
+    var lens = getLens(b64);
+    var validLen = lens[0];
+    var placeHoldersLen = lens[1];
+    return (validLen + placeHoldersLen) * 3 / 4 - placeHoldersLen;
+  }
+  function _byteLength(b64, validLen, placeHoldersLen) {
+    return (validLen + placeHoldersLen) * 3 / 4 - placeHoldersLen;
+  }
+  function toByteArray(b64) {
+    var tmp;
+    var lens = getLens(b64);
+    var validLen = lens[0];
+    var placeHoldersLen = lens[1];
+    var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen));
+    var curByte = 0;
+    var len2 = placeHoldersLen > 0 ? validLen - 4 : validLen;
+    var i2;
+    for (i2 = 0;i2 < len2; i2 += 4) {
+      tmp = revLookup[b64.charCodeAt(i2)] << 18 | revLookup[b64.charCodeAt(i2 + 1)] << 12 | revLookup[b64.charCodeAt(i2 + 2)] << 6 | revLookup[b64.charCodeAt(i2 + 3)];
+      arr[curByte++] = tmp >> 16 & 255;
+      arr[curByte++] = tmp >> 8 & 255;
+      arr[curByte++] = tmp & 255;
+    }
+    if (placeHoldersLen === 2) {
+      tmp = revLookup[b64.charCodeAt(i2)] << 2 | revLookup[b64.charCodeAt(i2 + 1)] >> 4;
+      arr[curByte++] = tmp & 255;
+    }
+    if (placeHoldersLen === 1) {
+      tmp = revLookup[b64.charCodeAt(i2)] << 10 | revLookup[b64.charCodeAt(i2 + 1)] << 4 | revLookup[b64.charCodeAt(i2 + 2)] >> 2;
+      arr[curByte++] = tmp >> 8 & 255;
+      arr[curByte++] = tmp & 255;
+    }
+    return arr;
+  }
+  function tripletToBase64(num) {
+    return lookup[num >> 18 & 63] + lookup[num >> 12 & 63] + lookup[num >> 6 & 63] + lookup[num & 63];
+  }
+  function encodeChunk(uint8, start, end) {
+    var tmp;
+    var output = [];
+    for (var i2 = start;i2 < end; i2 += 3) {
+      tmp = (uint8[i2] << 16 & 16711680) + (uint8[i2 + 1] << 8 & 65280) + (uint8[i2 + 2] & 255);
+      output.push(tripletToBase64(tmp));
+    }
+    return output.join("");
+  }
+  function fromByteArray(uint8) {
+    var tmp;
+    var len2 = uint8.length;
+    var extraBytes = len2 % 3;
+    var parts = [];
+    var maxChunkLength = 16383;
+    for (var i2 = 0, len22 = len2 - extraBytes;i2 < len22; i2 += maxChunkLength) {
+      parts.push(encodeChunk(uint8, i2, i2 + maxChunkLength > len22 ? len22 : i2 + maxChunkLength));
+    }
+    if (extraBytes === 1) {
+      tmp = uint8[len2 - 1];
+      parts.push(lookup[tmp >> 2] + lookup[tmp << 4 & 63] + "==");
+    } else if (extraBytes === 2) {
+      tmp = (uint8[len2 - 2] << 8) + uint8[len2 - 1];
+      parts.push(lookup[tmp >> 10] + lookup[tmp >> 4 & 63] + lookup[tmp << 2 & 63] + "=");
+    }
+    return parts.join("");
+  }
 });
 
 // node_modules/parse-diff/index.js
@@ -25092,8 +25248,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       restart();
       currentFile.to = parseOldOrNewFile(line2);
     };
-    var toNumOfLines = function toNumOfLines2(number) {
-      return +(number || 1);
+    var toNumOfLines = function toNumOfLines2(number5) {
+      return +(number5 || 1);
     };
     var chunk = function chunk2(line2, match2) {
       if (!currentFile) {
@@ -25187,20 +25343,20 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     fileName = removeTimeStamp(fileName);
     return fileName.replace(qoutedFileNameRegex, "").replace(gitFileHeaderRegex, "");
   };
-  var leftTrimChars = function leftTrimChars2(string, trimmingChars) {
-    string = makeString(string);
+  var leftTrimChars = function leftTrimChars2(string5, trimmingChars) {
+    string5 = makeString(string5);
     if (!trimmingChars && String.prototype.trimLeft)
-      return string.trimLeft();
+      return string5.trimLeft();
     var trimmingString = formTrimmingString(trimmingChars);
-    return string.replace(new RegExp("^".concat(trimmingString, "+")), "");
+    return string5.replace(new RegExp("^".concat(trimmingString, "+")), "");
   };
   var timeStampRegex = /\t.*|\d{4}-\d\d-\d\d\s\d\d:\d\d:\d\d(.\d+)?\s(\+|-)\d\d\d\d/;
-  var removeTimeStamp = function removeTimeStamp2(string) {
-    var timeStamp = timeStampRegex.exec(string);
+  var removeTimeStamp = function removeTimeStamp2(string5) {
+    var timeStamp = timeStampRegex.exec(string5);
     if (timeStamp) {
-      string = string.substring(0, timeStamp.index).trim();
+      string5 = string5.substring(0, timeStamp.index).trim();
     }
-    return string;
+    return string5;
   };
   var formTrimmingString = function formTrimmingString2(trimmingChars) {
     if (trimmingChars === null || trimmingChars === undefined)
@@ -25212,162 +25368,6 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
   var makeString = function makeString2(itemToConvert) {
     return (itemToConvert !== null && itemToConvert !== undefined ? itemToConvert : "") + "";
   };
-});
-
-// node_modules/base64-js/index.js
-var require_base64_js = __commonJS((exports) => {
-  exports.byteLength = byteLength;
-  exports.toByteArray = toByteArray;
-  exports.fromByteArray = fromByteArray;
-  var lookup = [];
-  var revLookup = [];
-  var Arr = typeof Uint8Array !== "undefined" ? Uint8Array : Array;
-  var code = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  for (i = 0, len = code.length;i < len; ++i) {
-    lookup[i] = code[i];
-    revLookup[code.charCodeAt(i)] = i;
-  }
-  var i;
-  var len;
-  revLookup[45] = 62;
-  revLookup[95] = 63;
-  function getLens(b64) {
-    var len2 = b64.length;
-    if (len2 % 4 > 0) {
-      throw new Error("Invalid string. Length must be a multiple of 4");
-    }
-    var validLen = b64.indexOf("=");
-    if (validLen === -1)
-      validLen = len2;
-    var placeHoldersLen = validLen === len2 ? 0 : 4 - validLen % 4;
-    return [validLen, placeHoldersLen];
-  }
-  function byteLength(b64) {
-    var lens = getLens(b64);
-    var validLen = lens[0];
-    var placeHoldersLen = lens[1];
-    return (validLen + placeHoldersLen) * 3 / 4 - placeHoldersLen;
-  }
-  function _byteLength(b64, validLen, placeHoldersLen) {
-    return (validLen + placeHoldersLen) * 3 / 4 - placeHoldersLen;
-  }
-  function toByteArray(b64) {
-    var tmp;
-    var lens = getLens(b64);
-    var validLen = lens[0];
-    var placeHoldersLen = lens[1];
-    var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen));
-    var curByte = 0;
-    var len2 = placeHoldersLen > 0 ? validLen - 4 : validLen;
-    var i2;
-    for (i2 = 0;i2 < len2; i2 += 4) {
-      tmp = revLookup[b64.charCodeAt(i2)] << 18 | revLookup[b64.charCodeAt(i2 + 1)] << 12 | revLookup[b64.charCodeAt(i2 + 2)] << 6 | revLookup[b64.charCodeAt(i2 + 3)];
-      arr[curByte++] = tmp >> 16 & 255;
-      arr[curByte++] = tmp >> 8 & 255;
-      arr[curByte++] = tmp & 255;
-    }
-    if (placeHoldersLen === 2) {
-      tmp = revLookup[b64.charCodeAt(i2)] << 2 | revLookup[b64.charCodeAt(i2 + 1)] >> 4;
-      arr[curByte++] = tmp & 255;
-    }
-    if (placeHoldersLen === 1) {
-      tmp = revLookup[b64.charCodeAt(i2)] << 10 | revLookup[b64.charCodeAt(i2 + 1)] << 4 | revLookup[b64.charCodeAt(i2 + 2)] >> 2;
-      arr[curByte++] = tmp >> 8 & 255;
-      arr[curByte++] = tmp & 255;
-    }
-    return arr;
-  }
-  function tripletToBase64(num) {
-    return lookup[num >> 18 & 63] + lookup[num >> 12 & 63] + lookup[num >> 6 & 63] + lookup[num & 63];
-  }
-  function encodeChunk(uint8, start, end) {
-    var tmp;
-    var output = [];
-    for (var i2 = start;i2 < end; i2 += 3) {
-      tmp = (uint8[i2] << 16 & 16711680) + (uint8[i2 + 1] << 8 & 65280) + (uint8[i2 + 2] & 255);
-      output.push(tripletToBase64(tmp));
-    }
-    return output.join("");
-  }
-  function fromByteArray(uint8) {
-    var tmp;
-    var len2 = uint8.length;
-    var extraBytes = len2 % 3;
-    var parts = [];
-    var maxChunkLength = 16383;
-    for (var i2 = 0, len22 = len2 - extraBytes;i2 < len22; i2 += maxChunkLength) {
-      parts.push(encodeChunk(uint8, i2, i2 + maxChunkLength > len22 ? len22 : i2 + maxChunkLength));
-    }
-    if (extraBytes === 1) {
-      tmp = uint8[len2 - 1];
-      parts.push(lookup[tmp >> 2] + lookup[tmp << 4 & 63] + "==");
-    } else if (extraBytes === 2) {
-      tmp = (uint8[len2 - 2] << 8) + uint8[len2 - 1];
-      parts.push(lookup[tmp >> 10] + lookup[tmp >> 4 & 63] + lookup[tmp << 2 & 63] + "=");
-    }
-    return parts.join("");
-  }
-});
-
-// node_modules/string-similarity/src/index.js
-var require_src = __commonJS((exports, module) => {
-  module.exports = {
-    compareTwoStrings,
-    findBestMatch
-  };
-  function compareTwoStrings(first, second) {
-    first = first.replace(/\s+/g, "");
-    second = second.replace(/\s+/g, "");
-    if (first === second)
-      return 1;
-    if (first.length < 2 || second.length < 2)
-      return 0;
-    let firstBigrams = new Map;
-    for (let i = 0;i < first.length - 1; i++) {
-      const bigram = first.substring(i, i + 2);
-      const count = firstBigrams.has(bigram) ? firstBigrams.get(bigram) + 1 : 1;
-      firstBigrams.set(bigram, count);
-    }
-    let intersectionSize = 0;
-    for (let i = 0;i < second.length - 1; i++) {
-      const bigram = second.substring(i, i + 2);
-      const count = firstBigrams.has(bigram) ? firstBigrams.get(bigram) : 0;
-      if (count > 0) {
-        firstBigrams.set(bigram, count - 1);
-        intersectionSize++;
-      }
-    }
-    return 2 * intersectionSize / (first.length + second.length - 2);
-  }
-  function findBestMatch(mainString, targetStrings) {
-    if (!areArgsValid(mainString, targetStrings))
-      throw new Error("Bad arguments: First argument should be a string, second should be an array of strings");
-    const ratings = [];
-    let bestMatchIndex = 0;
-    for (let i = 0;i < targetStrings.length; i++) {
-      const currentTargetString = targetStrings[i];
-      const currentRating = compareTwoStrings(mainString, currentTargetString);
-      ratings.push({ target: currentTargetString, rating: currentRating });
-      if (currentRating > ratings[bestMatchIndex].rating) {
-        bestMatchIndex = i;
-      }
-    }
-    const bestMatch = ratings[bestMatchIndex];
-    return { ratings, bestMatch, bestMatchIndex };
-  }
-  function areArgsValid(mainString, targetStrings) {
-    if (typeof mainString !== "string")
-      return false;
-    if (!Array.isArray(targetStrings))
-      return false;
-    if (!targetStrings.length)
-      return false;
-    if (targetStrings.find(function(s) {
-      return typeof s !== "string";
-    }))
-      return false;
-    return true;
-  }
 });
 
 // node_modules/@actions/core/lib/command.js
@@ -25441,6 +25441,9 @@ function escapeData(s) {
 function escapeProperty(s) {
   return toCommandValue(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A").replace(/:/g, "%3A").replace(/,/g, "%2C");
 }
+
+// node_modules/@actions/core/lib/core.js
+import * as os3 from "os";
 
 // node_modules/@actions/http-client/lib/index.js
 var tunnel = __toESM(require_tunnel(), 1);
@@ -25697,6 +25700,9 @@ function warning(message, properties = {}) {
 function notice(message, properties = {}) {
   issueCommand("notice", toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
+function info(message) {
+  process.stdout.write(message + os3.EOL);
+}
 
 // node_modules/@actions/github/lib/github.js
 var exports_github = {};
@@ -25707,7 +25713,7 @@ __export(exports_github, {
 
 // node_modules/@actions/github/lib/context.js
 import { readFileSync, existsSync } from "fs";
-import { EOL as EOL3 } from "os";
+import { EOL as EOL4 } from "os";
 
 class Context {
   constructor() {
@@ -25718,7 +25724,7 @@ class Context {
         this.payload = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
       } else {
         const path = process.env.GITHUB_EVENT_PATH;
-        process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${EOL3}`);
+        process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${EOL4}`);
       }
     }
     this.eventName = process.env.GITHUB_EVENT_NAME;
@@ -29271,7693 +29277,140 @@ function getOctokit(token, options, ...additionalPlugins) {
   return new GitHubWithPlugins(getOctokitOptions(token, options));
 }
 
-// src/features/pr/cve-detection/check-vulnerabilities.ts
-var DEPENDENCY_FILES = [
-  "package.json",
-  "requirements.txt",
-  "build.gradle",
-  "build.gradle.kts"
-];
-async function checkVulnerabilities(diffs) {
-  const findings = [];
-  const newDependecies = [];
-  for (const diff of diffs) {
-    let isDependencyFile = false;
-    for (const file of DEPENDENCY_FILES) {
-      if (diff.file.endsWith(file)) {
-        isDependencyFile = true;
-        break;
-      }
+// src/features/pr/compare-state/fingerprint.ts
+function normaliseSnippet(snippet, maxLength = 120) {
+  return snippet.trim().replace(/\s+/g, " ").toLowerCase().slice(0, maxLength);
+}
+function fingerprintStatic(ruleId, file, lineContent) {
+  return `static:${ruleId}:${file}:${normaliseSnippet(lineContent)}`;
+}
+function fingerprintOSV(pkgName, pkgVersion, osvIds) {
+  const ids = [...osvIds].sort().join(",");
+  return `osv:${pkgName}@${pkgVersion}:${ids}`;
+}
+function fingerprintLLM(file, lineContent) {
+  return `llm:${file}:${normaliseSnippet(lineContent)}`;
+}
+// src/features/pr/compare-state/matcher.ts
+var import_string_similarity = __toESM(require_src(), 1);
+var FUZZY_THRESHOLD = 0.7;
+function matchFindings(staticFindings, osvFindings, llmReviews, diffs, previous) {
+  const previousFindings = new Map(previous.findings.map((finding) => [finding.fingerprint, finding]));
+  const matchedPrevious = new Set;
+  const matched = [];
+  function findPrevious(fingerprint) {
+    const finding = previousFindings.get(fingerprint);
+    if (finding) {
+      matchedPrevious.add(fingerprint);
     }
-    if (!isDependencyFile) {
+    return finding;
+  }
+  for (const finding of staticFindings) {
+    const lineContent = getLineContent(finding.file, finding.line, diffs);
+    const ruleId = inferRuleId(finding.description);
+    const fingerprint = fingerprintStatic(ruleId, finding.file, lineContent);
+    const previousFinding = findPrevious(fingerprint);
+    matched.push({
+      finding,
+      fingerprint,
+      previous: previousFinding ?? null,
+      source: "static",
+      status: previousFinding ? "active" : "new"
+    });
+  }
+  for (const finding of osvFindings) {
+    const { osvIds, pkgName, pkgVersion } = parseOSVDescription(finding.description);
+    const fingerprint = fingerprintOSV(pkgName, pkgVersion, osvIds);
+    const previousFinding = findPrevious(fingerprint);
+    matched.push({
+      finding,
+      fingerprint,
+      previous: previousFinding ?? null,
+      source: "osv",
+      status: previousFinding ? "active" : "new"
+    });
+  }
+  for (const review of llmReviews) {
+    const lineContent = getLineContent(review.file, review.line, diffs);
+    const fingerprint = fingerprintLLM(review.file, lineContent);
+    const exactMatch = findPrevious(fingerprint);
+    if (exactMatch) {
+      matched.push({
+        fingerprint,
+        previous: exactMatch,
+        review,
+        source: "llm",
+        status: "active"
+      });
       continue;
     }
-    for (const addedLine of diff.added) {
-      const dep = extractDependency(diff.file, addedLine.content);
-      if (!dep) {
+    const normalisedCurrentSnippet = normaliseSnippet(lineContent);
+    let bestScore = 0;
+    let bestMatch = null;
+    for (const [previousFingerprint, previousFinding] of previousFindings) {
+      if (matchedPrevious.has(previousFingerprint) || previousFinding.source !== "llm") {
         continue;
       }
-      newDependecies.push({
-        dep,
-        file: diff.file,
-        line: addedLine.lineNumber
+      const prefix = `llm:${previousFinding.file}:`;
+      const previousSnippet = previousFingerprint.startsWith(prefix) ? previousFingerprint.slice(prefix.length) : "";
+      const score = import_string_similarity.default.compareTwoStrings(normalisedCurrentSnippet, previousSnippet);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = previousFinding;
+      }
+    }
+    if (bestScore >= FUZZY_THRESHOLD && bestMatch) {
+      matchedPrevious.add(bestMatch.fingerprint);
+      matched.push({
+        fingerprint,
+        previous: bestMatch,
+        review,
+        source: "llm",
+        status: "active"
+      });
+      continue;
+    }
+    matched.push({
+      fingerprint,
+      previous: null,
+      review,
+      source: "llm",
+      status: "new"
+    });
+  }
+  const fixed = [];
+  for (const [fingerprint, previousFinding] of previousFindings) {
+    if (!matchedPrevious.has(fingerprint)) {
+      fixed.push({
+        previous: previousFinding
       });
     }
   }
-  if (newDependecies.length === 0) {
-    return findings;
-  }
-  const allDeps = newDependecies.map((d) => d.dep);
-  const seenKeys = new Set;
-  const uniqueDeps = allDeps.filter((dep) => {
-    const key = `${dep.package.name}@${dep.version}`;
-    if (seenKeys.has(key)) {
-      return false;
-    }
-    seenKeys.add(key);
-    return true;
-  });
-  const cveResults = await fetchCVEs(uniqueDeps);
-  for (const item of newDependecies) {
-    const key = `${item.dep.package.name}@${item.dep.version}`;
-    const vulnerabilities = cveResults.get(key);
-    if (!vulnerabilities || vulnerabilities.length === 0) {
-      continue;
-    }
-    findings.push({
-      description: `Added dependency \`${item.dep.package.name}@${item.dep.version}\` has known vulnerabilities: ${vulnerabilities.join(", ")}.`,
-      file: item.file,
-      line: item.line,
-      severity: "high"
-    });
-  }
-  return findings;
-}
-// src/features/pr/cve-detection/extract-dependencies.ts
-function extractDependency(fileName, content) {
-  for (const parser of parserRegistry) {
-    if (parser.canParse(fileName)) {
-      return parser.parse(content);
-    }
-  }
-  return null;
-}
-// src/shared/config.ts
-var import_yaml = __toESM(require_dist(), 1);
-import * as fs2 from "node:fs";
-import * as path from "node:path";
-var cachedConfig = null;
-function loadConfig(workspacePath) {
-  if (!workspacePath) {
-    console.warn("No workspace path provided, using default configuration.");
-    cachedConfig = {};
-    return cachedConfig;
-  }
-  if (cachedConfig) {
-    return cachedConfig;
-  }
-  const configPath = path.join(workspacePath, "prowl.yml");
-  if (!fs2.existsSync(configPath)) {
-    cachedConfig = {};
-    return cachedConfig;
-  }
-  try {
-    const fileContent = fs2.readFileSync(configPath, "utf-8");
-    const parsed = import_yaml.default.parse(fileContent);
-    cachedConfig = parsed || {};
-    return cachedConfig;
-  } catch (err) {
-    console.error("Failed to parse prowl.yml:", err);
-    cachedConfig = {};
-    return cachedConfig;
-  }
-}
-function getConfig() {
-  if (!cachedConfig) {
-    const workspace = process.env["GITHUB_WORKSPACE"];
-    return loadConfig(workspace);
-  }
-  return cachedConfig;
-}
-// src/shared/expect-error.ts
-async function expectError(promise, errorsToCatch) {
-  return promise.then((data) => {
-    return [undefined, data];
-  }).catch((error2) => {
-    if (errorsToCatch === undefined) {
-      return [error2];
-    }
-    if (errorsToCatch.some((e) => error2 instanceof e)) {
-      return [error2];
-    }
-    throw error2;
-  });
-}
-// node_modules/openai/internal/tslib.mjs
-function __classPrivateFieldSet(receiver, state, value, kind, f) {
-  if (kind === "m")
-    throw new TypeError("Private method is not writable");
-  if (kind === "a" && !f)
-    throw new TypeError("Private accessor was defined without a setter");
-  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-    throw new TypeError("Cannot write private member to an object whose class did not declare it");
-  return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
-}
-function __classPrivateFieldGet(receiver, state, kind, f) {
-  if (kind === "a" && !f)
-    throw new TypeError("Private accessor was defined without a getter");
-  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-    throw new TypeError("Cannot read private member from an object whose class did not declare it");
-  return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-}
-
-// node_modules/openai/internal/utils/uuid.mjs
-var uuid4 = function() {
-  const { crypto: crypto2 } = globalThis;
-  if (crypto2?.randomUUID) {
-    uuid4 = crypto2.randomUUID.bind(crypto2);
-    return crypto2.randomUUID();
-  }
-  const u8 = new Uint8Array(1);
-  const randomByte = crypto2 ? () => crypto2.getRandomValues(u8)[0] : () => Math.random() * 255 & 255;
-  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (+c ^ randomByte() & 15 >> +c / 4).toString(16));
-};
-
-// node_modules/openai/internal/errors.mjs
-function isAbortError(err) {
-  return typeof err === "object" && err !== null && (("name" in err) && err.name === "AbortError" || ("message" in err) && String(err.message).includes("FetchRequestCanceledException"));
-}
-var castToError = (err) => {
-  if (err instanceof Error)
-    return err;
-  if (typeof err === "object" && err !== null) {
-    try {
-      if (Object.prototype.toString.call(err) === "[object Error]") {
-        const error2 = new Error(err.message, err.cause ? { cause: err.cause } : {});
-        if (err.stack)
-          error2.stack = err.stack;
-        if (err.cause && !error2.cause)
-          error2.cause = err.cause;
-        if (err.name)
-          error2.name = err.name;
-        return error2;
-      }
-    } catch {}
-    try {
-      return new Error(JSON.stringify(err));
-    } catch {}
-  }
-  return new Error(err);
-};
-
-// node_modules/openai/core/error.mjs
-class OpenAIError extends Error {
-}
-
-class APIError extends OpenAIError {
-  constructor(status, error2, message, headers) {
-    super(`${APIError.makeMessage(status, error2, message)}`);
-    this.status = status;
-    this.headers = headers;
-    this.requestID = headers?.get("x-request-id");
-    this.error = error2;
-    const data = error2;
-    this.code = data?.["code"];
-    this.param = data?.["param"];
-    this.type = data?.["type"];
-  }
-  static makeMessage(status, error2, message) {
-    const msg = error2?.message ? typeof error2.message === "string" ? error2.message : JSON.stringify(error2.message) : error2 ? JSON.stringify(error2) : message;
-    if (status && msg) {
-      return `${status} ${msg}`;
-    }
-    if (status) {
-      return `${status} status code (no body)`;
-    }
-    if (msg) {
-      return msg;
-    }
-    return "(no status code or body)";
-  }
-  static generate(status, errorResponse, message, headers) {
-    if (!status || !headers) {
-      return new APIConnectionError({ message, cause: castToError(errorResponse) });
-    }
-    const error2 = errorResponse?.["error"];
-    if (status === 400) {
-      return new BadRequestError(status, error2, message, headers);
-    }
-    if (status === 401) {
-      return new AuthenticationError(status, error2, message, headers);
-    }
-    if (status === 403) {
-      return new PermissionDeniedError(status, error2, message, headers);
-    }
-    if (status === 404) {
-      return new NotFoundError(status, error2, message, headers);
-    }
-    if (status === 409) {
-      return new ConflictError(status, error2, message, headers);
-    }
-    if (status === 422) {
-      return new UnprocessableEntityError(status, error2, message, headers);
-    }
-    if (status === 429) {
-      return new RateLimitError(status, error2, message, headers);
-    }
-    if (status >= 500) {
-      return new InternalServerError(status, error2, message, headers);
-    }
-    return new APIError(status, error2, message, headers);
-  }
-}
-
-class APIUserAbortError extends APIError {
-  constructor({ message } = {}) {
-    super(undefined, undefined, message || "Request was aborted.", undefined);
-  }
-}
-
-class APIConnectionError extends APIError {
-  constructor({ message, cause }) {
-    super(undefined, undefined, message || "Connection error.", undefined);
-    if (cause)
-      this.cause = cause;
-  }
-}
-
-class APIConnectionTimeoutError extends APIConnectionError {
-  constructor({ message } = {}) {
-    super({ message: message ?? "Request timed out." });
-  }
-}
-
-class BadRequestError extends APIError {
-}
-
-class AuthenticationError extends APIError {
-}
-
-class PermissionDeniedError extends APIError {
-}
-
-class NotFoundError extends APIError {
-}
-
-class ConflictError extends APIError {
-}
-
-class UnprocessableEntityError extends APIError {
-}
-
-class RateLimitError extends APIError {
-}
-
-class InternalServerError extends APIError {
-}
-
-class LengthFinishReasonError extends OpenAIError {
-  constructor() {
-    super(`Could not parse response content as the length limit was reached`);
-  }
-}
-
-class ContentFilterFinishReasonError extends OpenAIError {
-  constructor() {
-    super(`Could not parse response content as the request was rejected by the content filter`);
-  }
-}
-
-class InvalidWebhookSignatureError extends Error {
-  constructor(message) {
-    super(message);
-  }
-}
-
-// node_modules/openai/internal/utils/values.mjs
-var startsWithSchemeRegexp = /^[a-z][a-z0-9+.-]*:/i;
-var isAbsoluteURL = (url) => {
-  return startsWithSchemeRegexp.test(url);
-};
-var isArray = (val) => (isArray = Array.isArray, isArray(val));
-var isReadonlyArray = isArray;
-function maybeObj(x) {
-  if (typeof x !== "object") {
-    return {};
-  }
-  return x ?? {};
-}
-function isEmptyObj(obj) {
-  if (!obj)
-    return true;
-  for (const _k in obj)
-    return false;
-  return true;
-}
-function hasOwn(obj, key) {
-  return Object.prototype.hasOwnProperty.call(obj, key);
-}
-function isObj(obj) {
-  return obj != null && typeof obj === "object" && !Array.isArray(obj);
-}
-var validatePositiveInteger = (name, n) => {
-  if (typeof n !== "number" || !Number.isInteger(n)) {
-    throw new OpenAIError(`${name} must be an integer`);
-  }
-  if (n < 0) {
-    throw new OpenAIError(`${name} must be a positive integer`);
-  }
-  return n;
-};
-var safeJSON = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    return;
-  }
-};
-
-// node_modules/openai/internal/utils/sleep.mjs
-var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// node_modules/openai/version.mjs
-var VERSION7 = "6.18.0";
-
-// node_modules/openai/internal/detect-platform.mjs
-var isRunningInBrowser = () => {
-  return typeof window !== "undefined" && typeof window.document !== "undefined" && typeof navigator !== "undefined";
-};
-function getDetectedPlatform() {
-  if (typeof Deno !== "undefined" && Deno.build != null) {
-    return "deno";
-  }
-  if (typeof EdgeRuntime !== "undefined") {
-    return "edge";
-  }
-  if (Object.prototype.toString.call(typeof globalThis.process !== "undefined" ? globalThis.process : 0) === "[object process]") {
-    return "node";
-  }
-  return "unknown";
-}
-var getPlatformProperties = () => {
-  const detectedPlatform = getDetectedPlatform();
-  if (detectedPlatform === "deno") {
-    return {
-      "X-Stainless-Lang": "js",
-      "X-Stainless-Package-Version": VERSION7,
-      "X-Stainless-OS": normalizePlatform(Deno.build.os),
-      "X-Stainless-Arch": normalizeArch(Deno.build.arch),
-      "X-Stainless-Runtime": "deno",
-      "X-Stainless-Runtime-Version": typeof Deno.version === "string" ? Deno.version : Deno.version?.deno ?? "unknown"
-    };
-  }
-  if (typeof EdgeRuntime !== "undefined") {
-    return {
-      "X-Stainless-Lang": "js",
-      "X-Stainless-Package-Version": VERSION7,
-      "X-Stainless-OS": "Unknown",
-      "X-Stainless-Arch": `other:${EdgeRuntime}`,
-      "X-Stainless-Runtime": "edge",
-      "X-Stainless-Runtime-Version": globalThis.process.version
-    };
-  }
-  if (detectedPlatform === "node") {
-    return {
-      "X-Stainless-Lang": "js",
-      "X-Stainless-Package-Version": VERSION7,
-      "X-Stainless-OS": normalizePlatform(globalThis.process.platform ?? "unknown"),
-      "X-Stainless-Arch": normalizeArch(globalThis.process.arch ?? "unknown"),
-      "X-Stainless-Runtime": "node",
-      "X-Stainless-Runtime-Version": globalThis.process.version ?? "unknown"
-    };
-  }
-  const browserInfo = getBrowserInfo();
-  if (browserInfo) {
-    return {
-      "X-Stainless-Lang": "js",
-      "X-Stainless-Package-Version": VERSION7,
-      "X-Stainless-OS": "Unknown",
-      "X-Stainless-Arch": "unknown",
-      "X-Stainless-Runtime": `browser:${browserInfo.browser}`,
-      "X-Stainless-Runtime-Version": browserInfo.version
-    };
-  }
   return {
-    "X-Stainless-Lang": "js",
-    "X-Stainless-Package-Version": VERSION7,
-    "X-Stainless-OS": "Unknown",
-    "X-Stainless-Arch": "unknown",
-    "X-Stainless-Runtime": "unknown",
-    "X-Stainless-Runtime-Version": "unknown"
+    fixed,
+    matched
   };
-};
-function getBrowserInfo() {
-  if (typeof navigator === "undefined" || !navigator) {
-    return null;
-  }
-  const browserPatterns = [
-    { key: "edge", pattern: /Edge(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-    { key: "ie", pattern: /MSIE(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-    { key: "ie", pattern: /Trident(?:.*rv\:(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-    { key: "chrome", pattern: /Chrome(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-    { key: "firefox", pattern: /Firefox(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-    { key: "safari", pattern: /(?:Version\W+(\d+)\.(\d+)(?:\.(\d+))?)?(?:\W+Mobile\S*)?\W+Safari/ }
+}
+// src/features/pr/compare-state/parser.ts
+function getLineContent(file, line, diffs) {
+  return diffs.find((d) => d.file === file)?.added.find((a) => a.lineNumber === line)?.content ?? "";
+}
+function parseOSVDescription(description) {
+  const pkg = description.match(/`([^@`]+)@([^`]+)`/);
+  const pkgName = pkg?.[1] ?? "unknown";
+  const pkgVersion = pkg?.[2] ?? "unknown";
+  const idMatches = [
+    ...description.matchAll(/\b(CVE-\d{4}-\d+|GHSA-[a-z0-9-]+)\b/gi)
   ];
-  for (const { key, pattern } of browserPatterns) {
-    const match = pattern.exec(navigator.userAgent);
-    if (match) {
-      const major = match[1] || 0;
-      const minor = match[2] || 0;
-      const patch = match[3] || 0;
-      return { browser: key, version: `${major}.${minor}.${patch}` };
-    }
-  }
-  return null;
-}
-var normalizeArch = (arch2) => {
-  if (arch2 === "x32")
-    return "x32";
-  if (arch2 === "x86_64" || arch2 === "x64")
-    return "x64";
-  if (arch2 === "arm")
-    return "arm";
-  if (arch2 === "aarch64" || arch2 === "arm64")
-    return "arm64";
-  if (arch2)
-    return `other:${arch2}`;
-  return "unknown";
-};
-var normalizePlatform = (platform2) => {
-  platform2 = platform2.toLowerCase();
-  if (platform2.includes("ios"))
-    return "iOS";
-  if (platform2 === "android")
-    return "Android";
-  if (platform2 === "darwin")
-    return "MacOS";
-  if (platform2 === "win32")
-    return "Windows";
-  if (platform2 === "freebsd")
-    return "FreeBSD";
-  if (platform2 === "openbsd")
-    return "OpenBSD";
-  if (platform2 === "linux")
-    return "Linux";
-  if (platform2)
-    return `Other:${platform2}`;
-  return "Unknown";
-};
-var _platformHeaders;
-var getPlatformHeaders = () => {
-  return _platformHeaders ?? (_platformHeaders = getPlatformProperties());
-};
-
-// node_modules/openai/internal/shims.mjs
-function getDefaultFetch() {
-  if (typeof fetch !== "undefined") {
-    return fetch;
-  }
-  throw new Error("`fetch` is not defined as a global; Either pass `fetch` to the client, `new OpenAI({ fetch })` or polyfill the global, `globalThis.fetch = fetch`");
-}
-function makeReadableStream(...args) {
-  const ReadableStream2 = globalThis.ReadableStream;
-  if (typeof ReadableStream2 === "undefined") {
-    throw new Error("`ReadableStream` is not defined as a global; You will need to polyfill it, `globalThis.ReadableStream = ReadableStream`");
-  }
-  return new ReadableStream2(...args);
-}
-function ReadableStreamFrom(iterable) {
-  let iter = Symbol.asyncIterator in iterable ? iterable[Symbol.asyncIterator]() : iterable[Symbol.iterator]();
-  return makeReadableStream({
-    start() {},
-    async pull(controller) {
-      const { done, value } = await iter.next();
-      if (done) {
-        controller.close();
-      } else {
-        controller.enqueue(value);
-      }
-    },
-    async cancel() {
-      await iter.return?.();
-    }
-  });
-}
-function ReadableStreamToAsyncIterable(stream) {
-  if (stream[Symbol.asyncIterator])
-    return stream;
-  const reader = stream.getReader();
+  const osvIds = idMatches.map((match) => match[0].toUpperCase());
   return {
-    async next() {
-      try {
-        const result = await reader.read();
-        if (result?.done)
-          reader.releaseLock();
-        return result;
-      } catch (e) {
-        reader.releaseLock();
-        throw e;
-      }
-    },
-    async return() {
-      const cancelPromise = reader.cancel();
-      reader.releaseLock();
-      await cancelPromise;
-      return { done: true, value: undefined };
-    },
-    [Symbol.asyncIterator]() {
-      return this;
-    }
+    osvIds,
+    pkgName,
+    pkgVersion
   };
 }
-async function CancelReadableStream(stream) {
-  if (stream === null || typeof stream !== "object")
-    return;
-  if (stream[Symbol.asyncIterator]) {
-    await stream[Symbol.asyncIterator]().return?.();
-    return;
-  }
-  const reader = stream.getReader();
-  const cancelPromise = reader.cancel();
-  reader.releaseLock();
-  await cancelPromise;
-}
-
-// node_modules/openai/internal/request-options.mjs
-var FallbackEncoder = ({ headers, body }) => {
-  return {
-    bodyHeaders: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify(body)
-  };
-};
-
-// node_modules/openai/internal/qs/formats.mjs
-var default_format = "RFC3986";
-var default_formatter = (v) => String(v);
-var formatters = {
-  RFC1738: (v) => String(v).replace(/%20/g, "+"),
-  RFC3986: default_formatter
-};
-var RFC1738 = "RFC1738";
-
-// node_modules/openai/internal/qs/utils.mjs
-var has = (obj, key) => (has = Object.hasOwn ?? Function.prototype.call.bind(Object.prototype.hasOwnProperty), has(obj, key));
-var hex_table = /* @__PURE__ */ (() => {
-  const array = [];
-  for (let i = 0;i < 256; ++i) {
-    array.push("%" + ((i < 16 ? "0" : "") + i.toString(16)).toUpperCase());
-  }
-  return array;
-})();
-var limit = 1024;
-var encode = (str, _defaultEncoder, charset, _kind, format) => {
-  if (str.length === 0) {
-    return str;
-  }
-  let string = str;
-  if (typeof str === "symbol") {
-    string = Symbol.prototype.toString.call(str);
-  } else if (typeof str !== "string") {
-    string = String(str);
-  }
-  if (charset === "iso-8859-1") {
-    return escape(string).replace(/%u[0-9a-f]{4}/gi, function($0) {
-      return "%26%23" + parseInt($0.slice(2), 16) + "%3B";
-    });
-  }
-  let out = "";
-  for (let j = 0;j < string.length; j += limit) {
-    const segment = string.length >= limit ? string.slice(j, j + limit) : string;
-    const arr = [];
-    for (let i = 0;i < segment.length; ++i) {
-      let c = segment.charCodeAt(i);
-      if (c === 45 || c === 46 || c === 95 || c === 126 || c >= 48 && c <= 57 || c >= 65 && c <= 90 || c >= 97 && c <= 122 || format === RFC1738 && (c === 40 || c === 41)) {
-        arr[arr.length] = segment.charAt(i);
-        continue;
-      }
-      if (c < 128) {
-        arr[arr.length] = hex_table[c];
-        continue;
-      }
-      if (c < 2048) {
-        arr[arr.length] = hex_table[192 | c >> 6] + hex_table[128 | c & 63];
-        continue;
-      }
-      if (c < 55296 || c >= 57344) {
-        arr[arr.length] = hex_table[224 | c >> 12] + hex_table[128 | c >> 6 & 63] + hex_table[128 | c & 63];
-        continue;
-      }
-      i += 1;
-      c = 65536 + ((c & 1023) << 10 | segment.charCodeAt(i) & 1023);
-      arr[arr.length] = hex_table[240 | c >> 18] + hex_table[128 | c >> 12 & 63] + hex_table[128 | c >> 6 & 63] + hex_table[128 | c & 63];
-    }
-    out += arr.join("");
-  }
-  return out;
-};
-function is_buffer(obj) {
-  if (!obj || typeof obj !== "object") {
-    return false;
-  }
-  return !!(obj.constructor && obj.constructor.isBuffer && obj.constructor.isBuffer(obj));
-}
-function maybe_map(val, fn) {
-  if (isArray(val)) {
-    const mapped = [];
-    for (let i = 0;i < val.length; i += 1) {
-      mapped.push(fn(val[i]));
-    }
-    return mapped;
-  }
-  return fn(val);
-}
-
-// node_modules/openai/internal/qs/stringify.mjs
-var array_prefix_generators = {
-  brackets(prefix) {
-    return String(prefix) + "[]";
-  },
-  comma: "comma",
-  indices(prefix, key) {
-    return String(prefix) + "[" + key + "]";
-  },
-  repeat(prefix) {
-    return String(prefix);
-  }
-};
-var push_to_array = function(arr, value_or_array) {
-  Array.prototype.push.apply(arr, isArray(value_or_array) ? value_or_array : [value_or_array]);
-};
-var toISOString;
-var defaults2 = {
-  addQueryPrefix: false,
-  allowDots: false,
-  allowEmptyArrays: false,
-  arrayFormat: "indices",
-  charset: "utf-8",
-  charsetSentinel: false,
-  delimiter: "&",
-  encode: true,
-  encodeDotInKeys: false,
-  encoder: encode,
-  encodeValuesOnly: false,
-  format: default_format,
-  formatter: default_formatter,
-  indices: false,
-  serializeDate(date) {
-    return (toISOString ?? (toISOString = Function.prototype.call.bind(Date.prototype.toISOString)))(date);
-  },
-  skipNulls: false,
-  strictNullHandling: false
-};
-function is_non_nullish_primitive(v) {
-  return typeof v === "string" || typeof v === "number" || typeof v === "boolean" || typeof v === "symbol" || typeof v === "bigint";
-}
-var sentinel = {};
-function inner_stringify(object, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
-  let obj = object;
-  let tmp_sc = sideChannel;
-  let step = 0;
-  let find_flag = false;
-  while ((tmp_sc = tmp_sc.get(sentinel)) !== undefined && !find_flag) {
-    const pos = tmp_sc.get(object);
-    step += 1;
-    if (typeof pos !== "undefined") {
-      if (pos === step) {
-        throw new RangeError("Cyclic object value");
-      } else {
-        find_flag = true;
-      }
-    }
-    if (typeof tmp_sc.get(sentinel) === "undefined") {
-      step = 0;
-    }
-  }
-  if (typeof filter === "function") {
-    obj = filter(prefix, obj);
-  } else if (obj instanceof Date) {
-    obj = serializeDate?.(obj);
-  } else if (generateArrayPrefix === "comma" && isArray(obj)) {
-    obj = maybe_map(obj, function(value) {
-      if (value instanceof Date) {
-        return serializeDate?.(value);
-      }
-      return value;
-    });
-  }
-  if (obj === null) {
-    if (strictNullHandling) {
-      return encoder && !encodeValuesOnly ? encoder(prefix, defaults2.encoder, charset, "key", format) : prefix;
-    }
-    obj = "";
-  }
-  if (is_non_nullish_primitive(obj) || is_buffer(obj)) {
-    if (encoder) {
-      const key_value = encodeValuesOnly ? prefix : encoder(prefix, defaults2.encoder, charset, "key", format);
-      return [
-        formatter?.(key_value) + "=" + formatter?.(encoder(obj, defaults2.encoder, charset, "value", format))
-      ];
-    }
-    return [formatter?.(prefix) + "=" + formatter?.(String(obj))];
-  }
-  const values = [];
-  if (typeof obj === "undefined") {
-    return values;
-  }
-  let obj_keys;
-  if (generateArrayPrefix === "comma" && isArray(obj)) {
-    if (encodeValuesOnly && encoder) {
-      obj = maybe_map(obj, encoder);
-    }
-    obj_keys = [{ value: obj.length > 0 ? obj.join(",") || null : undefined }];
-  } else if (isArray(filter)) {
-    obj_keys = filter;
-  } else {
-    const keys = Object.keys(obj);
-    obj_keys = sort ? keys.sort(sort) : keys;
-  }
-  const encoded_prefix = encodeDotInKeys ? String(prefix).replace(/\./g, "%2E") : String(prefix);
-  const adjusted_prefix = commaRoundTrip && isArray(obj) && obj.length === 1 ? encoded_prefix + "[]" : encoded_prefix;
-  if (allowEmptyArrays && isArray(obj) && obj.length === 0) {
-    return adjusted_prefix + "[]";
-  }
-  for (let j = 0;j < obj_keys.length; ++j) {
-    const key = obj_keys[j];
-    const value = typeof key === "object" && typeof key.value !== "undefined" ? key.value : obj[key];
-    if (skipNulls && value === null) {
-      continue;
-    }
-    const encoded_key = allowDots && encodeDotInKeys ? key.replace(/\./g, "%2E") : key;
-    const key_prefix = isArray(obj) ? typeof generateArrayPrefix === "function" ? generateArrayPrefix(adjusted_prefix, encoded_key) : adjusted_prefix : adjusted_prefix + (allowDots ? "." + encoded_key : "[" + encoded_key + "]");
-    sideChannel.set(object, step);
-    const valueSideChannel = new WeakMap;
-    valueSideChannel.set(sentinel, sideChannel);
-    push_to_array(values, inner_stringify(value, key_prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, generateArrayPrefix === "comma" && encodeValuesOnly && isArray(obj) ? null : encoder, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, valueSideChannel));
-  }
-  return values;
-}
-function normalize_stringify_options(opts = defaults2) {
-  if (typeof opts.allowEmptyArrays !== "undefined" && typeof opts.allowEmptyArrays !== "boolean") {
-    throw new TypeError("`allowEmptyArrays` option can only be `true` or `false`, when provided");
-  }
-  if (typeof opts.encodeDotInKeys !== "undefined" && typeof opts.encodeDotInKeys !== "boolean") {
-    throw new TypeError("`encodeDotInKeys` option can only be `true` or `false`, when provided");
-  }
-  if (opts.encoder !== null && typeof opts.encoder !== "undefined" && typeof opts.encoder !== "function") {
-    throw new TypeError("Encoder has to be a function.");
-  }
-  const charset = opts.charset || defaults2.charset;
-  if (typeof opts.charset !== "undefined" && opts.charset !== "utf-8" && opts.charset !== "iso-8859-1") {
-    throw new TypeError("The charset option must be either utf-8, iso-8859-1, or undefined");
-  }
-  let format = default_format;
-  if (typeof opts.format !== "undefined") {
-    if (!has(formatters, opts.format)) {
-      throw new TypeError("Unknown format option provided.");
-    }
-    format = opts.format;
-  }
-  const formatter = formatters[format];
-  let filter = defaults2.filter;
-  if (typeof opts.filter === "function" || isArray(opts.filter)) {
-    filter = opts.filter;
-  }
-  let arrayFormat;
-  if (opts.arrayFormat && opts.arrayFormat in array_prefix_generators) {
-    arrayFormat = opts.arrayFormat;
-  } else if ("indices" in opts) {
-    arrayFormat = opts.indices ? "indices" : "repeat";
-  } else {
-    arrayFormat = defaults2.arrayFormat;
-  }
-  if ("commaRoundTrip" in opts && typeof opts.commaRoundTrip !== "boolean") {
-    throw new TypeError("`commaRoundTrip` must be a boolean, or absent");
-  }
-  const allowDots = typeof opts.allowDots === "undefined" ? !!opts.encodeDotInKeys === true ? true : defaults2.allowDots : !!opts.allowDots;
-  return {
-    addQueryPrefix: typeof opts.addQueryPrefix === "boolean" ? opts.addQueryPrefix : defaults2.addQueryPrefix,
-    allowDots,
-    allowEmptyArrays: typeof opts.allowEmptyArrays === "boolean" ? !!opts.allowEmptyArrays : defaults2.allowEmptyArrays,
-    arrayFormat,
-    charset,
-    charsetSentinel: typeof opts.charsetSentinel === "boolean" ? opts.charsetSentinel : defaults2.charsetSentinel,
-    commaRoundTrip: !!opts.commaRoundTrip,
-    delimiter: typeof opts.delimiter === "undefined" ? defaults2.delimiter : opts.delimiter,
-    encode: typeof opts.encode === "boolean" ? opts.encode : defaults2.encode,
-    encodeDotInKeys: typeof opts.encodeDotInKeys === "boolean" ? opts.encodeDotInKeys : defaults2.encodeDotInKeys,
-    encoder: typeof opts.encoder === "function" ? opts.encoder : defaults2.encoder,
-    encodeValuesOnly: typeof opts.encodeValuesOnly === "boolean" ? opts.encodeValuesOnly : defaults2.encodeValuesOnly,
-    filter,
-    format,
-    formatter,
-    serializeDate: typeof opts.serializeDate === "function" ? opts.serializeDate : defaults2.serializeDate,
-    skipNulls: typeof opts.skipNulls === "boolean" ? opts.skipNulls : defaults2.skipNulls,
-    sort: typeof opts.sort === "function" ? opts.sort : null,
-    strictNullHandling: typeof opts.strictNullHandling === "boolean" ? opts.strictNullHandling : defaults2.strictNullHandling
-  };
-}
-function stringify(object, opts = {}) {
-  let obj = object;
-  const options = normalize_stringify_options(opts);
-  let obj_keys;
-  let filter;
-  if (typeof options.filter === "function") {
-    filter = options.filter;
-    obj = filter("", obj);
-  } else if (isArray(options.filter)) {
-    filter = options.filter;
-    obj_keys = filter;
-  }
-  const keys = [];
-  if (typeof obj !== "object" || obj === null) {
-    return "";
-  }
-  const generateArrayPrefix = array_prefix_generators[options.arrayFormat];
-  const commaRoundTrip = generateArrayPrefix === "comma" && options.commaRoundTrip;
-  if (!obj_keys) {
-    obj_keys = Object.keys(obj);
-  }
-  if (options.sort) {
-    obj_keys.sort(options.sort);
-  }
-  const sideChannel = new WeakMap;
-  for (let i = 0;i < obj_keys.length; ++i) {
-    const key = obj_keys[i];
-    if (options.skipNulls && obj[key] === null) {
-      continue;
-    }
-    push_to_array(keys, inner_stringify(obj[key], key, generateArrayPrefix, commaRoundTrip, options.allowEmptyArrays, options.strictNullHandling, options.skipNulls, options.encodeDotInKeys, options.encode ? options.encoder : null, options.filter, options.sort, options.allowDots, options.serializeDate, options.format, options.formatter, options.encodeValuesOnly, options.charset, sideChannel));
-  }
-  const joined = keys.join(options.delimiter);
-  let prefix = options.addQueryPrefix === true ? "?" : "";
-  if (options.charsetSentinel) {
-    if (options.charset === "iso-8859-1") {
-      prefix += "utf8=%26%2310003%3B&";
-    } else {
-      prefix += "utf8=%E2%9C%93&";
-    }
-  }
-  return joined.length > 0 ? prefix + joined : "";
-}
-// node_modules/openai/internal/utils/bytes.mjs
-function concatBytes(buffers) {
-  let length = 0;
-  for (const buffer of buffers) {
-    length += buffer.length;
-  }
-  const output = new Uint8Array(length);
-  let index = 0;
-  for (const buffer of buffers) {
-    output.set(buffer, index);
-    index += buffer.length;
-  }
-  return output;
-}
-var encodeUTF8_;
-function encodeUTF8(str) {
-  let encoder;
-  return (encodeUTF8_ ?? (encoder = new globalThis.TextEncoder, encodeUTF8_ = encoder.encode.bind(encoder)))(str);
-}
-var decodeUTF8_;
-function decodeUTF8(bytes) {
-  let decoder;
-  return (decodeUTF8_ ?? (decoder = new globalThis.TextDecoder, decodeUTF8_ = decoder.decode.bind(decoder)))(bytes);
-}
-
-// node_modules/openai/internal/decoders/line.mjs
-var _LineDecoder_buffer;
-var _LineDecoder_carriageReturnIndex;
-
-class LineDecoder {
-  constructor() {
-    _LineDecoder_buffer.set(this, undefined);
-    _LineDecoder_carriageReturnIndex.set(this, undefined);
-    __classPrivateFieldSet(this, _LineDecoder_buffer, new Uint8Array, "f");
-    __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, null, "f");
-  }
-  decode(chunk) {
-    if (chunk == null) {
-      return [];
-    }
-    const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk) : typeof chunk === "string" ? encodeUTF8(chunk) : chunk;
-    __classPrivateFieldSet(this, _LineDecoder_buffer, concatBytes([__classPrivateFieldGet(this, _LineDecoder_buffer, "f"), binaryChunk]), "f");
-    const lines = [];
-    let patternIndex;
-    while ((patternIndex = findNewlineIndex(__classPrivateFieldGet(this, _LineDecoder_buffer, "f"), __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f"))) != null) {
-      if (patternIndex.carriage && __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") == null) {
-        __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, patternIndex.index, "f");
-        continue;
-      }
-      if (__classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") != null && (patternIndex.index !== __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") + 1 || patternIndex.carriage)) {
-        lines.push(decodeUTF8(__classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(0, __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") - 1)));
-        __classPrivateFieldSet(this, _LineDecoder_buffer, __classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(__classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f")), "f");
-        __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, null, "f");
-        continue;
-      }
-      const endIndex = __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") !== null ? patternIndex.preceding - 1 : patternIndex.preceding;
-      const line = decodeUTF8(__classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(0, endIndex));
-      lines.push(line);
-      __classPrivateFieldSet(this, _LineDecoder_buffer, __classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(patternIndex.index), "f");
-      __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, null, "f");
-    }
-    return lines;
-  }
-  flush() {
-    if (!__classPrivateFieldGet(this, _LineDecoder_buffer, "f").length) {
-      return [];
-    }
-    return this.decode(`
-`);
-  }
-}
-_LineDecoder_buffer = new WeakMap, _LineDecoder_carriageReturnIndex = new WeakMap;
-LineDecoder.NEWLINE_CHARS = new Set([`
-`, "\r"]);
-LineDecoder.NEWLINE_REGEXP = /\r\n|[\n\r]/g;
-function findNewlineIndex(buffer, startIndex) {
-  const newline = 10;
-  const carriage = 13;
-  for (let i = startIndex ?? 0;i < buffer.length; i++) {
-    if (buffer[i] === newline) {
-      return { preceding: i, index: i + 1, carriage: false };
-    }
-    if (buffer[i] === carriage) {
-      return { preceding: i, index: i + 1, carriage: true };
-    }
-  }
-  return null;
-}
-function findDoubleNewlineIndex(buffer) {
-  const newline = 10;
-  const carriage = 13;
-  for (let i = 0;i < buffer.length - 1; i++) {
-    if (buffer[i] === newline && buffer[i + 1] === newline) {
-      return i + 2;
-    }
-    if (buffer[i] === carriage && buffer[i + 1] === carriage) {
-      return i + 2;
-    }
-    if (buffer[i] === carriage && buffer[i + 1] === newline && i + 3 < buffer.length && buffer[i + 2] === carriage && buffer[i + 3] === newline) {
-      return i + 4;
-    }
-  }
-  return -1;
-}
-
-// node_modules/openai/internal/utils/log.mjs
-var levelNumbers = {
-  off: 0,
-  error: 200,
-  warn: 300,
-  info: 400,
-  debug: 500
-};
-var parseLogLevel = (maybeLevel, sourceName, client) => {
-  if (!maybeLevel) {
-    return;
-  }
-  if (hasOwn(levelNumbers, maybeLevel)) {
-    return maybeLevel;
-  }
-  loggerFor(client).warn(`${sourceName} was set to ${JSON.stringify(maybeLevel)}, expected one of ${JSON.stringify(Object.keys(levelNumbers))}`);
-  return;
-};
-function noop3() {}
-function makeLogFn(fnLevel, logger, logLevel) {
-  if (!logger || levelNumbers[fnLevel] > levelNumbers[logLevel]) {
-    return noop3;
-  } else {
-    return logger[fnLevel].bind(logger);
-  }
-}
-var noopLogger = {
-  error: noop3,
-  warn: noop3,
-  info: noop3,
-  debug: noop3
-};
-var cachedLoggers = /* @__PURE__ */ new WeakMap;
-function loggerFor(client) {
-  const logger = client.logger;
-  const logLevel = client.logLevel ?? "off";
-  if (!logger) {
-    return noopLogger;
-  }
-  const cachedLogger = cachedLoggers.get(logger);
-  if (cachedLogger && cachedLogger[0] === logLevel) {
-    return cachedLogger[1];
-  }
-  const levelLogger = {
-    error: makeLogFn("error", logger, logLevel),
-    warn: makeLogFn("warn", logger, logLevel),
-    info: makeLogFn("info", logger, logLevel),
-    debug: makeLogFn("debug", logger, logLevel)
-  };
-  cachedLoggers.set(logger, [logLevel, levelLogger]);
-  return levelLogger;
-}
-var formatRequestDetails = (details) => {
-  if (details.options) {
-    details.options = { ...details.options };
-    delete details.options["headers"];
-  }
-  if (details.headers) {
-    details.headers = Object.fromEntries((details.headers instanceof Headers ? [...details.headers] : Object.entries(details.headers)).map(([name, value]) => [
-      name,
-      name.toLowerCase() === "authorization" || name.toLowerCase() === "cookie" || name.toLowerCase() === "set-cookie" ? "***" : value
-    ]));
-  }
-  if ("retryOfRequestLogID" in details) {
-    if (details.retryOfRequestLogID) {
-      details.retryOf = details.retryOfRequestLogID;
-    }
-    delete details.retryOfRequestLogID;
-  }
-  return details;
-};
-
-// node_modules/openai/core/streaming.mjs
-var _Stream_client;
-
-class Stream {
-  constructor(iterator2, controller, client) {
-    this.iterator = iterator2;
-    _Stream_client.set(this, undefined);
-    this.controller = controller;
-    __classPrivateFieldSet(this, _Stream_client, client, "f");
-  }
-  static fromSSEResponse(response, controller, client) {
-    let consumed = false;
-    const logger = client ? loggerFor(client) : console;
-    async function* iterator2() {
-      if (consumed) {
-        throw new OpenAIError("Cannot iterate over a consumed stream, use `.tee()` to split the stream.");
-      }
-      consumed = true;
-      let done = false;
-      try {
-        for await (const sse of _iterSSEMessages(response, controller)) {
-          if (done)
-            continue;
-          if (sse.data.startsWith("[DONE]")) {
-            done = true;
-            continue;
-          }
-          if (sse.event === null || !sse.event.startsWith("thread.")) {
-            let data;
-            try {
-              data = JSON.parse(sse.data);
-            } catch (e) {
-              logger.error(`Could not parse message into JSON:`, sse.data);
-              logger.error(`From chunk:`, sse.raw);
-              throw e;
-            }
-            if (data && data.error) {
-              throw new APIError(undefined, data.error, undefined, response.headers);
-            }
-            yield data;
-          } else {
-            let data;
-            try {
-              data = JSON.parse(sse.data);
-            } catch (e) {
-              console.error(`Could not parse message into JSON:`, sse.data);
-              console.error(`From chunk:`, sse.raw);
-              throw e;
-            }
-            if (sse.event == "error") {
-              throw new APIError(undefined, data.error, data.message, undefined);
-            }
-            yield { event: sse.event, data };
-          }
-        }
-        done = true;
-      } catch (e) {
-        if (isAbortError(e))
-          return;
-        throw e;
-      } finally {
-        if (!done)
-          controller.abort();
-      }
-    }
-    return new Stream(iterator2, controller, client);
-  }
-  static fromReadableStream(readableStream, controller, client) {
-    let consumed = false;
-    async function* iterLines() {
-      const lineDecoder = new LineDecoder;
-      const iter = ReadableStreamToAsyncIterable(readableStream);
-      for await (const chunk of iter) {
-        for (const line of lineDecoder.decode(chunk)) {
-          yield line;
-        }
-      }
-      for (const line of lineDecoder.flush()) {
-        yield line;
-      }
-    }
-    async function* iterator2() {
-      if (consumed) {
-        throw new OpenAIError("Cannot iterate over a consumed stream, use `.tee()` to split the stream.");
-      }
-      consumed = true;
-      let done = false;
-      try {
-        for await (const line of iterLines()) {
-          if (done)
-            continue;
-          if (line)
-            yield JSON.parse(line);
-        }
-        done = true;
-      } catch (e) {
-        if (isAbortError(e))
-          return;
-        throw e;
-      } finally {
-        if (!done)
-          controller.abort();
-      }
-    }
-    return new Stream(iterator2, controller, client);
-  }
-  [(_Stream_client = new WeakMap, Symbol.asyncIterator)]() {
-    return this.iterator();
-  }
-  tee() {
-    const left = [];
-    const right = [];
-    const iterator2 = this.iterator();
-    const teeIterator = (queue) => {
-      return {
-        next: () => {
-          if (queue.length === 0) {
-            const result = iterator2.next();
-            left.push(result);
-            right.push(result);
-          }
-          return queue.shift();
-        }
-      };
-    };
-    return [
-      new Stream(() => teeIterator(left), this.controller, __classPrivateFieldGet(this, _Stream_client, "f")),
-      new Stream(() => teeIterator(right), this.controller, __classPrivateFieldGet(this, _Stream_client, "f"))
-    ];
-  }
-  toReadableStream() {
-    const self = this;
-    let iter;
-    return makeReadableStream({
-      async start() {
-        iter = self[Symbol.asyncIterator]();
-      },
-      async pull(ctrl) {
-        try {
-          const { value, done } = await iter.next();
-          if (done)
-            return ctrl.close();
-          const bytes = encodeUTF8(JSON.stringify(value) + `
-`);
-          ctrl.enqueue(bytes);
-        } catch (err) {
-          ctrl.error(err);
-        }
-      },
-      async cancel() {
-        await iter.return?.();
-      }
-    });
-  }
-}
-async function* _iterSSEMessages(response, controller) {
-  if (!response.body) {
-    controller.abort();
-    if (typeof globalThis.navigator !== "undefined" && globalThis.navigator.product === "ReactNative") {
-      throw new OpenAIError(`The default react-native fetch implementation does not support streaming. Please use expo/fetch: https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api`);
-    }
-    throw new OpenAIError(`Attempted to iterate over a response with no body`);
-  }
-  const sseDecoder = new SSEDecoder;
-  const lineDecoder = new LineDecoder;
-  const iter = ReadableStreamToAsyncIterable(response.body);
-  for await (const sseChunk of iterSSEChunks(iter)) {
-    for (const line of lineDecoder.decode(sseChunk)) {
-      const sse = sseDecoder.decode(line);
-      if (sse)
-        yield sse;
-    }
-  }
-  for (const line of lineDecoder.flush()) {
-    const sse = sseDecoder.decode(line);
-    if (sse)
-      yield sse;
-  }
-}
-async function* iterSSEChunks(iterator2) {
-  let data = new Uint8Array;
-  for await (const chunk of iterator2) {
-    if (chunk == null) {
-      continue;
-    }
-    const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk) : typeof chunk === "string" ? encodeUTF8(chunk) : chunk;
-    let newData = new Uint8Array(data.length + binaryChunk.length);
-    newData.set(data);
-    newData.set(binaryChunk, data.length);
-    data = newData;
-    let patternIndex;
-    while ((patternIndex = findDoubleNewlineIndex(data)) !== -1) {
-      yield data.slice(0, patternIndex);
-      data = data.slice(patternIndex);
-    }
-  }
-  if (data.length > 0) {
-    yield data;
-  }
-}
-
-class SSEDecoder {
-  constructor() {
-    this.event = null;
-    this.data = [];
-    this.chunks = [];
-  }
-  decode(line) {
-    if (line.endsWith("\r")) {
-      line = line.substring(0, line.length - 1);
-    }
-    if (!line) {
-      if (!this.event && !this.data.length)
-        return null;
-      const sse = {
-        event: this.event,
-        data: this.data.join(`
-`),
-        raw: this.chunks
-      };
-      this.event = null;
-      this.data = [];
-      this.chunks = [];
-      return sse;
-    }
-    this.chunks.push(line);
-    if (line.startsWith(":")) {
-      return null;
-    }
-    let [fieldname, _, value] = partition(line, ":");
-    if (value.startsWith(" ")) {
-      value = value.substring(1);
-    }
-    if (fieldname === "event") {
-      this.event = value;
-    } else if (fieldname === "data") {
-      this.data.push(value);
-    }
-    return null;
-  }
-}
-function partition(str, delimiter) {
-  const index = str.indexOf(delimiter);
-  if (index !== -1) {
-    return [str.substring(0, index), delimiter, str.substring(index + delimiter.length)];
-  }
-  return [str, "", ""];
-}
-
-// node_modules/openai/internal/parse.mjs
-async function defaultParseResponse(client, props) {
-  const { response, requestLogID, retryOfRequestLogID, startTime } = props;
-  const body = await (async () => {
-    if (props.options.stream) {
-      loggerFor(client).debug("response", response.status, response.url, response.headers, response.body);
-      if (props.options.__streamClass) {
-        return props.options.__streamClass.fromSSEResponse(response, props.controller, client);
-      }
-      return Stream.fromSSEResponse(response, props.controller, client);
-    }
-    if (response.status === 204) {
-      return null;
-    }
-    if (props.options.__binaryResponse) {
-      return response;
-    }
-    const contentType = response.headers.get("content-type");
-    const mediaType = contentType?.split(";")[0]?.trim();
-    const isJSON = mediaType?.includes("application/json") || mediaType?.endsWith("+json");
-    if (isJSON) {
-      const contentLength = response.headers.get("content-length");
-      if (contentLength === "0") {
-        return;
-      }
-      const json = await response.json();
-      return addRequestID(json, response);
-    }
-    const text = await response.text();
-    return text;
-  })();
-  loggerFor(client).debug(`[${requestLogID}] response parsed`, formatRequestDetails({
-    retryOfRequestLogID,
-    url: response.url,
-    status: response.status,
-    body,
-    durationMs: Date.now() - startTime
-  }));
-  return body;
-}
-function addRequestID(value, response) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return value;
-  }
-  return Object.defineProperty(value, "_request_id", {
-    value: response.headers.get("x-request-id"),
-    enumerable: false
-  });
-}
-
-// node_modules/openai/core/api-promise.mjs
-var _APIPromise_client;
-
-class APIPromise extends Promise {
-  constructor(client, responsePromise, parseResponse = defaultParseResponse) {
-    super((resolve) => {
-      resolve(null);
-    });
-    this.responsePromise = responsePromise;
-    this.parseResponse = parseResponse;
-    _APIPromise_client.set(this, undefined);
-    __classPrivateFieldSet(this, _APIPromise_client, client, "f");
-  }
-  _thenUnwrap(transform) {
-    return new APIPromise(__classPrivateFieldGet(this, _APIPromise_client, "f"), this.responsePromise, async (client, props) => addRequestID(transform(await this.parseResponse(client, props), props), props.response));
-  }
-  asResponse() {
-    return this.responsePromise.then((p) => p.response);
-  }
-  async withResponse() {
-    const [data, response] = await Promise.all([this.parse(), this.asResponse()]);
-    return { data, response, request_id: response.headers.get("x-request-id") };
-  }
-  parse() {
-    if (!this.parsedPromise) {
-      this.parsedPromise = this.responsePromise.then((data) => this.parseResponse(__classPrivateFieldGet(this, _APIPromise_client, "f"), data));
-    }
-    return this.parsedPromise;
-  }
-  then(onfulfilled, onrejected) {
-    return this.parse().then(onfulfilled, onrejected);
-  }
-  catch(onrejected) {
-    return this.parse().catch(onrejected);
-  }
-  finally(onfinally) {
-    return this.parse().finally(onfinally);
-  }
-}
-_APIPromise_client = new WeakMap;
-
-// node_modules/openai/core/pagination.mjs
-var _AbstractPage_client;
-
-class AbstractPage {
-  constructor(client, response, body, options) {
-    _AbstractPage_client.set(this, undefined);
-    __classPrivateFieldSet(this, _AbstractPage_client, client, "f");
-    this.options = options;
-    this.response = response;
-    this.body = body;
-  }
-  hasNextPage() {
-    const items = this.getPaginatedItems();
-    if (!items.length)
-      return false;
-    return this.nextPageRequestOptions() != null;
-  }
-  async getNextPage() {
-    const nextOptions = this.nextPageRequestOptions();
-    if (!nextOptions) {
-      throw new OpenAIError("No next page expected; please check `.hasNextPage()` before calling `.getNextPage()`.");
-    }
-    return await __classPrivateFieldGet(this, _AbstractPage_client, "f").requestAPIList(this.constructor, nextOptions);
-  }
-  async* iterPages() {
-    let page = this;
-    yield page;
-    while (page.hasNextPage()) {
-      page = await page.getNextPage();
-      yield page;
-    }
-  }
-  async* [(_AbstractPage_client = new WeakMap, Symbol.asyncIterator)]() {
-    for await (const page of this.iterPages()) {
-      for (const item of page.getPaginatedItems()) {
-        yield item;
-      }
-    }
-  }
-}
-
-class PagePromise extends APIPromise {
-  constructor(client, request2, Page) {
-    super(client, request2, async (client2, props) => new Page(client2, props.response, await defaultParseResponse(client2, props), props.options));
-  }
-  async* [Symbol.asyncIterator]() {
-    const page = await this;
-    for await (const item of page) {
-      yield item;
-    }
-  }
-}
-
-class Page extends AbstractPage {
-  constructor(client, response, body, options) {
-    super(client, response, body, options);
-    this.data = body.data || [];
-    this.object = body.object;
-  }
-  getPaginatedItems() {
-    return this.data ?? [];
-  }
-  nextPageRequestOptions() {
-    return null;
-  }
-}
-
-class CursorPage extends AbstractPage {
-  constructor(client, response, body, options) {
-    super(client, response, body, options);
-    this.data = body.data || [];
-    this.has_more = body.has_more || false;
-  }
-  getPaginatedItems() {
-    return this.data ?? [];
-  }
-  hasNextPage() {
-    if (this.has_more === false) {
-      return false;
-    }
-    return super.hasNextPage();
-  }
-  nextPageRequestOptions() {
-    const data = this.getPaginatedItems();
-    const id = data[data.length - 1]?.id;
-    if (!id) {
-      return null;
-    }
-    return {
-      ...this.options,
-      query: {
-        ...maybeObj(this.options.query),
-        after: id
-      }
-    };
-  }
-}
-
-class ConversationCursorPage extends AbstractPage {
-  constructor(client, response, body, options) {
-    super(client, response, body, options);
-    this.data = body.data || [];
-    this.has_more = body.has_more || false;
-    this.last_id = body.last_id || "";
-  }
-  getPaginatedItems() {
-    return this.data ?? [];
-  }
-  hasNextPage() {
-    if (this.has_more === false) {
-      return false;
-    }
-    return super.hasNextPage();
-  }
-  nextPageRequestOptions() {
-    const cursor = this.last_id;
-    if (!cursor) {
-      return null;
-    }
-    return {
-      ...this.options,
-      query: {
-        ...maybeObj(this.options.query),
-        after: cursor
-      }
-    };
-  }
-}
-
-// node_modules/openai/internal/uploads.mjs
-var checkFileSupport = () => {
-  if (typeof File === "undefined") {
-    const { process: process2 } = globalThis;
-    const isOldNode = typeof process2?.versions?.node === "string" && parseInt(process2.versions.node.split(".")) < 20;
-    throw new Error("`File` is not defined as a global, which is required for file uploads." + (isOldNode ? " Update to Node 20 LTS or newer, or set `globalThis.File` to `import('node:buffer').File`." : ""));
-  }
-};
-function makeFile(fileBits, fileName, options) {
-  checkFileSupport();
-  return new File(fileBits, fileName ?? "unknown_file", options);
-}
-function getName(value) {
-  return (typeof value === "object" && value !== null && (("name" in value) && value.name && String(value.name) || ("url" in value) && value.url && String(value.url) || ("filename" in value) && value.filename && String(value.filename) || ("path" in value) && value.path && String(value.path)) || "").split(/[\\/]/).pop() || undefined;
-}
-var isAsyncIterable = (value) => value != null && typeof value === "object" && typeof value[Symbol.asyncIterator] === "function";
-var maybeMultipartFormRequestOptions = async (opts, fetch3) => {
-  if (!hasUploadableValue(opts.body))
-    return opts;
-  return { ...opts, body: await createForm(opts.body, fetch3) };
-};
-var multipartFormRequestOptions = async (opts, fetch3) => {
-  return { ...opts, body: await createForm(opts.body, fetch3) };
-};
-var supportsFormDataMap = /* @__PURE__ */ new WeakMap;
-function supportsFormData(fetchObject) {
-  const fetch3 = typeof fetchObject === "function" ? fetchObject : fetchObject.fetch;
-  const cached = supportsFormDataMap.get(fetch3);
-  if (cached)
-    return cached;
-  const promise = (async () => {
-    try {
-      const FetchResponse = "Response" in fetch3 ? fetch3.Response : (await fetch3("data:,")).constructor;
-      const data = new FormData;
-      if (data.toString() === await new FetchResponse(data).text()) {
-        return false;
-      }
-      return true;
-    } catch {
-      return true;
-    }
-  })();
-  supportsFormDataMap.set(fetch3, promise);
-  return promise;
-}
-var createForm = async (body, fetch3) => {
-  if (!await supportsFormData(fetch3)) {
-    throw new TypeError("The provided fetch function does not support file uploads with the current global FormData class.");
-  }
-  const form = new FormData;
-  await Promise.all(Object.entries(body || {}).map(([key, value]) => addFormValue(form, key, value)));
-  return form;
-};
-var isNamedBlob = (value) => value instanceof Blob && ("name" in value);
-var isUploadable = (value) => typeof value === "object" && value !== null && (value instanceof Response || isAsyncIterable(value) || isNamedBlob(value));
-var hasUploadableValue = (value) => {
-  if (isUploadable(value))
-    return true;
-  if (Array.isArray(value))
-    return value.some(hasUploadableValue);
-  if (value && typeof value === "object") {
-    for (const k in value) {
-      if (hasUploadableValue(value[k]))
-        return true;
-    }
-  }
-  return false;
-};
-var addFormValue = async (form, key, value) => {
-  if (value === undefined)
-    return;
-  if (value == null) {
-    throw new TypeError(`Received null for "${key}"; to pass null in FormData, you must use the string 'null'`);
-  }
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    form.append(key, String(value));
-  } else if (value instanceof Response) {
-    form.append(key, makeFile([await value.blob()], getName(value)));
-  } else if (isAsyncIterable(value)) {
-    form.append(key, makeFile([await new Response(ReadableStreamFrom(value)).blob()], getName(value)));
-  } else if (isNamedBlob(value)) {
-    form.append(key, value, getName(value));
-  } else if (Array.isArray(value)) {
-    await Promise.all(value.map((entry) => addFormValue(form, key + "[]", entry)));
-  } else if (typeof value === "object") {
-    await Promise.all(Object.entries(value).map(([name, prop]) => addFormValue(form, `${key}[${name}]`, prop)));
-  } else {
-    throw new TypeError(`Invalid value given to form, expected a string, number, boolean, object, Array, File or Blob but got ${value} instead`);
-  }
-};
-
-// node_modules/openai/internal/to-file.mjs
-var isBlobLike = (value) => value != null && typeof value === "object" && typeof value.size === "number" && typeof value.type === "string" && typeof value.text === "function" && typeof value.slice === "function" && typeof value.arrayBuffer === "function";
-var isFileLike = (value) => value != null && typeof value === "object" && typeof value.name === "string" && typeof value.lastModified === "number" && isBlobLike(value);
-var isResponseLike = (value) => value != null && typeof value === "object" && typeof value.url === "string" && typeof value.blob === "function";
-async function toFile(value, name, options) {
-  checkFileSupport();
-  value = await value;
-  if (isFileLike(value)) {
-    if (value instanceof File) {
-      return value;
-    }
-    return makeFile([await value.arrayBuffer()], value.name);
-  }
-  if (isResponseLike(value)) {
-    const blob = await value.blob();
-    name || (name = new URL(value.url).pathname.split(/[\\/]/).pop());
-    return makeFile(await getBytes(blob), name, options);
-  }
-  const parts = await getBytes(value);
-  name || (name = getName(value));
-  if (!options?.type) {
-    const type = parts.find((part) => typeof part === "object" && ("type" in part) && part.type);
-    if (typeof type === "string") {
-      options = { ...options, type };
-    }
-  }
-  return makeFile(parts, name, options);
-}
-async function getBytes(value) {
-  let parts = [];
-  if (typeof value === "string" || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    parts.push(value);
-  } else if (isBlobLike(value)) {
-    parts.push(value instanceof Blob ? value : await value.arrayBuffer());
-  } else if (isAsyncIterable(value)) {
-    for await (const chunk of value) {
-      parts.push(...await getBytes(chunk));
-    }
-  } else {
-    const constructor = value?.constructor?.name;
-    throw new Error(`Unexpected data type: ${typeof value}${constructor ? `; constructor: ${constructor}` : ""}${propsForError(value)}`);
-  }
-  return parts;
-}
-function propsForError(value) {
-  if (typeof value !== "object" || value === null)
-    return "";
-  const props = Object.getOwnPropertyNames(value);
-  return `; props: [${props.map((p) => `"${p}"`).join(", ")}]`;
-}
-// node_modules/openai/core/resource.mjs
-class APIResource {
-  constructor(client) {
-    this._client = client;
-  }
-}
-
-// node_modules/openai/internal/utils/path.mjs
-function encodeURIPath(str) {
-  return str.replace(/[^A-Za-z0-9\-._~!$&'()*+,;=:@]+/g, encodeURIComponent);
-}
-var EMPTY = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.create(null));
-var createPathTagFunction = (pathEncoder = encodeURIPath) => function path2(statics, ...params) {
-  if (statics.length === 1)
-    return statics[0];
-  let postPath = false;
-  const invalidSegments = [];
-  const path3 = statics.reduce((previousValue, currentValue, index) => {
-    if (/[?#]/.test(currentValue)) {
-      postPath = true;
-    }
-    const value = params[index];
-    let encoded = (postPath ? encodeURIComponent : pathEncoder)("" + value);
-    if (index !== params.length && (value == null || typeof value === "object" && value.toString === Object.getPrototypeOf(Object.getPrototypeOf(value.hasOwnProperty ?? EMPTY) ?? EMPTY)?.toString)) {
-      encoded = value + "";
-      invalidSegments.push({
-        start: previousValue.length + currentValue.length,
-        length: encoded.length,
-        error: `Value of type ${Object.prototype.toString.call(value).slice(8, -1)} is not a valid path parameter`
-      });
-    }
-    return previousValue + currentValue + (index === params.length ? "" : encoded);
-  }, "");
-  const pathOnly = path3.split(/[?#]/, 1)[0];
-  const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
-  let match;
-  while ((match = invalidSegmentPattern.exec(pathOnly)) !== null) {
-    invalidSegments.push({
-      start: match.index,
-      length: match[0].length,
-      error: `Value "${match[0]}" can't be safely passed as a path parameter`
-    });
-  }
-  invalidSegments.sort((a, b) => a.start - b.start);
-  if (invalidSegments.length > 0) {
-    let lastEnd = 0;
-    const underline = invalidSegments.reduce((acc, segment) => {
-      const spaces = " ".repeat(segment.start - lastEnd);
-      const arrows = "^".repeat(segment.length);
-      lastEnd = segment.start + segment.length;
-      return acc + spaces + arrows;
-    }, "");
-    throw new OpenAIError(`Path parameters result in path with invalid segments:
-${invalidSegments.map((e) => e.error).join(`
-`)}
-${path3}
-${underline}`);
-  }
-  return path3;
-};
-var path2 = /* @__PURE__ */ createPathTagFunction(encodeURIPath);
-
-// node_modules/openai/resources/chat/completions/messages.mjs
-class Messages extends APIResource {
-  list(completionID, query = {}, options) {
-    return this._client.getAPIList(path2`/chat/completions/${completionID}/messages`, CursorPage, { query, ...options });
-  }
-}
-// node_modules/openai/lib/parser.mjs
-function isChatCompletionFunctionTool(tool) {
-  return tool !== undefined && "function" in tool && tool.function !== undefined;
-}
-function makeParseableTextFormat(response_format, parser) {
-  const obj = { ...response_format };
-  Object.defineProperties(obj, {
-    $brand: {
-      value: "auto-parseable-response-format",
-      enumerable: false
-    },
-    $parseRaw: {
-      value: parser,
-      enumerable: false
-    }
-  });
-  return obj;
-}
-function isAutoParsableResponseFormat(response_format) {
-  return response_format?.["$brand"] === "auto-parseable-response-format";
-}
-function isAutoParsableTool(tool) {
-  return tool?.["$brand"] === "auto-parseable-tool";
-}
-function maybeParseChatCompletion(completion, params) {
-  if (!params || !hasAutoParseableInput(params)) {
-    return {
-      ...completion,
-      choices: completion.choices.map((choice) => {
-        assertToolCallsAreChatCompletionFunctionToolCalls(choice.message.tool_calls);
-        return {
-          ...choice,
-          message: {
-            ...choice.message,
-            parsed: null,
-            ...choice.message.tool_calls ? {
-              tool_calls: choice.message.tool_calls
-            } : undefined
-          }
-        };
-      })
-    };
-  }
-  return parseChatCompletion(completion, params);
-}
-function parseChatCompletion(completion, params) {
-  const choices = completion.choices.map((choice) => {
-    if (choice.finish_reason === "length") {
-      throw new LengthFinishReasonError;
-    }
-    if (choice.finish_reason === "content_filter") {
-      throw new ContentFilterFinishReasonError;
-    }
-    assertToolCallsAreChatCompletionFunctionToolCalls(choice.message.tool_calls);
-    return {
-      ...choice,
-      message: {
-        ...choice.message,
-        ...choice.message.tool_calls ? {
-          tool_calls: choice.message.tool_calls?.map((toolCall) => parseToolCall(params, toolCall)) ?? undefined
-        } : undefined,
-        parsed: choice.message.content && !choice.message.refusal ? parseResponseFormat(params, choice.message.content) : null
-      }
-    };
-  });
-  return { ...completion, choices };
-}
-function parseResponseFormat(params, content) {
-  if (params.response_format?.type !== "json_schema") {
-    return null;
-  }
-  if (params.response_format?.type === "json_schema") {
-    if ("$parseRaw" in params.response_format) {
-      const response_format = params.response_format;
-      return response_format.$parseRaw(content);
-    }
-    return JSON.parse(content);
-  }
-  return null;
-}
-function parseToolCall(params, toolCall) {
-  const inputTool = params.tools?.find((inputTool2) => isChatCompletionFunctionTool(inputTool2) && inputTool2.function?.name === toolCall.function.name);
-  return {
-    ...toolCall,
-    function: {
-      ...toolCall.function,
-      parsed_arguments: isAutoParsableTool(inputTool) ? inputTool.$parseRaw(toolCall.function.arguments) : inputTool?.function.strict ? JSON.parse(toolCall.function.arguments) : null
-    }
-  };
-}
-function shouldParseToolCall(params, toolCall) {
-  if (!params || !("tools" in params) || !params.tools) {
-    return false;
-  }
-  const inputTool = params.tools?.find((inputTool2) => isChatCompletionFunctionTool(inputTool2) && inputTool2.function?.name === toolCall.function.name);
-  return isChatCompletionFunctionTool(inputTool) && (isAutoParsableTool(inputTool) || inputTool?.function.strict || false);
-}
-function hasAutoParseableInput(params) {
-  if (isAutoParsableResponseFormat(params.response_format)) {
-    return true;
-  }
-  return params.tools?.some((t) => isAutoParsableTool(t) || t.type === "function" && t.function.strict === true) ?? false;
-}
-function assertToolCallsAreChatCompletionFunctionToolCalls(toolCalls) {
-  for (const toolCall of toolCalls || []) {
-    if (toolCall.type !== "function") {
-      throw new OpenAIError(`Currently only \`function\` tool calls are supported; Received \`${toolCall.type}\``);
-    }
-  }
-}
-function validateInputTools(tools) {
-  for (const tool of tools ?? []) {
-    if (tool.type !== "function") {
-      throw new OpenAIError(`Currently only \`function\` tool types support auto-parsing; Received \`${tool.type}\``);
-    }
-    if (tool.function.strict !== true) {
-      throw new OpenAIError(`The \`${tool.function.name}\` tool is not marked with \`strict: true\`. Only strict function tools can be auto-parsed`);
-    }
-  }
-}
-
-// node_modules/openai/lib/chatCompletionUtils.mjs
-var isAssistantMessage = (message) => {
-  return message?.role === "assistant";
-};
-var isToolMessage = (message) => {
-  return message?.role === "tool";
-};
-
-// node_modules/openai/lib/EventStream.mjs
-var _EventStream_instances;
-var _EventStream_connectedPromise;
-var _EventStream_resolveConnectedPromise;
-var _EventStream_rejectConnectedPromise;
-var _EventStream_endPromise;
-var _EventStream_resolveEndPromise;
-var _EventStream_rejectEndPromise;
-var _EventStream_listeners;
-var _EventStream_ended;
-var _EventStream_errored;
-var _EventStream_aborted;
-var _EventStream_catchingPromiseCreated;
-var _EventStream_handleError;
-
-class EventStream {
-  constructor() {
-    _EventStream_instances.add(this);
-    this.controller = new AbortController;
-    _EventStream_connectedPromise.set(this, undefined);
-    _EventStream_resolveConnectedPromise.set(this, () => {});
-    _EventStream_rejectConnectedPromise.set(this, () => {});
-    _EventStream_endPromise.set(this, undefined);
-    _EventStream_resolveEndPromise.set(this, () => {});
-    _EventStream_rejectEndPromise.set(this, () => {});
-    _EventStream_listeners.set(this, {});
-    _EventStream_ended.set(this, false);
-    _EventStream_errored.set(this, false);
-    _EventStream_aborted.set(this, false);
-    _EventStream_catchingPromiseCreated.set(this, false);
-    __classPrivateFieldSet(this, _EventStream_connectedPromise, new Promise((resolve, reject) => {
-      __classPrivateFieldSet(this, _EventStream_resolveConnectedPromise, resolve, "f");
-      __classPrivateFieldSet(this, _EventStream_rejectConnectedPromise, reject, "f");
-    }), "f");
-    __classPrivateFieldSet(this, _EventStream_endPromise, new Promise((resolve, reject) => {
-      __classPrivateFieldSet(this, _EventStream_resolveEndPromise, resolve, "f");
-      __classPrivateFieldSet(this, _EventStream_rejectEndPromise, reject, "f");
-    }), "f");
-    __classPrivateFieldGet(this, _EventStream_connectedPromise, "f").catch(() => {});
-    __classPrivateFieldGet(this, _EventStream_endPromise, "f").catch(() => {});
-  }
-  _run(executor) {
-    setTimeout(() => {
-      executor().then(() => {
-        this._emitFinal();
-        this._emit("end");
-      }, __classPrivateFieldGet(this, _EventStream_instances, "m", _EventStream_handleError).bind(this));
-    }, 0);
-  }
-  _connected() {
-    if (this.ended)
-      return;
-    __classPrivateFieldGet(this, _EventStream_resolveConnectedPromise, "f").call(this);
-    this._emit("connect");
-  }
-  get ended() {
-    return __classPrivateFieldGet(this, _EventStream_ended, "f");
-  }
-  get errored() {
-    return __classPrivateFieldGet(this, _EventStream_errored, "f");
-  }
-  get aborted() {
-    return __classPrivateFieldGet(this, _EventStream_aborted, "f");
-  }
-  abort() {
-    this.controller.abort();
-  }
-  on(event, listener) {
-    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event] || (__classPrivateFieldGet(this, _EventStream_listeners, "f")[event] = []);
-    listeners.push({ listener });
-    return this;
-  }
-  off(event, listener) {
-    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event];
-    if (!listeners)
-      return this;
-    const index = listeners.findIndex((l) => l.listener === listener);
-    if (index >= 0)
-      listeners.splice(index, 1);
-    return this;
-  }
-  once(event, listener) {
-    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event] || (__classPrivateFieldGet(this, _EventStream_listeners, "f")[event] = []);
-    listeners.push({ listener, once: true });
-    return this;
-  }
-  emitted(event) {
-    return new Promise((resolve, reject) => {
-      __classPrivateFieldSet(this, _EventStream_catchingPromiseCreated, true, "f");
-      if (event !== "error")
-        this.once("error", reject);
-      this.once(event, resolve);
-    });
-  }
-  async done() {
-    __classPrivateFieldSet(this, _EventStream_catchingPromiseCreated, true, "f");
-    await __classPrivateFieldGet(this, _EventStream_endPromise, "f");
-  }
-  _emit(event, ...args) {
-    if (__classPrivateFieldGet(this, _EventStream_ended, "f")) {
-      return;
-    }
-    if (event === "end") {
-      __classPrivateFieldSet(this, _EventStream_ended, true, "f");
-      __classPrivateFieldGet(this, _EventStream_resolveEndPromise, "f").call(this);
-    }
-    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event];
-    if (listeners) {
-      __classPrivateFieldGet(this, _EventStream_listeners, "f")[event] = listeners.filter((l) => !l.once);
-      listeners.forEach(({ listener }) => listener(...args));
-    }
-    if (event === "abort") {
-      const error3 = args[0];
-      if (!__classPrivateFieldGet(this, _EventStream_catchingPromiseCreated, "f") && !listeners?.length) {
-        Promise.reject(error3);
-      }
-      __classPrivateFieldGet(this, _EventStream_rejectConnectedPromise, "f").call(this, error3);
-      __classPrivateFieldGet(this, _EventStream_rejectEndPromise, "f").call(this, error3);
-      this._emit("end");
-      return;
-    }
-    if (event === "error") {
-      const error3 = args[0];
-      if (!__classPrivateFieldGet(this, _EventStream_catchingPromiseCreated, "f") && !listeners?.length) {
-        Promise.reject(error3);
-      }
-      __classPrivateFieldGet(this, _EventStream_rejectConnectedPromise, "f").call(this, error3);
-      __classPrivateFieldGet(this, _EventStream_rejectEndPromise, "f").call(this, error3);
-      this._emit("end");
-    }
-  }
-  _emitFinal() {}
-}
-_EventStream_connectedPromise = new WeakMap, _EventStream_resolveConnectedPromise = new WeakMap, _EventStream_rejectConnectedPromise = new WeakMap, _EventStream_endPromise = new WeakMap, _EventStream_resolveEndPromise = new WeakMap, _EventStream_rejectEndPromise = new WeakMap, _EventStream_listeners = new WeakMap, _EventStream_ended = new WeakMap, _EventStream_errored = new WeakMap, _EventStream_aborted = new WeakMap, _EventStream_catchingPromiseCreated = new WeakMap, _EventStream_instances = new WeakSet, _EventStream_handleError = function _EventStream_handleError2(error3) {
-  __classPrivateFieldSet(this, _EventStream_errored, true, "f");
-  if (error3 instanceof Error && error3.name === "AbortError") {
-    error3 = new APIUserAbortError;
-  }
-  if (error3 instanceof APIUserAbortError) {
-    __classPrivateFieldSet(this, _EventStream_aborted, true, "f");
-    return this._emit("abort", error3);
-  }
-  if (error3 instanceof OpenAIError) {
-    return this._emit("error", error3);
-  }
-  if (error3 instanceof Error) {
-    const openAIError = new OpenAIError(error3.message);
-    openAIError.cause = error3;
-    return this._emit("error", openAIError);
-  }
-  return this._emit("error", new OpenAIError(String(error3)));
-};
-
-// node_modules/openai/lib/RunnableFunction.mjs
-function isRunnableFunctionWithParse(fn) {
-  return typeof fn.parse === "function";
-}
-
-// node_modules/openai/lib/AbstractChatCompletionRunner.mjs
-var _AbstractChatCompletionRunner_instances;
-var _AbstractChatCompletionRunner_getFinalContent;
-var _AbstractChatCompletionRunner_getFinalMessage;
-var _AbstractChatCompletionRunner_getFinalFunctionToolCall;
-var _AbstractChatCompletionRunner_getFinalFunctionToolCallResult;
-var _AbstractChatCompletionRunner_calculateTotalUsage;
-var _AbstractChatCompletionRunner_validateParams;
-var _AbstractChatCompletionRunner_stringifyFunctionCallResult;
-var DEFAULT_MAX_CHAT_COMPLETIONS = 10;
-
-class AbstractChatCompletionRunner extends EventStream {
-  constructor() {
-    super(...arguments);
-    _AbstractChatCompletionRunner_instances.add(this);
-    this._chatCompletions = [];
-    this.messages = [];
-  }
-  _addChatCompletion(chatCompletion) {
-    this._chatCompletions.push(chatCompletion);
-    this._emit("chatCompletion", chatCompletion);
-    const message = chatCompletion.choices[0]?.message;
-    if (message)
-      this._addMessage(message);
-    return chatCompletion;
-  }
-  _addMessage(message, emit = true) {
-    if (!("content" in message))
-      message.content = null;
-    this.messages.push(message);
-    if (emit) {
-      this._emit("message", message);
-      if (isToolMessage(message) && message.content) {
-        this._emit("functionToolCallResult", message.content);
-      } else if (isAssistantMessage(message) && message.tool_calls) {
-        for (const tool_call of message.tool_calls) {
-          if (tool_call.type === "function") {
-            this._emit("functionToolCall", tool_call.function);
-          }
-        }
-      }
-    }
-  }
-  async finalChatCompletion() {
-    await this.done();
-    const completion = this._chatCompletions[this._chatCompletions.length - 1];
-    if (!completion)
-      throw new OpenAIError("stream ended without producing a ChatCompletion");
-    return completion;
-  }
-  async finalContent() {
-    await this.done();
-    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalContent).call(this);
-  }
-  async finalMessage() {
-    await this.done();
-    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalMessage).call(this);
-  }
-  async finalFunctionToolCall() {
-    await this.done();
-    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCall).call(this);
-  }
-  async finalFunctionToolCallResult() {
-    await this.done();
-    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCallResult).call(this);
-  }
-  async totalUsage() {
-    await this.done();
-    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_calculateTotalUsage).call(this);
-  }
-  allChatCompletions() {
-    return [...this._chatCompletions];
-  }
-  _emitFinal() {
-    const completion = this._chatCompletions[this._chatCompletions.length - 1];
-    if (completion)
-      this._emit("finalChatCompletion", completion);
-    const finalMessage = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalMessage).call(this);
-    if (finalMessage)
-      this._emit("finalMessage", finalMessage);
-    const finalContent = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalContent).call(this);
-    if (finalContent)
-      this._emit("finalContent", finalContent);
-    const finalFunctionCall = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCall).call(this);
-    if (finalFunctionCall)
-      this._emit("finalFunctionToolCall", finalFunctionCall);
-    const finalFunctionCallResult = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCallResult).call(this);
-    if (finalFunctionCallResult != null)
-      this._emit("finalFunctionToolCallResult", finalFunctionCallResult);
-    if (this._chatCompletions.some((c) => c.usage)) {
-      this._emit("totalUsage", __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_calculateTotalUsage).call(this));
-    }
-  }
-  async _createChatCompletion(client, params, options) {
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_validateParams).call(this, params);
-    const chatCompletion = await client.chat.completions.create({ ...params, stream: false }, { ...options, signal: this.controller.signal });
-    this._connected();
-    return this._addChatCompletion(parseChatCompletion(chatCompletion, params));
-  }
-  async _runChatCompletion(client, params, options) {
-    for (const message of params.messages) {
-      this._addMessage(message, false);
-    }
-    return await this._createChatCompletion(client, params, options);
-  }
-  async _runTools(client, params, options) {
-    const role = "tool";
-    const { tool_choice = "auto", stream, ...restParams } = params;
-    const singleFunctionToCall = typeof tool_choice !== "string" && tool_choice.type === "function" && tool_choice?.function?.name;
-    const { maxChatCompletions = DEFAULT_MAX_CHAT_COMPLETIONS } = options || {};
-    const inputTools = params.tools.map((tool) => {
-      if (isAutoParsableTool(tool)) {
-        if (!tool.$callback) {
-          throw new OpenAIError("Tool given to `.runTools()` that does not have an associated function");
-        }
-        return {
-          type: "function",
-          function: {
-            function: tool.$callback,
-            name: tool.function.name,
-            description: tool.function.description || "",
-            parameters: tool.function.parameters,
-            parse: tool.$parseRaw,
-            strict: true
-          }
-        };
-      }
-      return tool;
-    });
-    const functionsByName = {};
-    for (const f of inputTools) {
-      if (f.type === "function") {
-        functionsByName[f.function.name || f.function.function.name] = f.function;
-      }
-    }
-    const tools = "tools" in params ? inputTools.map((t) => t.type === "function" ? {
-      type: "function",
-      function: {
-        name: t.function.name || t.function.function.name,
-        parameters: t.function.parameters,
-        description: t.function.description,
-        strict: t.function.strict
-      }
-    } : t) : undefined;
-    for (const message of params.messages) {
-      this._addMessage(message, false);
-    }
-    for (let i = 0;i < maxChatCompletions; ++i) {
-      const chatCompletion = await this._createChatCompletion(client, {
-        ...restParams,
-        tool_choice,
-        tools,
-        messages: [...this.messages]
-      }, options);
-      const message = chatCompletion.choices[0]?.message;
-      if (!message) {
-        throw new OpenAIError(`missing message in ChatCompletion response`);
-      }
-      if (!message.tool_calls?.length) {
-        return;
-      }
-      for (const tool_call of message.tool_calls) {
-        if (tool_call.type !== "function")
-          continue;
-        const tool_call_id = tool_call.id;
-        const { name, arguments: args } = tool_call.function;
-        const fn = functionsByName[name];
-        if (!fn) {
-          const content2 = `Invalid tool_call: ${JSON.stringify(name)}. Available options are: ${Object.keys(functionsByName).map((name2) => JSON.stringify(name2)).join(", ")}. Please try again`;
-          this._addMessage({ role, tool_call_id, content: content2 });
-          continue;
-        } else if (singleFunctionToCall && singleFunctionToCall !== name) {
-          const content2 = `Invalid tool_call: ${JSON.stringify(name)}. ${JSON.stringify(singleFunctionToCall)} requested. Please try again`;
-          this._addMessage({ role, tool_call_id, content: content2 });
-          continue;
-        }
-        let parsed;
-        try {
-          parsed = isRunnableFunctionWithParse(fn) ? await fn.parse(args) : args;
-        } catch (error3) {
-          const content2 = error3 instanceof Error ? error3.message : String(error3);
-          this._addMessage({ role, tool_call_id, content: content2 });
-          continue;
-        }
-        const rawContent = await fn.function(parsed, this);
-        const content = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_stringifyFunctionCallResult).call(this, rawContent);
-        this._addMessage({ role, tool_call_id, content });
-        if (singleFunctionToCall) {
-          return;
-        }
-      }
-    }
-    return;
-  }
-}
-_AbstractChatCompletionRunner_instances = new WeakSet, _AbstractChatCompletionRunner_getFinalContent = function _AbstractChatCompletionRunner_getFinalContent2() {
-  return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalMessage).call(this).content ?? null;
-}, _AbstractChatCompletionRunner_getFinalMessage = function _AbstractChatCompletionRunner_getFinalMessage2() {
-  let i = this.messages.length;
-  while (i-- > 0) {
-    const message = this.messages[i];
-    if (isAssistantMessage(message)) {
-      const ret = {
-        ...message,
-        content: message.content ?? null,
-        refusal: message.refusal ?? null
-      };
-      return ret;
-    }
-  }
-  throw new OpenAIError("stream ended without producing a ChatCompletionMessage with role=assistant");
-}, _AbstractChatCompletionRunner_getFinalFunctionToolCall = function _AbstractChatCompletionRunner_getFinalFunctionToolCall2() {
-  for (let i = this.messages.length - 1;i >= 0; i--) {
-    const message = this.messages[i];
-    if (isAssistantMessage(message) && message?.tool_calls?.length) {
-      return message.tool_calls.filter((x) => x.type === "function").at(-1)?.function;
-    }
-  }
-  return;
-}, _AbstractChatCompletionRunner_getFinalFunctionToolCallResult = function _AbstractChatCompletionRunner_getFinalFunctionToolCallResult2() {
-  for (let i = this.messages.length - 1;i >= 0; i--) {
-    const message = this.messages[i];
-    if (isToolMessage(message) && message.content != null && typeof message.content === "string" && this.messages.some((x) => x.role === "assistant" && x.tool_calls?.some((y) => y.type === "function" && y.id === message.tool_call_id))) {
-      return message.content;
-    }
-  }
-  return;
-}, _AbstractChatCompletionRunner_calculateTotalUsage = function _AbstractChatCompletionRunner_calculateTotalUsage2() {
-  const total = {
-    completion_tokens: 0,
-    prompt_tokens: 0,
-    total_tokens: 0
-  };
-  for (const { usage } of this._chatCompletions) {
-    if (usage) {
-      total.completion_tokens += usage.completion_tokens;
-      total.prompt_tokens += usage.prompt_tokens;
-      total.total_tokens += usage.total_tokens;
-    }
-  }
-  return total;
-}, _AbstractChatCompletionRunner_validateParams = function _AbstractChatCompletionRunner_validateParams2(params) {
-  if (params.n != null && params.n > 1) {
-    throw new OpenAIError("ChatCompletion convenience helpers only support n=1 at this time. To use n>1, please use chat.completions.create() directly.");
-  }
-}, _AbstractChatCompletionRunner_stringifyFunctionCallResult = function _AbstractChatCompletionRunner_stringifyFunctionCallResult2(rawContent) {
-  return typeof rawContent === "string" ? rawContent : rawContent === undefined ? "undefined" : JSON.stringify(rawContent);
-};
-
-// node_modules/openai/lib/ChatCompletionRunner.mjs
-class ChatCompletionRunner extends AbstractChatCompletionRunner {
-  static runTools(client, params, options) {
-    const runner = new ChatCompletionRunner;
-    const opts = {
-      ...options,
-      headers: { ...options?.headers, "X-Stainless-Helper-Method": "runTools" }
-    };
-    runner._run(() => runner._runTools(client, params, opts));
-    return runner;
-  }
-  _addMessage(message, emit = true) {
-    super._addMessage(message, emit);
-    if (isAssistantMessage(message) && message.content) {
-      this._emit("content", message.content);
-    }
-  }
-}
-
-// node_modules/openai/_vendor/partial-json-parser/parser.mjs
-var STR = 1;
-var NUM = 2;
-var ARR = 4;
-var OBJ = 8;
-var NULL = 16;
-var BOOL = 32;
-var NAN = 64;
-var INFINITY = 128;
-var MINUS_INFINITY = 256;
-var INF = INFINITY | MINUS_INFINITY;
-var SPECIAL = NULL | BOOL | INF | NAN;
-var ATOM = STR | NUM | SPECIAL;
-var COLLECTION = ARR | OBJ;
-var ALL = ATOM | COLLECTION;
-var Allow = {
-  STR,
-  NUM,
-  ARR,
-  OBJ,
-  NULL,
-  BOOL,
-  NAN,
-  INFINITY,
-  MINUS_INFINITY,
-  INF,
-  SPECIAL,
-  ATOM,
-  COLLECTION,
-  ALL
-};
-
-class PartialJSON extends Error {
-}
-
-class MalformedJSON extends Error {
-}
-function parseJSON(jsonString, allowPartial = Allow.ALL) {
-  if (typeof jsonString !== "string") {
-    throw new TypeError(`expecting str, got ${typeof jsonString}`);
-  }
-  if (!jsonString.trim()) {
-    throw new Error(`${jsonString} is empty`);
-  }
-  return _parseJSON(jsonString.trim(), allowPartial);
-}
-var _parseJSON = (jsonString, allow) => {
-  const length = jsonString.length;
-  let index = 0;
-  const markPartialJSON = (msg) => {
-    throw new PartialJSON(`${msg} at position ${index}`);
-  };
-  const throwMalformedError = (msg) => {
-    throw new MalformedJSON(`${msg} at position ${index}`);
-  };
-  const parseAny = () => {
-    skipBlank();
-    if (index >= length)
-      markPartialJSON("Unexpected end of input");
-    if (jsonString[index] === '"')
-      return parseStr();
-    if (jsonString[index] === "{")
-      return parseObj();
-    if (jsonString[index] === "[")
-      return parseArr();
-    if (jsonString.substring(index, index + 4) === "null" || Allow.NULL & allow && length - index < 4 && "null".startsWith(jsonString.substring(index))) {
-      index += 4;
-      return null;
-    }
-    if (jsonString.substring(index, index + 4) === "true" || Allow.BOOL & allow && length - index < 4 && "true".startsWith(jsonString.substring(index))) {
-      index += 4;
-      return true;
-    }
-    if (jsonString.substring(index, index + 5) === "false" || Allow.BOOL & allow && length - index < 5 && "false".startsWith(jsonString.substring(index))) {
-      index += 5;
-      return false;
-    }
-    if (jsonString.substring(index, index + 8) === "Infinity" || Allow.INFINITY & allow && length - index < 8 && "Infinity".startsWith(jsonString.substring(index))) {
-      index += 8;
-      return Infinity;
-    }
-    if (jsonString.substring(index, index + 9) === "-Infinity" || Allow.MINUS_INFINITY & allow && 1 < length - index && length - index < 9 && "-Infinity".startsWith(jsonString.substring(index))) {
-      index += 9;
-      return -Infinity;
-    }
-    if (jsonString.substring(index, index + 3) === "NaN" || Allow.NAN & allow && length - index < 3 && "NaN".startsWith(jsonString.substring(index))) {
-      index += 3;
-      return NaN;
-    }
-    return parseNum();
-  };
-  const parseStr = () => {
-    const start = index;
-    let escape2 = false;
-    index++;
-    while (index < length && (jsonString[index] !== '"' || escape2 && jsonString[index - 1] === "\\")) {
-      escape2 = jsonString[index] === "\\" ? !escape2 : false;
-      index++;
-    }
-    if (jsonString.charAt(index) == '"') {
-      try {
-        return JSON.parse(jsonString.substring(start, ++index - Number(escape2)));
-      } catch (e) {
-        throwMalformedError(String(e));
-      }
-    } else if (Allow.STR & allow) {
-      try {
-        return JSON.parse(jsonString.substring(start, index - Number(escape2)) + '"');
-      } catch (e) {
-        return JSON.parse(jsonString.substring(start, jsonString.lastIndexOf("\\")) + '"');
-      }
-    }
-    markPartialJSON("Unterminated string literal");
-  };
-  const parseObj = () => {
-    index++;
-    skipBlank();
-    const obj = {};
-    try {
-      while (jsonString[index] !== "}") {
-        skipBlank();
-        if (index >= length && Allow.OBJ & allow)
-          return obj;
-        const key = parseStr();
-        skipBlank();
-        index++;
-        try {
-          const value = parseAny();
-          Object.defineProperty(obj, key, { value, writable: true, enumerable: true, configurable: true });
-        } catch (e) {
-          if (Allow.OBJ & allow)
-            return obj;
-          else
-            throw e;
-        }
-        skipBlank();
-        if (jsonString[index] === ",")
-          index++;
-      }
-    } catch (e) {
-      if (Allow.OBJ & allow)
-        return obj;
-      else
-        markPartialJSON("Expected '}' at end of object");
-    }
-    index++;
-    return obj;
-  };
-  const parseArr = () => {
-    index++;
-    const arr = [];
-    try {
-      while (jsonString[index] !== "]") {
-        arr.push(parseAny());
-        skipBlank();
-        if (jsonString[index] === ",") {
-          index++;
-        }
-      }
-    } catch (e) {
-      if (Allow.ARR & allow) {
-        return arr;
-      }
-      markPartialJSON("Expected ']' at end of array");
-    }
-    index++;
-    return arr;
-  };
-  const parseNum = () => {
-    if (index === 0) {
-      if (jsonString === "-" && Allow.NUM & allow)
-        markPartialJSON("Not sure what '-' is");
-      try {
-        return JSON.parse(jsonString);
-      } catch (e) {
-        if (Allow.NUM & allow) {
-          try {
-            if (jsonString[jsonString.length - 1] === ".")
-              return JSON.parse(jsonString.substring(0, jsonString.lastIndexOf(".")));
-            return JSON.parse(jsonString.substring(0, jsonString.lastIndexOf("e")));
-          } catch (e2) {}
-        }
-        throwMalformedError(String(e));
-      }
-    }
-    const start = index;
-    if (jsonString[index] === "-")
-      index++;
-    while (jsonString[index] && !",]}".includes(jsonString[index]))
-      index++;
-    if (index == length && !(Allow.NUM & allow))
-      markPartialJSON("Unterminated number literal");
-    try {
-      return JSON.parse(jsonString.substring(start, index));
-    } catch (e) {
-      if (jsonString.substring(start, index) === "-" && Allow.NUM & allow)
-        markPartialJSON("Not sure what '-' is");
-      try {
-        return JSON.parse(jsonString.substring(start, jsonString.lastIndexOf("e")));
-      } catch (e2) {
-        throwMalformedError(String(e2));
-      }
-    }
-  };
-  const skipBlank = () => {
-    while (index < length && ` 
-\r	`.includes(jsonString[index])) {
-      index++;
-    }
-  };
-  return parseAny();
-};
-var partialParse = (input) => parseJSON(input, Allow.ALL ^ Allow.NUM);
-// node_modules/openai/lib/ChatCompletionStream.mjs
-var _ChatCompletionStream_instances;
-var _ChatCompletionStream_params;
-var _ChatCompletionStream_choiceEventStates;
-var _ChatCompletionStream_currentChatCompletionSnapshot;
-var _ChatCompletionStream_beginRequest;
-var _ChatCompletionStream_getChoiceEventState;
-var _ChatCompletionStream_addChunk;
-var _ChatCompletionStream_emitToolCallDoneEvent;
-var _ChatCompletionStream_emitContentDoneEvents;
-var _ChatCompletionStream_endRequest;
-var _ChatCompletionStream_getAutoParseableResponseFormat;
-var _ChatCompletionStream_accumulateChatCompletion;
-
-class ChatCompletionStream extends AbstractChatCompletionRunner {
-  constructor(params) {
-    super();
-    _ChatCompletionStream_instances.add(this);
-    _ChatCompletionStream_params.set(this, undefined);
-    _ChatCompletionStream_choiceEventStates.set(this, undefined);
-    _ChatCompletionStream_currentChatCompletionSnapshot.set(this, undefined);
-    __classPrivateFieldSet(this, _ChatCompletionStream_params, params, "f");
-    __classPrivateFieldSet(this, _ChatCompletionStream_choiceEventStates, [], "f");
-  }
-  get currentChatCompletionSnapshot() {
-    return __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
-  }
-  static fromReadableStream(stream) {
-    const runner = new ChatCompletionStream(null);
-    runner._run(() => runner._fromReadableStream(stream));
-    return runner;
-  }
-  static createChatCompletion(client, params, options) {
-    const runner = new ChatCompletionStream(params);
-    runner._run(() => runner._runChatCompletion(client, { ...params, stream: true }, { ...options, headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" } }));
-    return runner;
-  }
-  async _createChatCompletion(client, params, options) {
-    super._createChatCompletion;
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_beginRequest).call(this);
-    const stream = await client.chat.completions.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
-    this._connected();
-    for await (const chunk of stream) {
-      __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_addChunk).call(this, chunk);
-    }
-    if (stream.controller.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    return this._addChatCompletion(__classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
-  }
-  async _fromReadableStream(readableStream, options) {
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_beginRequest).call(this);
-    this._connected();
-    const stream = Stream.fromReadableStream(readableStream, this.controller);
-    let chatId;
-    for await (const chunk of stream) {
-      if (chatId && chatId !== chunk.id) {
-        this._addChatCompletion(__classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
-      }
-      __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_addChunk).call(this, chunk);
-      chatId = chunk.id;
-    }
-    if (stream.controller.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    return this._addChatCompletion(__classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
-  }
-  [(_ChatCompletionStream_params = new WeakMap, _ChatCompletionStream_choiceEventStates = new WeakMap, _ChatCompletionStream_currentChatCompletionSnapshot = new WeakMap, _ChatCompletionStream_instances = new WeakSet, _ChatCompletionStream_beginRequest = function _ChatCompletionStream_beginRequest2() {
-    if (this.ended)
-      return;
-    __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, undefined, "f");
-  }, _ChatCompletionStream_getChoiceEventState = function _ChatCompletionStream_getChoiceEventState2(choice) {
-    let state = __classPrivateFieldGet(this, _ChatCompletionStream_choiceEventStates, "f")[choice.index];
-    if (state) {
-      return state;
-    }
-    state = {
-      content_done: false,
-      refusal_done: false,
-      logprobs_content_done: false,
-      logprobs_refusal_done: false,
-      done_tool_calls: new Set,
-      current_tool_call_index: null
-    };
-    __classPrivateFieldGet(this, _ChatCompletionStream_choiceEventStates, "f")[choice.index] = state;
-    return state;
-  }, _ChatCompletionStream_addChunk = function _ChatCompletionStream_addChunk2(chunk) {
-    if (this.ended)
-      return;
-    const completion = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_accumulateChatCompletion).call(this, chunk);
-    this._emit("chunk", chunk, completion);
-    for (const choice of chunk.choices) {
-      const choiceSnapshot = completion.choices[choice.index];
-      if (choice.delta.content != null && choiceSnapshot.message?.role === "assistant" && choiceSnapshot.message?.content) {
-        this._emit("content", choice.delta.content, choiceSnapshot.message.content);
-        this._emit("content.delta", {
-          delta: choice.delta.content,
-          snapshot: choiceSnapshot.message.content,
-          parsed: choiceSnapshot.message.parsed
-        });
-      }
-      if (choice.delta.refusal != null && choiceSnapshot.message?.role === "assistant" && choiceSnapshot.message?.refusal) {
-        this._emit("refusal.delta", {
-          delta: choice.delta.refusal,
-          snapshot: choiceSnapshot.message.refusal
-        });
-      }
-      if (choice.logprobs?.content != null && choiceSnapshot.message?.role === "assistant") {
-        this._emit("logprobs.content.delta", {
-          content: choice.logprobs?.content,
-          snapshot: choiceSnapshot.logprobs?.content ?? []
-        });
-      }
-      if (choice.logprobs?.refusal != null && choiceSnapshot.message?.role === "assistant") {
-        this._emit("logprobs.refusal.delta", {
-          refusal: choice.logprobs?.refusal,
-          snapshot: choiceSnapshot.logprobs?.refusal ?? []
-        });
-      }
-      const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
-      if (choiceSnapshot.finish_reason) {
-        __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitContentDoneEvents).call(this, choiceSnapshot);
-        if (state.current_tool_call_index != null) {
-          __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitToolCallDoneEvent).call(this, choiceSnapshot, state.current_tool_call_index);
-        }
-      }
-      for (const toolCall of choice.delta.tool_calls ?? []) {
-        if (state.current_tool_call_index !== toolCall.index) {
-          __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitContentDoneEvents).call(this, choiceSnapshot);
-          if (state.current_tool_call_index != null) {
-            __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitToolCallDoneEvent).call(this, choiceSnapshot, state.current_tool_call_index);
-          }
-        }
-        state.current_tool_call_index = toolCall.index;
-      }
-      for (const toolCallDelta of choice.delta.tool_calls ?? []) {
-        const toolCallSnapshot = choiceSnapshot.message.tool_calls?.[toolCallDelta.index];
-        if (!toolCallSnapshot?.type) {
-          continue;
-        }
-        if (toolCallSnapshot?.type === "function") {
-          this._emit("tool_calls.function.arguments.delta", {
-            name: toolCallSnapshot.function?.name,
-            index: toolCallDelta.index,
-            arguments: toolCallSnapshot.function.arguments,
-            parsed_arguments: toolCallSnapshot.function.parsed_arguments,
-            arguments_delta: toolCallDelta.function?.arguments ?? ""
-          });
-        } else {
-          assertNever(toolCallSnapshot?.type);
-        }
-      }
-    }
-  }, _ChatCompletionStream_emitToolCallDoneEvent = function _ChatCompletionStream_emitToolCallDoneEvent2(choiceSnapshot, toolCallIndex) {
-    const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
-    if (state.done_tool_calls.has(toolCallIndex)) {
-      return;
-    }
-    const toolCallSnapshot = choiceSnapshot.message.tool_calls?.[toolCallIndex];
-    if (!toolCallSnapshot) {
-      throw new Error("no tool call snapshot");
-    }
-    if (!toolCallSnapshot.type) {
-      throw new Error("tool call snapshot missing `type`");
-    }
-    if (toolCallSnapshot.type === "function") {
-      const inputTool = __classPrivateFieldGet(this, _ChatCompletionStream_params, "f")?.tools?.find((tool) => isChatCompletionFunctionTool(tool) && tool.function.name === toolCallSnapshot.function.name);
-      this._emit("tool_calls.function.arguments.done", {
-        name: toolCallSnapshot.function.name,
-        index: toolCallIndex,
-        arguments: toolCallSnapshot.function.arguments,
-        parsed_arguments: isAutoParsableTool(inputTool) ? inputTool.$parseRaw(toolCallSnapshot.function.arguments) : inputTool?.function.strict ? JSON.parse(toolCallSnapshot.function.arguments) : null
-      });
-    } else {
-      assertNever(toolCallSnapshot.type);
-    }
-  }, _ChatCompletionStream_emitContentDoneEvents = function _ChatCompletionStream_emitContentDoneEvents2(choiceSnapshot) {
-    const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
-    if (choiceSnapshot.message.content && !state.content_done) {
-      state.content_done = true;
-      const responseFormat = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getAutoParseableResponseFormat).call(this);
-      this._emit("content.done", {
-        content: choiceSnapshot.message.content,
-        parsed: responseFormat ? responseFormat.$parseRaw(choiceSnapshot.message.content) : null
-      });
-    }
-    if (choiceSnapshot.message.refusal && !state.refusal_done) {
-      state.refusal_done = true;
-      this._emit("refusal.done", { refusal: choiceSnapshot.message.refusal });
-    }
-    if (choiceSnapshot.logprobs?.content && !state.logprobs_content_done) {
-      state.logprobs_content_done = true;
-      this._emit("logprobs.content.done", { content: choiceSnapshot.logprobs.content });
-    }
-    if (choiceSnapshot.logprobs?.refusal && !state.logprobs_refusal_done) {
-      state.logprobs_refusal_done = true;
-      this._emit("logprobs.refusal.done", { refusal: choiceSnapshot.logprobs.refusal });
-    }
-  }, _ChatCompletionStream_endRequest = function _ChatCompletionStream_endRequest2() {
-    if (this.ended) {
-      throw new OpenAIError(`stream has ended, this shouldn't happen`);
-    }
-    const snapshot = __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
-    if (!snapshot) {
-      throw new OpenAIError(`request ended without sending any chunks`);
-    }
-    __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, undefined, "f");
-    __classPrivateFieldSet(this, _ChatCompletionStream_choiceEventStates, [], "f");
-    return finalizeChatCompletion(snapshot, __classPrivateFieldGet(this, _ChatCompletionStream_params, "f"));
-  }, _ChatCompletionStream_getAutoParseableResponseFormat = function _ChatCompletionStream_getAutoParseableResponseFormat2() {
-    const responseFormat = __classPrivateFieldGet(this, _ChatCompletionStream_params, "f")?.response_format;
-    if (isAutoParsableResponseFormat(responseFormat)) {
-      return responseFormat;
-    }
-    return null;
-  }, _ChatCompletionStream_accumulateChatCompletion = function _ChatCompletionStream_accumulateChatCompletion2(chunk) {
-    var _a, _b, _c, _d;
-    let snapshot = __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
-    const { choices, ...rest } = chunk;
-    if (!snapshot) {
-      snapshot = __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, {
-        ...rest,
-        choices: []
-      }, "f");
-    } else {
-      Object.assign(snapshot, rest);
-    }
-    for (const { delta, finish_reason, index, logprobs = null, ...other } of chunk.choices) {
-      let choice = snapshot.choices[index];
-      if (!choice) {
-        choice = snapshot.choices[index] = { finish_reason, index, message: {}, logprobs, ...other };
-      }
-      if (logprobs) {
-        if (!choice.logprobs) {
-          choice.logprobs = Object.assign({}, logprobs);
-        } else {
-          const { content: content2, refusal: refusal2, ...rest3 } = logprobs;
-          assertIsEmpty(rest3);
-          Object.assign(choice.logprobs, rest3);
-          if (content2) {
-            (_a = choice.logprobs).content ?? (_a.content = []);
-            choice.logprobs.content.push(...content2);
-          }
-          if (refusal2) {
-            (_b = choice.logprobs).refusal ?? (_b.refusal = []);
-            choice.logprobs.refusal.push(...refusal2);
-          }
-        }
-      }
-      if (finish_reason) {
-        choice.finish_reason = finish_reason;
-        if (__classPrivateFieldGet(this, _ChatCompletionStream_params, "f") && hasAutoParseableInput(__classPrivateFieldGet(this, _ChatCompletionStream_params, "f"))) {
-          if (finish_reason === "length") {
-            throw new LengthFinishReasonError;
-          }
-          if (finish_reason === "content_filter") {
-            throw new ContentFilterFinishReasonError;
-          }
-        }
-      }
-      Object.assign(choice, other);
-      if (!delta)
-        continue;
-      const { content, refusal, function_call, role, tool_calls, ...rest2 } = delta;
-      assertIsEmpty(rest2);
-      Object.assign(choice.message, rest2);
-      if (refusal) {
-        choice.message.refusal = (choice.message.refusal || "") + refusal;
-      }
-      if (role)
-        choice.message.role = role;
-      if (function_call) {
-        if (!choice.message.function_call) {
-          choice.message.function_call = function_call;
-        } else {
-          if (function_call.name)
-            choice.message.function_call.name = function_call.name;
-          if (function_call.arguments) {
-            (_c = choice.message.function_call).arguments ?? (_c.arguments = "");
-            choice.message.function_call.arguments += function_call.arguments;
-          }
-        }
-      }
-      if (content) {
-        choice.message.content = (choice.message.content || "") + content;
-        if (!choice.message.refusal && __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getAutoParseableResponseFormat).call(this)) {
-          choice.message.parsed = partialParse(choice.message.content);
-        }
-      }
-      if (tool_calls) {
-        if (!choice.message.tool_calls)
-          choice.message.tool_calls = [];
-        for (const { index: index2, id, type, function: fn, ...rest3 } of tool_calls) {
-          const tool_call = (_d = choice.message.tool_calls)[index2] ?? (_d[index2] = {});
-          Object.assign(tool_call, rest3);
-          if (id)
-            tool_call.id = id;
-          if (type)
-            tool_call.type = type;
-          if (fn)
-            tool_call.function ?? (tool_call.function = { name: fn.name ?? "", arguments: "" });
-          if (fn?.name)
-            tool_call.function.name = fn.name;
-          if (fn?.arguments) {
-            tool_call.function.arguments += fn.arguments;
-            if (shouldParseToolCall(__classPrivateFieldGet(this, _ChatCompletionStream_params, "f"), tool_call)) {
-              tool_call.function.parsed_arguments = partialParse(tool_call.function.arguments);
-            }
-          }
-        }
-      }
-    }
-    return snapshot;
-  }, Symbol.asyncIterator)]() {
-    const pushQueue = [];
-    const readQueue = [];
-    let done = false;
-    this.on("chunk", (chunk) => {
-      const reader = readQueue.shift();
-      if (reader) {
-        reader.resolve(chunk);
-      } else {
-        pushQueue.push(chunk);
-      }
-    });
-    this.on("end", () => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.resolve(undefined);
-      }
-      readQueue.length = 0;
-    });
-    this.on("abort", (err) => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.reject(err);
-      }
-      readQueue.length = 0;
-    });
-    this.on("error", (err) => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.reject(err);
-      }
-      readQueue.length = 0;
-    });
-    return {
-      next: async () => {
-        if (!pushQueue.length) {
-          if (done) {
-            return { value: undefined, done: true };
-          }
-          return new Promise((resolve, reject) => readQueue.push({ resolve, reject })).then((chunk2) => chunk2 ? { value: chunk2, done: false } : { value: undefined, done: true });
-        }
-        const chunk = pushQueue.shift();
-        return { value: chunk, done: false };
-      },
-      return: async () => {
-        this.abort();
-        return { value: undefined, done: true };
-      }
-    };
-  }
-  toReadableStream() {
-    const stream = new Stream(this[Symbol.asyncIterator].bind(this), this.controller);
-    return stream.toReadableStream();
-  }
-}
-function finalizeChatCompletion(snapshot, params) {
-  const { id, choices, created, model, system_fingerprint, ...rest } = snapshot;
-  const completion = {
-    ...rest,
-    id,
-    choices: choices.map(({ message, finish_reason, index, logprobs, ...choiceRest }) => {
-      if (!finish_reason) {
-        throw new OpenAIError(`missing finish_reason for choice ${index}`);
-      }
-      const { content = null, function_call, tool_calls, ...messageRest } = message;
-      const role = message.role;
-      if (!role) {
-        throw new OpenAIError(`missing role for choice ${index}`);
-      }
-      if (function_call) {
-        const { arguments: args, name } = function_call;
-        if (args == null) {
-          throw new OpenAIError(`missing function_call.arguments for choice ${index}`);
-        }
-        if (!name) {
-          throw new OpenAIError(`missing function_call.name for choice ${index}`);
-        }
-        return {
-          ...choiceRest,
-          message: {
-            content,
-            function_call: { arguments: args, name },
-            role,
-            refusal: message.refusal ?? null
-          },
-          finish_reason,
-          index,
-          logprobs
-        };
-      }
-      if (tool_calls) {
-        return {
-          ...choiceRest,
-          index,
-          finish_reason,
-          logprobs,
-          message: {
-            ...messageRest,
-            role,
-            content,
-            refusal: message.refusal ?? null,
-            tool_calls: tool_calls.map((tool_call, i) => {
-              const { function: fn, type, id: id2, ...toolRest } = tool_call;
-              const { arguments: args, name, ...fnRest } = fn || {};
-              if (id2 == null) {
-                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].id
-${str(snapshot)}`);
-              }
-              if (type == null) {
-                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].type
-${str(snapshot)}`);
-              }
-              if (name == null) {
-                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].function.name
-${str(snapshot)}`);
-              }
-              if (args == null) {
-                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].function.arguments
-${str(snapshot)}`);
-              }
-              return { ...toolRest, id: id2, type, function: { ...fnRest, name, arguments: args } };
-            })
-          }
-        };
-      }
-      return {
-        ...choiceRest,
-        message: { ...messageRest, content, role, refusal: message.refusal ?? null },
-        finish_reason,
-        index,
-        logprobs
-      };
-    }),
-    created,
-    model,
-    object: "chat.completion",
-    ...system_fingerprint ? { system_fingerprint } : {}
-  };
-  return maybeParseChatCompletion(completion, params);
-}
-function str(x) {
-  return JSON.stringify(x);
-}
-function assertIsEmpty(obj) {
-  return;
-}
-function assertNever(_x) {}
-
-// node_modules/openai/lib/ChatCompletionStreamingRunner.mjs
-class ChatCompletionStreamingRunner extends ChatCompletionStream {
-  static fromReadableStream(stream) {
-    const runner = new ChatCompletionStreamingRunner(null);
-    runner._run(() => runner._fromReadableStream(stream));
-    return runner;
-  }
-  static runTools(client, params, options) {
-    const runner = new ChatCompletionStreamingRunner(params);
-    const opts = {
-      ...options,
-      headers: { ...options?.headers, "X-Stainless-Helper-Method": "runTools" }
-    };
-    runner._run(() => runner._runTools(client, params, opts));
-    return runner;
-  }
-}
-
-// node_modules/openai/resources/chat/completions/completions.mjs
-class Completions extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.messages = new Messages(this._client);
-  }
-  create(body, options) {
-    return this._client.post("/chat/completions", { body, ...options, stream: body.stream ?? false });
-  }
-  retrieve(completionID, options) {
-    return this._client.get(path2`/chat/completions/${completionID}`, options);
-  }
-  update(completionID, body, options) {
-    return this._client.post(path2`/chat/completions/${completionID}`, { body, ...options });
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/chat/completions", CursorPage, { query, ...options });
-  }
-  delete(completionID, options) {
-    return this._client.delete(path2`/chat/completions/${completionID}`, options);
-  }
-  parse(body, options) {
-    validateInputTools(body.tools);
-    return this._client.chat.completions.create(body, {
-      ...options,
-      headers: {
-        ...options?.headers,
-        "X-Stainless-Helper-Method": "chat.completions.parse"
-      }
-    })._thenUnwrap((completion) => parseChatCompletion(completion, body));
-  }
-  runTools(body, options) {
-    if (body.stream) {
-      return ChatCompletionStreamingRunner.runTools(this._client, body, options);
-    }
-    return ChatCompletionRunner.runTools(this._client, body, options);
-  }
-  stream(body, options) {
-    return ChatCompletionStream.createChatCompletion(this._client, body, options);
-  }
-}
-Completions.Messages = Messages;
-
-// node_modules/openai/resources/chat/chat.mjs
-class Chat extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.completions = new Completions(this._client);
-  }
-}
-Chat.Completions = Completions;
-// node_modules/openai/internal/headers.mjs
-var brand_privateNullableHeaders = /* @__PURE__ */ Symbol("brand.privateNullableHeaders");
-function* iterateHeaders(headers) {
-  if (!headers)
-    return;
-  if (brand_privateNullableHeaders in headers) {
-    const { values, nulls } = headers;
-    yield* values.entries();
-    for (const name of nulls) {
-      yield [name, null];
-    }
-    return;
-  }
-  let shouldClear = false;
-  let iter;
-  if (headers instanceof Headers) {
-    iter = headers.entries();
-  } else if (isReadonlyArray(headers)) {
-    iter = headers;
-  } else {
-    shouldClear = true;
-    iter = Object.entries(headers ?? {});
-  }
-  for (let row of iter) {
-    const name = row[0];
-    if (typeof name !== "string")
-      throw new TypeError("expected header name to be a string");
-    const values = isReadonlyArray(row[1]) ? row[1] : [row[1]];
-    let didClear = false;
-    for (const value of values) {
-      if (value === undefined)
-        continue;
-      if (shouldClear && !didClear) {
-        didClear = true;
-        yield [name, null];
-      }
-      yield [name, value];
-    }
-  }
-}
-var buildHeaders = (newHeaders) => {
-  const targetHeaders = new Headers;
-  const nullHeaders = new Set;
-  for (const headers of newHeaders) {
-    const seenHeaders = new Set;
-    for (const [name, value] of iterateHeaders(headers)) {
-      const lowerName = name.toLowerCase();
-      if (!seenHeaders.has(lowerName)) {
-        targetHeaders.delete(name);
-        seenHeaders.add(lowerName);
-      }
-      if (value === null) {
-        targetHeaders.delete(name);
-        nullHeaders.add(lowerName);
-      } else {
-        targetHeaders.append(name, value);
-        nullHeaders.delete(lowerName);
-      }
-    }
-  }
-  return { [brand_privateNullableHeaders]: true, values: targetHeaders, nulls: nullHeaders };
-};
-
-// node_modules/openai/resources/audio/speech.mjs
-class Speech extends APIResource {
-  create(body, options) {
-    return this._client.post("/audio/speech", {
-      body,
-      ...options,
-      headers: buildHeaders([{ Accept: "application/octet-stream" }, options?.headers]),
-      __binaryResponse: true
-    });
-  }
-}
-
-// node_modules/openai/resources/audio/transcriptions.mjs
-class Transcriptions extends APIResource {
-  create(body, options) {
-    return this._client.post("/audio/transcriptions", multipartFormRequestOptions({
-      body,
-      ...options,
-      stream: body.stream ?? false,
-      __metadata: { model: body.model }
-    }, this._client));
-  }
-}
-
-// node_modules/openai/resources/audio/translations.mjs
-class Translations extends APIResource {
-  create(body, options) {
-    return this._client.post("/audio/translations", multipartFormRequestOptions({ body, ...options, __metadata: { model: body.model } }, this._client));
-  }
-}
-
-// node_modules/openai/resources/audio/audio.mjs
-class Audio extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.transcriptions = new Transcriptions(this._client);
-    this.translations = new Translations(this._client);
-    this.speech = new Speech(this._client);
-  }
-}
-Audio.Transcriptions = Transcriptions;
-Audio.Translations = Translations;
-Audio.Speech = Speech;
-// node_modules/openai/resources/batches.mjs
-class Batches extends APIResource {
-  create(body, options) {
-    return this._client.post("/batches", { body, ...options });
-  }
-  retrieve(batchID, options) {
-    return this._client.get(path2`/batches/${batchID}`, options);
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/batches", CursorPage, { query, ...options });
-  }
-  cancel(batchID, options) {
-    return this._client.post(path2`/batches/${batchID}/cancel`, options);
-  }
-}
-// node_modules/openai/resources/beta/assistants.mjs
-class Assistants extends APIResource {
-  create(body, options) {
-    return this._client.post("/assistants", {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  retrieve(assistantID, options) {
-    return this._client.get(path2`/assistants/${assistantID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  update(assistantID, body, options) {
-    return this._client.post(path2`/assistants/${assistantID}`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/assistants", CursorPage, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  delete(assistantID, options) {
-    return this._client.delete(path2`/assistants/${assistantID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-}
-
-// node_modules/openai/resources/beta/realtime/sessions.mjs
-class Sessions extends APIResource {
-  create(body, options) {
-    return this._client.post("/realtime/sessions", {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-}
-
-// node_modules/openai/resources/beta/realtime/transcription-sessions.mjs
-class TranscriptionSessions extends APIResource {
-  create(body, options) {
-    return this._client.post("/realtime/transcription_sessions", {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-}
-
-// node_modules/openai/resources/beta/realtime/realtime.mjs
-class Realtime extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.sessions = new Sessions(this._client);
-    this.transcriptionSessions = new TranscriptionSessions(this._client);
-  }
-}
-Realtime.Sessions = Sessions;
-Realtime.TranscriptionSessions = TranscriptionSessions;
-
-// node_modules/openai/resources/beta/chatkit/sessions.mjs
-class Sessions2 extends APIResource {
-  create(body, options) {
-    return this._client.post("/chatkit/sessions", {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
-    });
-  }
-  cancel(sessionID, options) {
-    return this._client.post(path2`/chatkit/sessions/${sessionID}/cancel`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
-    });
-  }
-}
-
-// node_modules/openai/resources/beta/chatkit/threads.mjs
-class Threads extends APIResource {
-  retrieve(threadID, options) {
-    return this._client.get(path2`/chatkit/threads/${threadID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
-    });
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/chatkit/threads", ConversationCursorPage, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
-    });
-  }
-  delete(threadID, options) {
-    return this._client.delete(path2`/chatkit/threads/${threadID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
-    });
-  }
-  listItems(threadID, query = {}, options) {
-    return this._client.getAPIList(path2`/chatkit/threads/${threadID}/items`, ConversationCursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers]) });
-  }
-}
-
-// node_modules/openai/resources/beta/chatkit/chatkit.mjs
-class ChatKit extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.sessions = new Sessions2(this._client);
-    this.threads = new Threads(this._client);
-  }
-}
-ChatKit.Sessions = Sessions2;
-ChatKit.Threads = Threads;
-
-// node_modules/openai/resources/beta/threads/messages.mjs
-class Messages2 extends APIResource {
-  create(threadID, body, options) {
-    return this._client.post(path2`/threads/${threadID}/messages`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  retrieve(messageID, params, options) {
-    const { thread_id } = params;
-    return this._client.get(path2`/threads/${thread_id}/messages/${messageID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  update(messageID, params, options) {
-    const { thread_id, ...body } = params;
-    return this._client.post(path2`/threads/${thread_id}/messages/${messageID}`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  list(threadID, query = {}, options) {
-    return this._client.getAPIList(path2`/threads/${threadID}/messages`, CursorPage, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  delete(messageID, params, options) {
-    const { thread_id } = params;
-    return this._client.delete(path2`/threads/${thread_id}/messages/${messageID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-}
-
-// node_modules/openai/resources/beta/threads/runs/steps.mjs
-class Steps extends APIResource {
-  retrieve(stepID, params, options) {
-    const { thread_id, run_id, ...query } = params;
-    return this._client.get(path2`/threads/${thread_id}/runs/${run_id}/steps/${stepID}`, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  list(runID, params, options) {
-    const { thread_id, ...query } = params;
-    return this._client.getAPIList(path2`/threads/${thread_id}/runs/${runID}/steps`, CursorPage, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-}
-// node_modules/openai/internal/utils/base64.mjs
-var toFloat32Array = (base64Str) => {
-  if (typeof Buffer !== "undefined") {
-    const buf = Buffer.from(base64Str, "base64");
-    return Array.from(new Float32Array(buf.buffer, buf.byteOffset, buf.length / Float32Array.BYTES_PER_ELEMENT));
-  } else {
-    const binaryStr = atob(base64Str);
-    const len = binaryStr.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0;i < len; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-    return Array.from(new Float32Array(bytes.buffer));
-  }
-};
-// node_modules/openai/internal/utils/env.mjs
-var readEnv = (env) => {
-  if (typeof globalThis.process !== "undefined") {
-    return globalThis.process.env?.[env]?.trim() ?? undefined;
-  }
-  if (typeof globalThis.Deno !== "undefined") {
-    return globalThis.Deno.env?.get?.(env)?.trim();
-  }
-  return;
-};
-// node_modules/openai/lib/AssistantStream.mjs
-var _AssistantStream_instances;
-var _a;
-var _AssistantStream_events;
-var _AssistantStream_runStepSnapshots;
-var _AssistantStream_messageSnapshots;
-var _AssistantStream_messageSnapshot;
-var _AssistantStream_finalRun;
-var _AssistantStream_currentContentIndex;
-var _AssistantStream_currentContent;
-var _AssistantStream_currentToolCallIndex;
-var _AssistantStream_currentToolCall;
-var _AssistantStream_currentEvent;
-var _AssistantStream_currentRunSnapshot;
-var _AssistantStream_currentRunStepSnapshot;
-var _AssistantStream_addEvent;
-var _AssistantStream_endRequest;
-var _AssistantStream_handleMessage;
-var _AssistantStream_handleRunStep;
-var _AssistantStream_handleEvent;
-var _AssistantStream_accumulateRunStep;
-var _AssistantStream_accumulateMessage;
-var _AssistantStream_accumulateContent;
-var _AssistantStream_handleRun;
-
-class AssistantStream extends EventStream {
-  constructor() {
-    super(...arguments);
-    _AssistantStream_instances.add(this);
-    _AssistantStream_events.set(this, []);
-    _AssistantStream_runStepSnapshots.set(this, {});
-    _AssistantStream_messageSnapshots.set(this, {});
-    _AssistantStream_messageSnapshot.set(this, undefined);
-    _AssistantStream_finalRun.set(this, undefined);
-    _AssistantStream_currentContentIndex.set(this, undefined);
-    _AssistantStream_currentContent.set(this, undefined);
-    _AssistantStream_currentToolCallIndex.set(this, undefined);
-    _AssistantStream_currentToolCall.set(this, undefined);
-    _AssistantStream_currentEvent.set(this, undefined);
-    _AssistantStream_currentRunSnapshot.set(this, undefined);
-    _AssistantStream_currentRunStepSnapshot.set(this, undefined);
-  }
-  [(_AssistantStream_events = new WeakMap, _AssistantStream_runStepSnapshots = new WeakMap, _AssistantStream_messageSnapshots = new WeakMap, _AssistantStream_messageSnapshot = new WeakMap, _AssistantStream_finalRun = new WeakMap, _AssistantStream_currentContentIndex = new WeakMap, _AssistantStream_currentContent = new WeakMap, _AssistantStream_currentToolCallIndex = new WeakMap, _AssistantStream_currentToolCall = new WeakMap, _AssistantStream_currentEvent = new WeakMap, _AssistantStream_currentRunSnapshot = new WeakMap, _AssistantStream_currentRunStepSnapshot = new WeakMap, _AssistantStream_instances = new WeakSet, Symbol.asyncIterator)]() {
-    const pushQueue = [];
-    const readQueue = [];
-    let done = false;
-    this.on("event", (event) => {
-      const reader = readQueue.shift();
-      if (reader) {
-        reader.resolve(event);
-      } else {
-        pushQueue.push(event);
-      }
-    });
-    this.on("end", () => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.resolve(undefined);
-      }
-      readQueue.length = 0;
-    });
-    this.on("abort", (err) => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.reject(err);
-      }
-      readQueue.length = 0;
-    });
-    this.on("error", (err) => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.reject(err);
-      }
-      readQueue.length = 0;
-    });
-    return {
-      next: async () => {
-        if (!pushQueue.length) {
-          if (done) {
-            return { value: undefined, done: true };
-          }
-          return new Promise((resolve, reject) => readQueue.push({ resolve, reject })).then((chunk2) => chunk2 ? { value: chunk2, done: false } : { value: undefined, done: true });
-        }
-        const chunk = pushQueue.shift();
-        return { value: chunk, done: false };
-      },
-      return: async () => {
-        this.abort();
-        return { value: undefined, done: true };
-      }
-    };
-  }
-  static fromReadableStream(stream) {
-    const runner = new _a;
-    runner._run(() => runner._fromReadableStream(stream));
-    return runner;
-  }
-  async _fromReadableStream(readableStream, options) {
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    this._connected();
-    const stream = Stream.fromReadableStream(readableStream, this.controller);
-    for await (const event of stream) {
-      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
-    }
-    if (stream.controller.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
-  }
-  toReadableStream() {
-    const stream = new Stream(this[Symbol.asyncIterator].bind(this), this.controller);
-    return stream.toReadableStream();
-  }
-  static createToolAssistantStream(runId, runs, params, options) {
-    const runner = new _a;
-    runner._run(() => runner._runToolAssistantStream(runId, runs, params, {
-      ...options,
-      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
-    }));
-    return runner;
-  }
-  async _createToolAssistantStream(run, runId, params, options) {
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    const body = { ...params, stream: true };
-    const stream = await run.submitToolOutputs(runId, body, {
-      ...options,
-      signal: this.controller.signal
-    });
-    this._connected();
-    for await (const event of stream) {
-      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
-    }
-    if (stream.controller.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
-  }
-  static createThreadAssistantStream(params, thread, options) {
-    const runner = new _a;
-    runner._run(() => runner._threadAssistantStream(params, thread, {
-      ...options,
-      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
-    }));
-    return runner;
-  }
-  static createAssistantStream(threadId, runs, params, options) {
-    const runner = new _a;
-    runner._run(() => runner._runAssistantStream(threadId, runs, params, {
-      ...options,
-      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
-    }));
-    return runner;
-  }
-  currentEvent() {
-    return __classPrivateFieldGet(this, _AssistantStream_currentEvent, "f");
-  }
-  currentRun() {
-    return __classPrivateFieldGet(this, _AssistantStream_currentRunSnapshot, "f");
-  }
-  currentMessageSnapshot() {
-    return __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f");
-  }
-  currentRunStepSnapshot() {
-    return __classPrivateFieldGet(this, _AssistantStream_currentRunStepSnapshot, "f");
-  }
-  async finalRunSteps() {
-    await this.done();
-    return Object.values(__classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f"));
-  }
-  async finalMessages() {
-    await this.done();
-    return Object.values(__classPrivateFieldGet(this, _AssistantStream_messageSnapshots, "f"));
-  }
-  async finalRun() {
-    await this.done();
-    if (!__classPrivateFieldGet(this, _AssistantStream_finalRun, "f"))
-      throw Error("Final run was not received.");
-    return __classPrivateFieldGet(this, _AssistantStream_finalRun, "f");
-  }
-  async _createThreadAssistantStream(thread, params, options) {
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    const body = { ...params, stream: true };
-    const stream = await thread.createAndRun(body, { ...options, signal: this.controller.signal });
-    this._connected();
-    for await (const event of stream) {
-      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
-    }
-    if (stream.controller.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
-  }
-  async _createAssistantStream(run, threadId, params, options) {
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    const body = { ...params, stream: true };
-    const stream = await run.create(threadId, body, { ...options, signal: this.controller.signal });
-    this._connected();
-    for await (const event of stream) {
-      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
-    }
-    if (stream.controller.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
-  }
-  static accumulateDelta(acc, delta) {
-    for (const [key, deltaValue] of Object.entries(delta)) {
-      if (!acc.hasOwnProperty(key)) {
-        acc[key] = deltaValue;
-        continue;
-      }
-      let accValue = acc[key];
-      if (accValue === null || accValue === undefined) {
-        acc[key] = deltaValue;
-        continue;
-      }
-      if (key === "index" || key === "type") {
-        acc[key] = deltaValue;
-        continue;
-      }
-      if (typeof accValue === "string" && typeof deltaValue === "string") {
-        accValue += deltaValue;
-      } else if (typeof accValue === "number" && typeof deltaValue === "number") {
-        accValue += deltaValue;
-      } else if (isObj(accValue) && isObj(deltaValue)) {
-        accValue = this.accumulateDelta(accValue, deltaValue);
-      } else if (Array.isArray(accValue) && Array.isArray(deltaValue)) {
-        if (accValue.every((x) => typeof x === "string" || typeof x === "number")) {
-          accValue.push(...deltaValue);
-          continue;
-        }
-        for (const deltaEntry of deltaValue) {
-          if (!isObj(deltaEntry)) {
-            throw new Error(`Expected array delta entry to be an object but got: ${deltaEntry}`);
-          }
-          const index = deltaEntry["index"];
-          if (index == null) {
-            console.error(deltaEntry);
-            throw new Error("Expected array delta entry to have an `index` property");
-          }
-          if (typeof index !== "number") {
-            throw new Error(`Expected array delta entry \`index\` property to be a number but got ${index}`);
-          }
-          const accEntry = accValue[index];
-          if (accEntry == null) {
-            accValue.push(deltaEntry);
-          } else {
-            accValue[index] = this.accumulateDelta(accEntry, deltaEntry);
-          }
-        }
-        continue;
-      } else {
-        throw Error(`Unhandled record type: ${key}, deltaValue: ${deltaValue}, accValue: ${accValue}`);
-      }
-      acc[key] = accValue;
-    }
-    return acc;
-  }
-  _addRun(run) {
-    return run;
-  }
-  async _threadAssistantStream(params, thread, options) {
-    return await this._createThreadAssistantStream(thread, params, options);
-  }
-  async _runAssistantStream(threadId, runs, params, options) {
-    return await this._createAssistantStream(runs, threadId, params, options);
-  }
-  async _runToolAssistantStream(runId, runs, params, options) {
-    return await this._createToolAssistantStream(runs, runId, params, options);
-  }
-}
-_a = AssistantStream, _AssistantStream_addEvent = function _AssistantStream_addEvent2(event) {
-  if (this.ended)
-    return;
-  __classPrivateFieldSet(this, _AssistantStream_currentEvent, event, "f");
-  __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleEvent).call(this, event);
-  switch (event.event) {
-    case "thread.created":
-      break;
-    case "thread.run.created":
-    case "thread.run.queued":
-    case "thread.run.in_progress":
-    case "thread.run.requires_action":
-    case "thread.run.completed":
-    case "thread.run.incomplete":
-    case "thread.run.failed":
-    case "thread.run.cancelling":
-    case "thread.run.cancelled":
-    case "thread.run.expired":
-      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleRun).call(this, event);
-      break;
-    case "thread.run.step.created":
-    case "thread.run.step.in_progress":
-    case "thread.run.step.delta":
-    case "thread.run.step.completed":
-    case "thread.run.step.failed":
-    case "thread.run.step.cancelled":
-    case "thread.run.step.expired":
-      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleRunStep).call(this, event);
-      break;
-    case "thread.message.created":
-    case "thread.message.in_progress":
-    case "thread.message.delta":
-    case "thread.message.completed":
-    case "thread.message.incomplete":
-      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleMessage).call(this, event);
-      break;
-    case "error":
-      throw new Error("Encountered an error event in event processing - errors should be processed earlier");
-    default:
-      assertNever2(event);
-  }
-}, _AssistantStream_endRequest = function _AssistantStream_endRequest2() {
-  if (this.ended) {
-    throw new OpenAIError(`stream has ended, this shouldn't happen`);
-  }
-  if (!__classPrivateFieldGet(this, _AssistantStream_finalRun, "f"))
-    throw Error("Final run has not been received");
-  return __classPrivateFieldGet(this, _AssistantStream_finalRun, "f");
-}, _AssistantStream_handleMessage = function _AssistantStream_handleMessage2(event) {
-  const [accumulatedMessage, newContent] = __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_accumulateMessage).call(this, event, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
-  __classPrivateFieldSet(this, _AssistantStream_messageSnapshot, accumulatedMessage, "f");
-  __classPrivateFieldGet(this, _AssistantStream_messageSnapshots, "f")[accumulatedMessage.id] = accumulatedMessage;
-  for (const content of newContent) {
-    const snapshotContent = accumulatedMessage.content[content.index];
-    if (snapshotContent?.type == "text") {
-      this._emit("textCreated", snapshotContent.text);
-    }
-  }
-  switch (event.event) {
-    case "thread.message.created":
-      this._emit("messageCreated", event.data);
-      break;
-    case "thread.message.in_progress":
-      break;
-    case "thread.message.delta":
-      this._emit("messageDelta", event.data.delta, accumulatedMessage);
-      if (event.data.delta.content) {
-        for (const content of event.data.delta.content) {
-          if (content.type == "text" && content.text) {
-            let textDelta = content.text;
-            let snapshot = accumulatedMessage.content[content.index];
-            if (snapshot && snapshot.type == "text") {
-              this._emit("textDelta", textDelta, snapshot.text);
-            } else {
-              throw Error("The snapshot associated with this text delta is not text or missing");
-            }
-          }
-          if (content.index != __classPrivateFieldGet(this, _AssistantStream_currentContentIndex, "f")) {
-            if (__classPrivateFieldGet(this, _AssistantStream_currentContent, "f")) {
-              switch (__classPrivateFieldGet(this, _AssistantStream_currentContent, "f").type) {
-                case "text":
-                  this._emit("textDone", __classPrivateFieldGet(this, _AssistantStream_currentContent, "f").text, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
-                  break;
-                case "image_file":
-                  this._emit("imageFileDone", __classPrivateFieldGet(this, _AssistantStream_currentContent, "f").image_file, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
-                  break;
-              }
-            }
-            __classPrivateFieldSet(this, _AssistantStream_currentContentIndex, content.index, "f");
-          }
-          __classPrivateFieldSet(this, _AssistantStream_currentContent, accumulatedMessage.content[content.index], "f");
-        }
-      }
-      break;
-    case "thread.message.completed":
-    case "thread.message.incomplete":
-      if (__classPrivateFieldGet(this, _AssistantStream_currentContentIndex, "f") !== undefined) {
-        const currentContent = event.data.content[__classPrivateFieldGet(this, _AssistantStream_currentContentIndex, "f")];
-        if (currentContent) {
-          switch (currentContent.type) {
-            case "image_file":
-              this._emit("imageFileDone", currentContent.image_file, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
-              break;
-            case "text":
-              this._emit("textDone", currentContent.text, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
-              break;
-          }
-        }
-      }
-      if (__classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f")) {
-        this._emit("messageDone", event.data);
-      }
-      __classPrivateFieldSet(this, _AssistantStream_messageSnapshot, undefined, "f");
-  }
-}, _AssistantStream_handleRunStep = function _AssistantStream_handleRunStep2(event) {
-  const accumulatedRunStep = __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_accumulateRunStep).call(this, event);
-  __classPrivateFieldSet(this, _AssistantStream_currentRunStepSnapshot, accumulatedRunStep, "f");
-  switch (event.event) {
-    case "thread.run.step.created":
-      this._emit("runStepCreated", event.data);
-      break;
-    case "thread.run.step.delta":
-      const delta = event.data.delta;
-      if (delta.step_details && delta.step_details.type == "tool_calls" && delta.step_details.tool_calls && accumulatedRunStep.step_details.type == "tool_calls") {
-        for (const toolCall of delta.step_details.tool_calls) {
-          if (toolCall.index == __classPrivateFieldGet(this, _AssistantStream_currentToolCallIndex, "f")) {
-            this._emit("toolCallDelta", toolCall, accumulatedRunStep.step_details.tool_calls[toolCall.index]);
-          } else {
-            if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f")) {
-              this._emit("toolCallDone", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
-            }
-            __classPrivateFieldSet(this, _AssistantStream_currentToolCallIndex, toolCall.index, "f");
-            __classPrivateFieldSet(this, _AssistantStream_currentToolCall, accumulatedRunStep.step_details.tool_calls[toolCall.index], "f");
-            if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"))
-              this._emit("toolCallCreated", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
-          }
-        }
-      }
-      this._emit("runStepDelta", event.data.delta, accumulatedRunStep);
-      break;
-    case "thread.run.step.completed":
-    case "thread.run.step.failed":
-    case "thread.run.step.cancelled":
-    case "thread.run.step.expired":
-      __classPrivateFieldSet(this, _AssistantStream_currentRunStepSnapshot, undefined, "f");
-      const details = event.data.step_details;
-      if (details.type == "tool_calls") {
-        if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f")) {
-          this._emit("toolCallDone", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
-          __classPrivateFieldSet(this, _AssistantStream_currentToolCall, undefined, "f");
-        }
-      }
-      this._emit("runStepDone", event.data, accumulatedRunStep);
-      break;
-    case "thread.run.step.in_progress":
-      break;
-  }
-}, _AssistantStream_handleEvent = function _AssistantStream_handleEvent2(event) {
-  __classPrivateFieldGet(this, _AssistantStream_events, "f").push(event);
-  this._emit("event", event);
-}, _AssistantStream_accumulateRunStep = function _AssistantStream_accumulateRunStep2(event) {
-  switch (event.event) {
-    case "thread.run.step.created":
-      __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id] = event.data;
-      return event.data;
-    case "thread.run.step.delta":
-      let snapshot = __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id];
-      if (!snapshot) {
-        throw Error("Received a RunStepDelta before creation of a snapshot");
-      }
-      let data = event.data;
-      if (data.delta) {
-        const accumulated = _a.accumulateDelta(snapshot, data.delta);
-        __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id] = accumulated;
-      }
-      return __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id];
-    case "thread.run.step.completed":
-    case "thread.run.step.failed":
-    case "thread.run.step.cancelled":
-    case "thread.run.step.expired":
-    case "thread.run.step.in_progress":
-      __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id] = event.data;
-      break;
-  }
-  if (__classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id])
-    return __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id];
-  throw new Error("No snapshot available");
-}, _AssistantStream_accumulateMessage = function _AssistantStream_accumulateMessage2(event, snapshot) {
-  let newContent = [];
-  switch (event.event) {
-    case "thread.message.created":
-      return [event.data, newContent];
-    case "thread.message.delta":
-      if (!snapshot) {
-        throw Error("Received a delta with no existing snapshot (there should be one from message creation)");
-      }
-      let data = event.data;
-      if (data.delta.content) {
-        for (const contentElement of data.delta.content) {
-          if (contentElement.index in snapshot.content) {
-            let currentContent = snapshot.content[contentElement.index];
-            snapshot.content[contentElement.index] = __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_accumulateContent).call(this, contentElement, currentContent);
-          } else {
-            snapshot.content[contentElement.index] = contentElement;
-            newContent.push(contentElement);
-          }
-        }
-      }
-      return [snapshot, newContent];
-    case "thread.message.in_progress":
-    case "thread.message.completed":
-    case "thread.message.incomplete":
-      if (snapshot) {
-        return [snapshot, newContent];
-      } else {
-        throw Error("Received thread message event with no existing snapshot");
-      }
-  }
-  throw Error("Tried to accumulate a non-message event");
-}, _AssistantStream_accumulateContent = function _AssistantStream_accumulateContent2(contentElement, currentContent) {
-  return _a.accumulateDelta(currentContent, contentElement);
-}, _AssistantStream_handleRun = function _AssistantStream_handleRun2(event) {
-  __classPrivateFieldSet(this, _AssistantStream_currentRunSnapshot, event.data, "f");
-  switch (event.event) {
-    case "thread.run.created":
-      break;
-    case "thread.run.queued":
-      break;
-    case "thread.run.in_progress":
-      break;
-    case "thread.run.requires_action":
-    case "thread.run.cancelled":
-    case "thread.run.failed":
-    case "thread.run.completed":
-    case "thread.run.expired":
-    case "thread.run.incomplete":
-      __classPrivateFieldSet(this, _AssistantStream_finalRun, event.data, "f");
-      if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f")) {
-        this._emit("toolCallDone", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
-        __classPrivateFieldSet(this, _AssistantStream_currentToolCall, undefined, "f");
-      }
-      break;
-    case "thread.run.cancelling":
-      break;
-  }
-};
-function assertNever2(_x) {}
-
-// node_modules/openai/resources/beta/threads/runs/runs.mjs
-class Runs extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.steps = new Steps(this._client);
-  }
-  create(threadID, params, options) {
-    const { include, ...body } = params;
-    return this._client.post(path2`/threads/${threadID}/runs`, {
-      query: { include },
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
-      stream: params.stream ?? false
-    });
-  }
-  retrieve(runID, params, options) {
-    const { thread_id } = params;
-    return this._client.get(path2`/threads/${thread_id}/runs/${runID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  update(runID, params, options) {
-    const { thread_id, ...body } = params;
-    return this._client.post(path2`/threads/${thread_id}/runs/${runID}`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  list(threadID, query = {}, options) {
-    return this._client.getAPIList(path2`/threads/${threadID}/runs`, CursorPage, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  cancel(runID, params, options) {
-    const { thread_id } = params;
-    return this._client.post(path2`/threads/${thread_id}/runs/${runID}/cancel`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  async createAndPoll(threadId, body, options) {
-    const run = await this.create(threadId, body, options);
-    return await this.poll(run.id, { thread_id: threadId }, options);
-  }
-  createAndStream(threadId, body, options) {
-    return AssistantStream.createAssistantStream(threadId, this._client.beta.threads.runs, body, options);
-  }
-  async poll(runId, params, options) {
-    const headers = buildHeaders([
-      options?.headers,
-      {
-        "X-Stainless-Poll-Helper": "true",
-        "X-Stainless-Custom-Poll-Interval": options?.pollIntervalMs?.toString() ?? undefined
-      }
-    ]);
-    while (true) {
-      const { data: run, response } = await this.retrieve(runId, params, {
-        ...options,
-        headers: { ...options?.headers, ...headers }
-      }).withResponse();
-      switch (run.status) {
-        case "queued":
-        case "in_progress":
-        case "cancelling":
-          let sleepInterval = 5000;
-          if (options?.pollIntervalMs) {
-            sleepInterval = options.pollIntervalMs;
-          } else {
-            const headerInterval = response.headers.get("openai-poll-after-ms");
-            if (headerInterval) {
-              const headerIntervalMs = parseInt(headerInterval);
-              if (!isNaN(headerIntervalMs)) {
-                sleepInterval = headerIntervalMs;
-              }
-            }
-          }
-          await sleep(sleepInterval);
-          break;
-        case "requires_action":
-        case "incomplete":
-        case "cancelled":
-        case "completed":
-        case "failed":
-        case "expired":
-          return run;
-      }
-    }
-  }
-  stream(threadId, body, options) {
-    return AssistantStream.createAssistantStream(threadId, this._client.beta.threads.runs, body, options);
-  }
-  submitToolOutputs(runID, params, options) {
-    const { thread_id, ...body } = params;
-    return this._client.post(path2`/threads/${thread_id}/runs/${runID}/submit_tool_outputs`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
-      stream: params.stream ?? false
-    });
-  }
-  async submitToolOutputsAndPoll(runId, params, options) {
-    const run = await this.submitToolOutputs(runId, params, options);
-    return await this.poll(run.id, params, options);
-  }
-  submitToolOutputsStream(runId, params, options) {
-    return AssistantStream.createToolAssistantStream(runId, this._client.beta.threads.runs, params, options);
-  }
-}
-Runs.Steps = Steps;
-
-// node_modules/openai/resources/beta/threads/threads.mjs
-class Threads2 extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.runs = new Runs(this._client);
-    this.messages = new Messages2(this._client);
-  }
-  create(body = {}, options) {
-    return this._client.post("/threads", {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  retrieve(threadID, options) {
-    return this._client.get(path2`/threads/${threadID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  update(threadID, body, options) {
-    return this._client.post(path2`/threads/${threadID}`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  delete(threadID, options) {
-    return this._client.delete(path2`/threads/${threadID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  createAndRun(body, options) {
-    return this._client.post("/threads/runs", {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
-      stream: body.stream ?? false
-    });
-  }
-  async createAndRunPoll(body, options) {
-    const run = await this.createAndRun(body, options);
-    return await this.runs.poll(run.id, { thread_id: run.thread_id }, options);
-  }
-  createAndRunStream(body, options) {
-    return AssistantStream.createThreadAssistantStream(body, this._client.beta.threads, options);
-  }
-}
-Threads2.Runs = Runs;
-Threads2.Messages = Messages2;
-
-// node_modules/openai/resources/beta/beta.mjs
-class Beta extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.realtime = new Realtime(this._client);
-    this.chatkit = new ChatKit(this._client);
-    this.assistants = new Assistants(this._client);
-    this.threads = new Threads2(this._client);
-  }
-}
-Beta.Realtime = Realtime;
-Beta.ChatKit = ChatKit;
-Beta.Assistants = Assistants;
-Beta.Threads = Threads2;
-// node_modules/openai/resources/completions.mjs
-class Completions2 extends APIResource {
-  create(body, options) {
-    return this._client.post("/completions", { body, ...options, stream: body.stream ?? false });
-  }
-}
-// node_modules/openai/resources/containers/files/content.mjs
-class Content extends APIResource {
-  retrieve(fileID, params, options) {
-    const { container_id } = params;
-    return this._client.get(path2`/containers/${container_id}/files/${fileID}/content`, {
-      ...options,
-      headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
-      __binaryResponse: true
-    });
-  }
-}
-
-// node_modules/openai/resources/containers/files/files.mjs
-class Files extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.content = new Content(this._client);
-  }
-  create(containerID, body, options) {
-    return this._client.post(path2`/containers/${containerID}/files`, multipartFormRequestOptions({ body, ...options }, this._client));
-  }
-  retrieve(fileID, params, options) {
-    const { container_id } = params;
-    return this._client.get(path2`/containers/${container_id}/files/${fileID}`, options);
-  }
-  list(containerID, query = {}, options) {
-    return this._client.getAPIList(path2`/containers/${containerID}/files`, CursorPage, {
-      query,
-      ...options
-    });
-  }
-  delete(fileID, params, options) {
-    const { container_id } = params;
-    return this._client.delete(path2`/containers/${container_id}/files/${fileID}`, {
-      ...options,
-      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
-    });
-  }
-}
-Files.Content = Content;
-
-// node_modules/openai/resources/containers/containers.mjs
-class Containers extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.files = new Files(this._client);
-  }
-  create(body, options) {
-    return this._client.post("/containers", { body, ...options });
-  }
-  retrieve(containerID, options) {
-    return this._client.get(path2`/containers/${containerID}`, options);
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/containers", CursorPage, { query, ...options });
-  }
-  delete(containerID, options) {
-    return this._client.delete(path2`/containers/${containerID}`, {
-      ...options,
-      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
-    });
-  }
-}
-Containers.Files = Files;
-// node_modules/openai/resources/conversations/items.mjs
-class Items extends APIResource {
-  create(conversationID, params, options) {
-    const { include, ...body } = params;
-    return this._client.post(path2`/conversations/${conversationID}/items`, {
-      query: { include },
-      body,
-      ...options
-    });
-  }
-  retrieve(itemID, params, options) {
-    const { conversation_id, ...query } = params;
-    return this._client.get(path2`/conversations/${conversation_id}/items/${itemID}`, { query, ...options });
-  }
-  list(conversationID, query = {}, options) {
-    return this._client.getAPIList(path2`/conversations/${conversationID}/items`, ConversationCursorPage, { query, ...options });
-  }
-  delete(itemID, params, options) {
-    const { conversation_id } = params;
-    return this._client.delete(path2`/conversations/${conversation_id}/items/${itemID}`, options);
-  }
-}
-
-// node_modules/openai/resources/conversations/conversations.mjs
-class Conversations extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.items = new Items(this._client);
-  }
-  create(body = {}, options) {
-    return this._client.post("/conversations", { body, ...options });
-  }
-  retrieve(conversationID, options) {
-    return this._client.get(path2`/conversations/${conversationID}`, options);
-  }
-  update(conversationID, body, options) {
-    return this._client.post(path2`/conversations/${conversationID}`, { body, ...options });
-  }
-  delete(conversationID, options) {
-    return this._client.delete(path2`/conversations/${conversationID}`, options);
-  }
-}
-Conversations.Items = Items;
-// node_modules/openai/resources/embeddings.mjs
-class Embeddings extends APIResource {
-  create(body, options) {
-    const hasUserProvidedEncodingFormat = !!body.encoding_format;
-    let encoding_format = hasUserProvidedEncodingFormat ? body.encoding_format : "base64";
-    if (hasUserProvidedEncodingFormat) {
-      loggerFor(this._client).debug("embeddings/user defined encoding_format:", body.encoding_format);
-    }
-    const response = this._client.post("/embeddings", {
-      body: {
-        ...body,
-        encoding_format
-      },
-      ...options
-    });
-    if (hasUserProvidedEncodingFormat) {
-      return response;
-    }
-    loggerFor(this._client).debug("embeddings/decoding base64 embeddings from base64");
-    return response._thenUnwrap((response2) => {
-      if (response2 && response2.data) {
-        response2.data.forEach((embeddingBase64Obj) => {
-          const embeddingBase64Str = embeddingBase64Obj.embedding;
-          embeddingBase64Obj.embedding = toFloat32Array(embeddingBase64Str);
-        });
-      }
-      return response2;
-    });
-  }
-}
-// node_modules/openai/resources/evals/runs/output-items.mjs
-class OutputItems extends APIResource {
-  retrieve(outputItemID, params, options) {
-    const { eval_id, run_id } = params;
-    return this._client.get(path2`/evals/${eval_id}/runs/${run_id}/output_items/${outputItemID}`, options);
-  }
-  list(runID, params, options) {
-    const { eval_id, ...query } = params;
-    return this._client.getAPIList(path2`/evals/${eval_id}/runs/${runID}/output_items`, CursorPage, { query, ...options });
-  }
-}
-
-// node_modules/openai/resources/evals/runs/runs.mjs
-class Runs2 extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.outputItems = new OutputItems(this._client);
-  }
-  create(evalID, body, options) {
-    return this._client.post(path2`/evals/${evalID}/runs`, { body, ...options });
-  }
-  retrieve(runID, params, options) {
-    const { eval_id } = params;
-    return this._client.get(path2`/evals/${eval_id}/runs/${runID}`, options);
-  }
-  list(evalID, query = {}, options) {
-    return this._client.getAPIList(path2`/evals/${evalID}/runs`, CursorPage, {
-      query,
-      ...options
-    });
-  }
-  delete(runID, params, options) {
-    const { eval_id } = params;
-    return this._client.delete(path2`/evals/${eval_id}/runs/${runID}`, options);
-  }
-  cancel(runID, params, options) {
-    const { eval_id } = params;
-    return this._client.post(path2`/evals/${eval_id}/runs/${runID}`, options);
-  }
-}
-Runs2.OutputItems = OutputItems;
-
-// node_modules/openai/resources/evals/evals.mjs
-class Evals extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.runs = new Runs2(this._client);
-  }
-  create(body, options) {
-    return this._client.post("/evals", { body, ...options });
-  }
-  retrieve(evalID, options) {
-    return this._client.get(path2`/evals/${evalID}`, options);
-  }
-  update(evalID, body, options) {
-    return this._client.post(path2`/evals/${evalID}`, { body, ...options });
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/evals", CursorPage, { query, ...options });
-  }
-  delete(evalID, options) {
-    return this._client.delete(path2`/evals/${evalID}`, options);
-  }
-}
-Evals.Runs = Runs2;
-// node_modules/openai/resources/files.mjs
-class Files2 extends APIResource {
-  create(body, options) {
-    return this._client.post("/files", multipartFormRequestOptions({ body, ...options }, this._client));
-  }
-  retrieve(fileID, options) {
-    return this._client.get(path2`/files/${fileID}`, options);
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/files", CursorPage, { query, ...options });
-  }
-  delete(fileID, options) {
-    return this._client.delete(path2`/files/${fileID}`, options);
-  }
-  content(fileID, options) {
-    return this._client.get(path2`/files/${fileID}/content`, {
-      ...options,
-      headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
-      __binaryResponse: true
-    });
-  }
-  async waitForProcessing(id, { pollInterval = 5000, maxWait = 30 * 60 * 1000 } = {}) {
-    const TERMINAL_STATES = new Set(["processed", "error", "deleted"]);
-    const start = Date.now();
-    let file = await this.retrieve(id);
-    while (!file.status || !TERMINAL_STATES.has(file.status)) {
-      await sleep(pollInterval);
-      file = await this.retrieve(id);
-      if (Date.now() - start > maxWait) {
-        throw new APIConnectionTimeoutError({
-          message: `Giving up on waiting for file ${id} to finish processing after ${maxWait} milliseconds.`
-        });
-      }
-    }
-    return file;
-  }
-}
-// node_modules/openai/resources/fine-tuning/methods.mjs
-class Methods extends APIResource {
-}
-
-// node_modules/openai/resources/fine-tuning/alpha/graders.mjs
-class Graders extends APIResource {
-  run(body, options) {
-    return this._client.post("/fine_tuning/alpha/graders/run", { body, ...options });
-  }
-  validate(body, options) {
-    return this._client.post("/fine_tuning/alpha/graders/validate", { body, ...options });
-  }
-}
-
-// node_modules/openai/resources/fine-tuning/alpha/alpha.mjs
-class Alpha extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.graders = new Graders(this._client);
-  }
-}
-Alpha.Graders = Graders;
-
-// node_modules/openai/resources/fine-tuning/checkpoints/permissions.mjs
-class Permissions extends APIResource {
-  create(fineTunedModelCheckpoint, body, options) {
-    return this._client.getAPIList(path2`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, Page, { body, method: "post", ...options });
-  }
-  retrieve(fineTunedModelCheckpoint, query = {}, options) {
-    return this._client.get(path2`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, {
-      query,
-      ...options
-    });
-  }
-  delete(permissionID, params, options) {
-    const { fine_tuned_model_checkpoint } = params;
-    return this._client.delete(path2`/fine_tuning/checkpoints/${fine_tuned_model_checkpoint}/permissions/${permissionID}`, options);
-  }
-}
-
-// node_modules/openai/resources/fine-tuning/checkpoints/checkpoints.mjs
-class Checkpoints extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.permissions = new Permissions(this._client);
-  }
-}
-Checkpoints.Permissions = Permissions;
-
-// node_modules/openai/resources/fine-tuning/jobs/checkpoints.mjs
-class Checkpoints2 extends APIResource {
-  list(fineTuningJobID, query = {}, options) {
-    return this._client.getAPIList(path2`/fine_tuning/jobs/${fineTuningJobID}/checkpoints`, CursorPage, { query, ...options });
-  }
-}
-
-// node_modules/openai/resources/fine-tuning/jobs/jobs.mjs
-class Jobs extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.checkpoints = new Checkpoints2(this._client);
-  }
-  create(body, options) {
-    return this._client.post("/fine_tuning/jobs", { body, ...options });
-  }
-  retrieve(fineTuningJobID, options) {
-    return this._client.get(path2`/fine_tuning/jobs/${fineTuningJobID}`, options);
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/fine_tuning/jobs", CursorPage, { query, ...options });
-  }
-  cancel(fineTuningJobID, options) {
-    return this._client.post(path2`/fine_tuning/jobs/${fineTuningJobID}/cancel`, options);
-  }
-  listEvents(fineTuningJobID, query = {}, options) {
-    return this._client.getAPIList(path2`/fine_tuning/jobs/${fineTuningJobID}/events`, CursorPage, { query, ...options });
-  }
-  pause(fineTuningJobID, options) {
-    return this._client.post(path2`/fine_tuning/jobs/${fineTuningJobID}/pause`, options);
-  }
-  resume(fineTuningJobID, options) {
-    return this._client.post(path2`/fine_tuning/jobs/${fineTuningJobID}/resume`, options);
-  }
-}
-Jobs.Checkpoints = Checkpoints2;
-
-// node_modules/openai/resources/fine-tuning/fine-tuning.mjs
-class FineTuning extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.methods = new Methods(this._client);
-    this.jobs = new Jobs(this._client);
-    this.checkpoints = new Checkpoints(this._client);
-    this.alpha = new Alpha(this._client);
-  }
-}
-FineTuning.Methods = Methods;
-FineTuning.Jobs = Jobs;
-FineTuning.Checkpoints = Checkpoints;
-FineTuning.Alpha = Alpha;
-// node_modules/openai/resources/graders/grader-models.mjs
-class GraderModels extends APIResource {
-}
-
-// node_modules/openai/resources/graders/graders.mjs
-class Graders2 extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.graderModels = new GraderModels(this._client);
-  }
-}
-Graders2.GraderModels = GraderModels;
-// node_modules/openai/resources/images.mjs
-class Images extends APIResource {
-  createVariation(body, options) {
-    return this._client.post("/images/variations", multipartFormRequestOptions({ body, ...options }, this._client));
-  }
-  edit(body, options) {
-    return this._client.post("/images/edits", multipartFormRequestOptions({ body, ...options, stream: body.stream ?? false }, this._client));
-  }
-  generate(body, options) {
-    return this._client.post("/images/generations", { body, ...options, stream: body.stream ?? false });
-  }
-}
-// node_modules/openai/resources/models.mjs
-class Models extends APIResource {
-  retrieve(model, options) {
-    return this._client.get(path2`/models/${model}`, options);
-  }
-  list(options) {
-    return this._client.getAPIList("/models", Page, options);
-  }
-  delete(model, options) {
-    return this._client.delete(path2`/models/${model}`, options);
-  }
-}
-// node_modules/openai/resources/moderations.mjs
-class Moderations extends APIResource {
-  create(body, options) {
-    return this._client.post("/moderations", { body, ...options });
-  }
-}
-// node_modules/openai/resources/realtime/calls.mjs
-class Calls extends APIResource {
-  accept(callID, body, options) {
-    return this._client.post(path2`/realtime/calls/${callID}/accept`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
-    });
-  }
-  hangup(callID, options) {
-    return this._client.post(path2`/realtime/calls/${callID}/hangup`, {
-      ...options,
-      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
-    });
-  }
-  refer(callID, body, options) {
-    return this._client.post(path2`/realtime/calls/${callID}/refer`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
-    });
-  }
-  reject(callID, body = {}, options) {
-    return this._client.post(path2`/realtime/calls/${callID}/reject`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
-    });
-  }
-}
-
-// node_modules/openai/resources/realtime/client-secrets.mjs
-class ClientSecrets extends APIResource {
-  create(body, options) {
-    return this._client.post("/realtime/client_secrets", { body, ...options });
-  }
-}
-
-// node_modules/openai/resources/realtime/realtime.mjs
-class Realtime2 extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.clientSecrets = new ClientSecrets(this._client);
-    this.calls = new Calls(this._client);
-  }
-}
-Realtime2.ClientSecrets = ClientSecrets;
-Realtime2.Calls = Calls;
-// node_modules/openai/lib/ResponsesParser.mjs
-function maybeParseResponse(response, params) {
-  if (!params || !hasAutoParseableInput2(params)) {
-    return {
-      ...response,
-      output_parsed: null,
-      output: response.output.map((item) => {
-        if (item.type === "function_call") {
-          return {
-            ...item,
-            parsed_arguments: null
-          };
-        }
-        if (item.type === "message") {
-          return {
-            ...item,
-            content: item.content.map((content) => ({
-              ...content,
-              parsed: null
-            }))
-          };
-        } else {
-          return item;
-        }
-      })
-    };
-  }
-  return parseResponse(response, params);
-}
-function parseResponse(response, params) {
-  const output = response.output.map((item) => {
-    if (item.type === "function_call") {
-      return {
-        ...item,
-        parsed_arguments: parseToolCall2(params, item)
-      };
-    }
-    if (item.type === "message") {
-      const content = item.content.map((content2) => {
-        if (content2.type === "output_text") {
-          return {
-            ...content2,
-            parsed: parseTextFormat(params, content2.text)
-          };
-        }
-        return content2;
-      });
-      return {
-        ...item,
-        content
-      };
-    }
-    return item;
-  });
-  const parsed = Object.assign({}, response, { output });
-  if (!Object.getOwnPropertyDescriptor(response, "output_text")) {
-    addOutputText(parsed);
-  }
-  Object.defineProperty(parsed, "output_parsed", {
-    enumerable: true,
-    get() {
-      for (const output2 of parsed.output) {
-        if (output2.type !== "message") {
-          continue;
-        }
-        for (const content of output2.content) {
-          if (content.type === "output_text" && content.parsed !== null) {
-            return content.parsed;
-          }
-        }
-      }
-      return null;
-    }
-  });
-  return parsed;
-}
-function parseTextFormat(params, content) {
-  if (params.text?.format?.type !== "json_schema") {
-    return null;
-  }
-  if ("$parseRaw" in params.text?.format) {
-    const text_format = params.text?.format;
-    return text_format.$parseRaw(content);
-  }
-  return JSON.parse(content);
-}
-function hasAutoParseableInput2(params) {
-  if (isAutoParsableResponseFormat(params.text?.format)) {
-    return true;
-  }
-  return false;
-}
-function isAutoParsableTool2(tool) {
-  return tool?.["$brand"] === "auto-parseable-tool";
-}
-function getInputToolByName(input_tools, name) {
-  return input_tools.find((tool) => tool.type === "function" && tool.name === name);
-}
-function parseToolCall2(params, toolCall) {
-  const inputTool = getInputToolByName(params.tools ?? [], toolCall.name);
-  return {
-    ...toolCall,
-    ...toolCall,
-    parsed_arguments: isAutoParsableTool2(inputTool) ? inputTool.$parseRaw(toolCall.arguments) : inputTool?.strict ? JSON.parse(toolCall.arguments) : null
-  };
-}
-function addOutputText(rsp) {
-  const texts = [];
-  for (const output of rsp.output) {
-    if (output.type !== "message") {
-      continue;
-    }
-    for (const content of output.content) {
-      if (content.type === "output_text") {
-        texts.push(content.text);
-      }
-    }
-  }
-  rsp.output_text = texts.join("");
-}
-
-// node_modules/openai/lib/responses/ResponseStream.mjs
-var _ResponseStream_instances;
-var _ResponseStream_params;
-var _ResponseStream_currentResponseSnapshot;
-var _ResponseStream_finalResponse;
-var _ResponseStream_beginRequest;
-var _ResponseStream_addEvent;
-var _ResponseStream_endRequest;
-var _ResponseStream_accumulateResponse;
-
-class ResponseStream extends EventStream {
-  constructor(params) {
-    super();
-    _ResponseStream_instances.add(this);
-    _ResponseStream_params.set(this, undefined);
-    _ResponseStream_currentResponseSnapshot.set(this, undefined);
-    _ResponseStream_finalResponse.set(this, undefined);
-    __classPrivateFieldSet(this, _ResponseStream_params, params, "f");
-  }
-  static createResponse(client, params, options) {
-    const runner = new ResponseStream(params);
-    runner._run(() => runner._createOrRetrieveResponse(client, params, {
-      ...options,
-      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
-    }));
-    return runner;
-  }
-  async _createOrRetrieveResponse(client, params, options) {
-    const signal = options?.signal;
-    if (signal) {
-      if (signal.aborted)
-        this.controller.abort();
-      signal.addEventListener("abort", () => this.controller.abort());
-    }
-    __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_beginRequest).call(this);
-    let stream;
-    let starting_after = null;
-    if ("response_id" in params) {
-      stream = await client.responses.retrieve(params.response_id, { stream: true }, { ...options, signal: this.controller.signal, stream: true });
-      starting_after = params.starting_after ?? null;
-    } else {
-      stream = await client.responses.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
-    }
-    this._connected();
-    for await (const event of stream) {
-      __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_addEvent).call(this, event, starting_after);
-    }
-    if (stream.controller.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    return __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_endRequest).call(this);
-  }
-  [(_ResponseStream_params = new WeakMap, _ResponseStream_currentResponseSnapshot = new WeakMap, _ResponseStream_finalResponse = new WeakMap, _ResponseStream_instances = new WeakSet, _ResponseStream_beginRequest = function _ResponseStream_beginRequest2() {
-    if (this.ended)
-      return;
-    __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, undefined, "f");
-  }, _ResponseStream_addEvent = function _ResponseStream_addEvent2(event, starting_after) {
-    if (this.ended)
-      return;
-    const maybeEmit = (name, event2) => {
-      if (starting_after == null || event2.sequence_number > starting_after) {
-        this._emit(name, event2);
-      }
-    };
-    const response = __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_accumulateResponse).call(this, event);
-    maybeEmit("event", event);
-    switch (event.type) {
-      case "response.output_text.delta": {
-        const output = response.output[event.output_index];
-        if (!output) {
-          throw new OpenAIError(`missing output at index ${event.output_index}`);
-        }
-        if (output.type === "message") {
-          const content = output.content[event.content_index];
-          if (!content) {
-            throw new OpenAIError(`missing content at index ${event.content_index}`);
-          }
-          if (content.type !== "output_text") {
-            throw new OpenAIError(`expected content to be 'output_text', got ${content.type}`);
-          }
-          maybeEmit("response.output_text.delta", {
-            ...event,
-            snapshot: content.text
-          });
-        }
-        break;
-      }
-      case "response.function_call_arguments.delta": {
-        const output = response.output[event.output_index];
-        if (!output) {
-          throw new OpenAIError(`missing output at index ${event.output_index}`);
-        }
-        if (output.type === "function_call") {
-          maybeEmit("response.function_call_arguments.delta", {
-            ...event,
-            snapshot: output.arguments
-          });
-        }
-        break;
-      }
-      default:
-        maybeEmit(event.type, event);
-        break;
-    }
-  }, _ResponseStream_endRequest = function _ResponseStream_endRequest2() {
-    if (this.ended) {
-      throw new OpenAIError(`stream has ended, this shouldn't happen`);
-    }
-    const snapshot = __classPrivateFieldGet(this, _ResponseStream_currentResponseSnapshot, "f");
-    if (!snapshot) {
-      throw new OpenAIError(`request ended without sending any events`);
-    }
-    __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, undefined, "f");
-    const parsedResponse = finalizeResponse(snapshot, __classPrivateFieldGet(this, _ResponseStream_params, "f"));
-    __classPrivateFieldSet(this, _ResponseStream_finalResponse, parsedResponse, "f");
-    return parsedResponse;
-  }, _ResponseStream_accumulateResponse = function _ResponseStream_accumulateResponse2(event) {
-    let snapshot = __classPrivateFieldGet(this, _ResponseStream_currentResponseSnapshot, "f");
-    if (!snapshot) {
-      if (event.type !== "response.created") {
-        throw new OpenAIError(`When snapshot hasn't been set yet, expected 'response.created' event, got ${event.type}`);
-      }
-      snapshot = __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, event.response, "f");
-      return snapshot;
-    }
-    switch (event.type) {
-      case "response.output_item.added": {
-        snapshot.output.push(event.item);
-        break;
-      }
-      case "response.content_part.added": {
-        const output = snapshot.output[event.output_index];
-        if (!output) {
-          throw new OpenAIError(`missing output at index ${event.output_index}`);
-        }
-        const type = output.type;
-        const part = event.part;
-        if (type === "message" && part.type !== "reasoning_text") {
-          output.content.push(part);
-        } else if (type === "reasoning" && part.type === "reasoning_text") {
-          if (!output.content) {
-            output.content = [];
-          }
-          output.content.push(part);
-        }
-        break;
-      }
-      case "response.output_text.delta": {
-        const output = snapshot.output[event.output_index];
-        if (!output) {
-          throw new OpenAIError(`missing output at index ${event.output_index}`);
-        }
-        if (output.type === "message") {
-          const content = output.content[event.content_index];
-          if (!content) {
-            throw new OpenAIError(`missing content at index ${event.content_index}`);
-          }
-          if (content.type !== "output_text") {
-            throw new OpenAIError(`expected content to be 'output_text', got ${content.type}`);
-          }
-          content.text += event.delta;
-        }
-        break;
-      }
-      case "response.function_call_arguments.delta": {
-        const output = snapshot.output[event.output_index];
-        if (!output) {
-          throw new OpenAIError(`missing output at index ${event.output_index}`);
-        }
-        if (output.type === "function_call") {
-          output.arguments += event.delta;
-        }
-        break;
-      }
-      case "response.reasoning_text.delta": {
-        const output = snapshot.output[event.output_index];
-        if (!output) {
-          throw new OpenAIError(`missing output at index ${event.output_index}`);
-        }
-        if (output.type === "reasoning") {
-          const content = output.content?.[event.content_index];
-          if (!content) {
-            throw new OpenAIError(`missing content at index ${event.content_index}`);
-          }
-          if (content.type !== "reasoning_text") {
-            throw new OpenAIError(`expected content to be 'reasoning_text', got ${content.type}`);
-          }
-          content.text += event.delta;
-        }
-        break;
-      }
-      case "response.completed": {
-        __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, event.response, "f");
-        break;
-      }
-    }
-    return snapshot;
-  }, Symbol.asyncIterator)]() {
-    const pushQueue = [];
-    const readQueue = [];
-    let done = false;
-    this.on("event", (event) => {
-      const reader = readQueue.shift();
-      if (reader) {
-        reader.resolve(event);
-      } else {
-        pushQueue.push(event);
-      }
-    });
-    this.on("end", () => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.resolve(undefined);
-      }
-      readQueue.length = 0;
-    });
-    this.on("abort", (err) => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.reject(err);
-      }
-      readQueue.length = 0;
-    });
-    this.on("error", (err) => {
-      done = true;
-      for (const reader of readQueue) {
-        reader.reject(err);
-      }
-      readQueue.length = 0;
-    });
-    return {
-      next: async () => {
-        if (!pushQueue.length) {
-          if (done) {
-            return { value: undefined, done: true };
-          }
-          return new Promise((resolve, reject) => readQueue.push({ resolve, reject })).then((event2) => event2 ? { value: event2, done: false } : { value: undefined, done: true });
-        }
-        const event = pushQueue.shift();
-        return { value: event, done: false };
-      },
-      return: async () => {
-        this.abort();
-        return { value: undefined, done: true };
-      }
-    };
-  }
-  async finalResponse() {
-    await this.done();
-    const response = __classPrivateFieldGet(this, _ResponseStream_finalResponse, "f");
-    if (!response)
-      throw new OpenAIError("stream ended without producing a ChatCompletion");
-    return response;
-  }
-}
-function finalizeResponse(snapshot, params) {
-  return maybeParseResponse(snapshot, params);
-}
-
-// node_modules/openai/resources/responses/input-items.mjs
-class InputItems extends APIResource {
-  list(responseID, query = {}, options) {
-    return this._client.getAPIList(path2`/responses/${responseID}/input_items`, CursorPage, { query, ...options });
-  }
-}
-
-// node_modules/openai/resources/responses/input-tokens.mjs
-class InputTokens extends APIResource {
-  count(body = {}, options) {
-    return this._client.post("/responses/input_tokens", { body, ...options });
-  }
-}
-
-// node_modules/openai/resources/responses/responses.mjs
-class Responses extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.inputItems = new InputItems(this._client);
-    this.inputTokens = new InputTokens(this._client);
-  }
-  create(body, options) {
-    return this._client.post("/responses", { body, ...options, stream: body.stream ?? false })._thenUnwrap((rsp) => {
-      if ("object" in rsp && rsp.object === "response") {
-        addOutputText(rsp);
-      }
-      return rsp;
-    });
-  }
-  retrieve(responseID, query = {}, options) {
-    return this._client.get(path2`/responses/${responseID}`, {
-      query,
-      ...options,
-      stream: query?.stream ?? false
-    })._thenUnwrap((rsp) => {
-      if ("object" in rsp && rsp.object === "response") {
-        addOutputText(rsp);
-      }
-      return rsp;
-    });
-  }
-  delete(responseID, options) {
-    return this._client.delete(path2`/responses/${responseID}`, {
-      ...options,
-      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
-    });
-  }
-  parse(body, options) {
-    return this._client.responses.create(body, options)._thenUnwrap((response) => parseResponse(response, body));
-  }
-  stream(body, options) {
-    return ResponseStream.createResponse(this._client, body, options);
-  }
-  cancel(responseID, options) {
-    return this._client.post(path2`/responses/${responseID}/cancel`, options);
-  }
-  compact(body, options) {
-    return this._client.post("/responses/compact", { body, ...options });
-  }
-}
-Responses.InputItems = InputItems;
-Responses.InputTokens = InputTokens;
-// node_modules/openai/resources/uploads/parts.mjs
-class Parts extends APIResource {
-  create(uploadID, body, options) {
-    return this._client.post(path2`/uploads/${uploadID}/parts`, multipartFormRequestOptions({ body, ...options }, this._client));
-  }
-}
-
-// node_modules/openai/resources/uploads/uploads.mjs
-class Uploads extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.parts = new Parts(this._client);
-  }
-  create(body, options) {
-    return this._client.post("/uploads", { body, ...options });
-  }
-  cancel(uploadID, options) {
-    return this._client.post(path2`/uploads/${uploadID}/cancel`, options);
-  }
-  complete(uploadID, body, options) {
-    return this._client.post(path2`/uploads/${uploadID}/complete`, { body, ...options });
-  }
-}
-Uploads.Parts = Parts;
-// node_modules/openai/lib/Util.mjs
-var allSettledWithThrow = async (promises3) => {
-  const results = await Promise.allSettled(promises3);
-  const rejected = results.filter((result) => result.status === "rejected");
-  if (rejected.length) {
-    for (const result of rejected) {
-      console.error(result.reason);
-    }
-    throw new Error(`${rejected.length} promise(s) failed - see the above errors`);
-  }
-  const values2 = [];
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      values2.push(result.value);
-    }
-  }
-  return values2;
-};
-
-// node_modules/openai/resources/vector-stores/file-batches.mjs
-class FileBatches extends APIResource {
-  create(vectorStoreID, body, options) {
-    return this._client.post(path2`/vector_stores/${vectorStoreID}/file_batches`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  retrieve(batchID, params, options) {
-    const { vector_store_id } = params;
-    return this._client.get(path2`/vector_stores/${vector_store_id}/file_batches/${batchID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  cancel(batchID, params, options) {
-    const { vector_store_id } = params;
-    return this._client.post(path2`/vector_stores/${vector_store_id}/file_batches/${batchID}/cancel`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  async createAndPoll(vectorStoreId, body, options) {
-    const batch = await this.create(vectorStoreId, body);
-    return await this.poll(vectorStoreId, batch.id, options);
-  }
-  listFiles(batchID, params, options) {
-    const { vector_store_id, ...query } = params;
-    return this._client.getAPIList(path2`/vector_stores/${vector_store_id}/file_batches/${batchID}/files`, CursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
-  }
-  async poll(vectorStoreID, batchID, options) {
-    const headers = buildHeaders([
-      options?.headers,
-      {
-        "X-Stainless-Poll-Helper": "true",
-        "X-Stainless-Custom-Poll-Interval": options?.pollIntervalMs?.toString() ?? undefined
-      }
-    ]);
-    while (true) {
-      const { data: batch, response } = await this.retrieve(batchID, { vector_store_id: vectorStoreID }, {
-        ...options,
-        headers
-      }).withResponse();
-      switch (batch.status) {
-        case "in_progress":
-          let sleepInterval = 5000;
-          if (options?.pollIntervalMs) {
-            sleepInterval = options.pollIntervalMs;
-          } else {
-            const headerInterval = response.headers.get("openai-poll-after-ms");
-            if (headerInterval) {
-              const headerIntervalMs = parseInt(headerInterval);
-              if (!isNaN(headerIntervalMs)) {
-                sleepInterval = headerIntervalMs;
-              }
-            }
-          }
-          await sleep(sleepInterval);
-          break;
-        case "failed":
-        case "cancelled":
-        case "completed":
-          return batch;
-      }
-    }
-  }
-  async uploadAndPoll(vectorStoreId, { files, fileIds = [] }, options) {
-    if (files == null || files.length == 0) {
-      throw new Error(`No \`files\` provided to process. If you've already uploaded files you should use \`.createAndPoll()\` instead`);
-    }
-    const configuredConcurrency = options?.maxConcurrency ?? 5;
-    const concurrencyLimit = Math.min(configuredConcurrency, files.length);
-    const client = this._client;
-    const fileIterator = files.values();
-    const allFileIds = [...fileIds];
-    async function processFiles(iterator2) {
-      for (let item of iterator2) {
-        const fileObj = await client.files.create({ file: item, purpose: "assistants" }, options);
-        allFileIds.push(fileObj.id);
-      }
-    }
-    const workers = Array(concurrencyLimit).fill(fileIterator).map(processFiles);
-    await allSettledWithThrow(workers);
-    return await this.createAndPoll(vectorStoreId, {
-      file_ids: allFileIds
-    });
-  }
-}
-
-// node_modules/openai/resources/vector-stores/files.mjs
-class Files3 extends APIResource {
-  create(vectorStoreID, body, options) {
-    return this._client.post(path2`/vector_stores/${vectorStoreID}/files`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  retrieve(fileID, params, options) {
-    const { vector_store_id } = params;
-    return this._client.get(path2`/vector_stores/${vector_store_id}/files/${fileID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  update(fileID, params, options) {
-    const { vector_store_id, ...body } = params;
-    return this._client.post(path2`/vector_stores/${vector_store_id}/files/${fileID}`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  list(vectorStoreID, query = {}, options) {
-    return this._client.getAPIList(path2`/vector_stores/${vectorStoreID}/files`, CursorPage, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  delete(fileID, params, options) {
-    const { vector_store_id } = params;
-    return this._client.delete(path2`/vector_stores/${vector_store_id}/files/${fileID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  async createAndPoll(vectorStoreId, body, options) {
-    const file = await this.create(vectorStoreId, body, options);
-    return await this.poll(vectorStoreId, file.id, options);
-  }
-  async poll(vectorStoreID, fileID, options) {
-    const headers = buildHeaders([
-      options?.headers,
-      {
-        "X-Stainless-Poll-Helper": "true",
-        "X-Stainless-Custom-Poll-Interval": options?.pollIntervalMs?.toString() ?? undefined
-      }
-    ]);
-    while (true) {
-      const fileResponse = await this.retrieve(fileID, {
-        vector_store_id: vectorStoreID
-      }, { ...options, headers }).withResponse();
-      const file = fileResponse.data;
-      switch (file.status) {
-        case "in_progress":
-          let sleepInterval = 5000;
-          if (options?.pollIntervalMs) {
-            sleepInterval = options.pollIntervalMs;
-          } else {
-            const headerInterval = fileResponse.response.headers.get("openai-poll-after-ms");
-            if (headerInterval) {
-              const headerIntervalMs = parseInt(headerInterval);
-              if (!isNaN(headerIntervalMs)) {
-                sleepInterval = headerIntervalMs;
-              }
-            }
-          }
-          await sleep(sleepInterval);
-          break;
-        case "failed":
-        case "completed":
-          return file;
-      }
-    }
-  }
-  async upload(vectorStoreId, file, options) {
-    const fileInfo = await this._client.files.create({ file, purpose: "assistants" }, options);
-    return this.create(vectorStoreId, { file_id: fileInfo.id }, options);
-  }
-  async uploadAndPoll(vectorStoreId, file, options) {
-    const fileInfo = await this.upload(vectorStoreId, file, options);
-    return await this.poll(vectorStoreId, fileInfo.id, options);
-  }
-  content(fileID, params, options) {
-    const { vector_store_id } = params;
-    return this._client.getAPIList(path2`/vector_stores/${vector_store_id}/files/${fileID}/content`, Page, { ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
-  }
-}
-
-// node_modules/openai/resources/vector-stores/vector-stores.mjs
-class VectorStores extends APIResource {
-  constructor() {
-    super(...arguments);
-    this.files = new Files3(this._client);
-    this.fileBatches = new FileBatches(this._client);
-  }
-  create(body, options) {
-    return this._client.post("/vector_stores", {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  retrieve(vectorStoreID, options) {
-    return this._client.get(path2`/vector_stores/${vectorStoreID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  update(vectorStoreID, body, options) {
-    return this._client.post(path2`/vector_stores/${vectorStoreID}`, {
-      body,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/vector_stores", CursorPage, {
-      query,
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  delete(vectorStoreID, options) {
-    return this._client.delete(path2`/vector_stores/${vectorStoreID}`, {
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-  search(vectorStoreID, body, options) {
-    return this._client.getAPIList(path2`/vector_stores/${vectorStoreID}/search`, Page, {
-      body,
-      method: "post",
-      ...options,
-      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
-    });
-  }
-}
-VectorStores.Files = Files3;
-VectorStores.FileBatches = FileBatches;
-// node_modules/openai/resources/videos.mjs
-class Videos extends APIResource {
-  create(body, options) {
-    return this._client.post("/videos", maybeMultipartFormRequestOptions({ body, ...options }, this._client));
-  }
-  retrieve(videoID, options) {
-    return this._client.get(path2`/videos/${videoID}`, options);
-  }
-  list(query = {}, options) {
-    return this._client.getAPIList("/videos", ConversationCursorPage, { query, ...options });
-  }
-  delete(videoID, options) {
-    return this._client.delete(path2`/videos/${videoID}`, options);
-  }
-  downloadContent(videoID, query = {}, options) {
-    return this._client.get(path2`/videos/${videoID}/content`, {
-      query,
-      ...options,
-      headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
-      __binaryResponse: true
-    });
-  }
-  remix(videoID, body, options) {
-    return this._client.post(path2`/videos/${videoID}/remix`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
-  }
-}
-// node_modules/openai/resources/webhooks.mjs
-var _Webhooks_instances;
-var _Webhooks_validateSecret;
-var _Webhooks_getRequiredHeader;
-
-class Webhooks extends APIResource {
-  constructor() {
-    super(...arguments);
-    _Webhooks_instances.add(this);
-  }
-  async unwrap(payload, headers, secret = this._client.webhookSecret, tolerance = 300) {
-    await this.verifySignature(payload, headers, secret, tolerance);
-    return JSON.parse(payload);
-  }
-  async verifySignature(payload, headers, secret = this._client.webhookSecret, tolerance = 300) {
-    if (typeof crypto === "undefined" || typeof crypto.subtle.importKey !== "function" || typeof crypto.subtle.verify !== "function") {
-      throw new Error("Webhook signature verification is only supported when the `crypto` global is defined");
-    }
-    __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_validateSecret).call(this, secret);
-    const headersObj = buildHeaders([headers]).values;
-    const signatureHeader = __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_getRequiredHeader).call(this, headersObj, "webhook-signature");
-    const timestamp = __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_getRequiredHeader).call(this, headersObj, "webhook-timestamp");
-    const webhookId = __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_getRequiredHeader).call(this, headersObj, "webhook-id");
-    const timestampSeconds = parseInt(timestamp, 10);
-    if (isNaN(timestampSeconds)) {
-      throw new InvalidWebhookSignatureError("Invalid webhook timestamp format");
-    }
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    if (nowSeconds - timestampSeconds > tolerance) {
-      throw new InvalidWebhookSignatureError("Webhook timestamp is too old");
-    }
-    if (timestampSeconds > nowSeconds + tolerance) {
-      throw new InvalidWebhookSignatureError("Webhook timestamp is too new");
-    }
-    const signatures = signatureHeader.split(" ").map((part) => part.startsWith("v1,") ? part.substring(3) : part);
-    const decodedSecret = secret.startsWith("whsec_") ? Buffer.from(secret.replace("whsec_", ""), "base64") : Buffer.from(secret, "utf-8");
-    const signedPayload = webhookId ? `${webhookId}.${timestamp}.${payload}` : `${timestamp}.${payload}`;
-    const key = await crypto.subtle.importKey("raw", decodedSecret, { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
-    for (const signature of signatures) {
-      try {
-        const signatureBytes = Buffer.from(signature, "base64");
-        const isValid = await crypto.subtle.verify("HMAC", key, signatureBytes, new TextEncoder().encode(signedPayload));
-        if (isValid) {
-          return;
-        }
-      } catch {
-        continue;
-      }
-    }
-    throw new InvalidWebhookSignatureError("The given webhook signature does not match the expected signature");
-  }
-}
-_Webhooks_instances = new WeakSet, _Webhooks_validateSecret = function _Webhooks_validateSecret2(secret) {
-  if (typeof secret !== "string" || secret.length === 0) {
-    throw new Error(`The webhook secret must either be set using the env var, OPENAI_WEBHOOK_SECRET, on the client class, OpenAI({ webhookSecret: '123' }), or passed to this function`);
-  }
-}, _Webhooks_getRequiredHeader = function _Webhooks_getRequiredHeader2(headers, name) {
-  if (!headers) {
-    throw new Error(`Headers are required`);
-  }
-  const value = headers.get(name);
-  if (value === null || value === undefined) {
-    throw new Error(`Missing required header: ${name}`);
-  }
-  return value;
-};
-// node_modules/openai/client.mjs
-var _OpenAI_instances;
-var _a2;
-var _OpenAI_encoder;
-var _OpenAI_baseURLOverridden;
-
-class OpenAI {
-  constructor({ baseURL = readEnv("OPENAI_BASE_URL"), apiKey = readEnv("OPENAI_API_KEY"), organization = readEnv("OPENAI_ORG_ID") ?? null, project = readEnv("OPENAI_PROJECT_ID") ?? null, webhookSecret = readEnv("OPENAI_WEBHOOK_SECRET") ?? null, ...opts } = {}) {
-    _OpenAI_instances.add(this);
-    _OpenAI_encoder.set(this, undefined);
-    this.completions = new Completions2(this);
-    this.chat = new Chat(this);
-    this.embeddings = new Embeddings(this);
-    this.files = new Files2(this);
-    this.images = new Images(this);
-    this.audio = new Audio(this);
-    this.moderations = new Moderations(this);
-    this.models = new Models(this);
-    this.fineTuning = new FineTuning(this);
-    this.graders = new Graders2(this);
-    this.vectorStores = new VectorStores(this);
-    this.webhooks = new Webhooks(this);
-    this.beta = new Beta(this);
-    this.batches = new Batches(this);
-    this.uploads = new Uploads(this);
-    this.responses = new Responses(this);
-    this.realtime = new Realtime2(this);
-    this.conversations = new Conversations(this);
-    this.evals = new Evals(this);
-    this.containers = new Containers(this);
-    this.videos = new Videos(this);
-    if (apiKey === undefined) {
-      throw new OpenAIError("Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.");
-    }
-    const options = {
-      apiKey,
-      organization,
-      project,
-      webhookSecret,
-      ...opts,
-      baseURL: baseURL || `https://api.openai.com/v1`
-    };
-    if (!options.dangerouslyAllowBrowser && isRunningInBrowser()) {
-      throw new OpenAIError(`It looks like you're running in a browser-like environment.
-
-This is disabled by default, as it risks exposing your secret API credentials to attackers.
-If you understand the risks and have appropriate mitigations in place,
-you can set the \`dangerouslyAllowBrowser\` option to \`true\`, e.g.,
-
-new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
-
-https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
-`);
-    }
-    this.baseURL = options.baseURL;
-    this.timeout = options.timeout ?? _a2.DEFAULT_TIMEOUT;
-    this.logger = options.logger ?? console;
-    const defaultLogLevel = "warn";
-    this.logLevel = defaultLogLevel;
-    this.logLevel = parseLogLevel(options.logLevel, "ClientOptions.logLevel", this) ?? parseLogLevel(readEnv("OPENAI_LOG"), "process.env['OPENAI_LOG']", this) ?? defaultLogLevel;
-    this.fetchOptions = options.fetchOptions;
-    this.maxRetries = options.maxRetries ?? 2;
-    this.fetch = options.fetch ?? getDefaultFetch();
-    __classPrivateFieldSet(this, _OpenAI_encoder, FallbackEncoder, "f");
-    this._options = options;
-    this.apiKey = typeof apiKey === "string" ? apiKey : "Missing Key";
-    this.organization = organization;
-    this.project = project;
-    this.webhookSecret = webhookSecret;
-  }
-  withOptions(options) {
-    const client = new this.constructor({
-      ...this._options,
-      baseURL: this.baseURL,
-      maxRetries: this.maxRetries,
-      timeout: this.timeout,
-      logger: this.logger,
-      logLevel: this.logLevel,
-      fetch: this.fetch,
-      fetchOptions: this.fetchOptions,
-      apiKey: this.apiKey,
-      organization: this.organization,
-      project: this.project,
-      webhookSecret: this.webhookSecret,
-      ...options
-    });
-    return client;
-  }
-  defaultQuery() {
-    return this._options.defaultQuery;
-  }
-  validateHeaders({ values: values2, nulls }) {
-    return;
-  }
-  async authHeaders(opts) {
-    return buildHeaders([{ Authorization: `Bearer ${this.apiKey}` }]);
-  }
-  stringifyQuery(query) {
-    return stringify(query, { arrayFormat: "brackets" });
-  }
-  getUserAgent() {
-    return `${this.constructor.name}/JS ${VERSION7}`;
-  }
-  defaultIdempotencyKey() {
-    return `stainless-node-retry-${uuid4()}`;
-  }
-  makeStatusError(status, error3, message, headers) {
-    return APIError.generate(status, error3, message, headers);
-  }
-  async _callApiKey() {
-    const apiKey = this._options.apiKey;
-    if (typeof apiKey !== "function")
-      return false;
-    let token;
-    try {
-      token = await apiKey();
-    } catch (err) {
-      if (err instanceof OpenAIError)
-        throw err;
-      throw new OpenAIError(`Failed to get token from 'apiKey' function: ${err.message}`, { cause: err });
-    }
-    if (typeof token !== "string" || !token) {
-      throw new OpenAIError(`Expected 'apiKey' function argument to return a string but it returned ${token}`);
-    }
-    this.apiKey = token;
-    return true;
-  }
-  buildURL(path3, query, defaultBaseURL) {
-    const baseURL = !__classPrivateFieldGet(this, _OpenAI_instances, "m", _OpenAI_baseURLOverridden).call(this) && defaultBaseURL || this.baseURL;
-    const url = isAbsoluteURL(path3) ? new URL(path3) : new URL(baseURL + (baseURL.endsWith("/") && path3.startsWith("/") ? path3.slice(1) : path3));
-    const defaultQuery = this.defaultQuery();
-    if (!isEmptyObj(defaultQuery)) {
-      query = { ...defaultQuery, ...query };
-    }
-    if (typeof query === "object" && query && !Array.isArray(query)) {
-      url.search = this.stringifyQuery(query);
-    }
-    return url.toString();
-  }
-  async prepareOptions(options) {
-    await this._callApiKey();
-  }
-  async prepareRequest(request2, { url, options }) {}
-  get(path3, opts) {
-    return this.methodRequest("get", path3, opts);
-  }
-  post(path3, opts) {
-    return this.methodRequest("post", path3, opts);
-  }
-  patch(path3, opts) {
-    return this.methodRequest("patch", path3, opts);
-  }
-  put(path3, opts) {
-    return this.methodRequest("put", path3, opts);
-  }
-  delete(path3, opts) {
-    return this.methodRequest("delete", path3, opts);
-  }
-  methodRequest(method, path3, opts) {
-    return this.request(Promise.resolve(opts).then((opts2) => {
-      return { method, path: path3, ...opts2 };
-    }));
-  }
-  request(options, remainingRetries = null) {
-    return new APIPromise(this, this.makeRequest(options, remainingRetries, undefined));
-  }
-  async makeRequest(optionsInput, retriesRemaining, retryOfRequestLogID) {
-    const options = await optionsInput;
-    const maxRetries = options.maxRetries ?? this.maxRetries;
-    if (retriesRemaining == null) {
-      retriesRemaining = maxRetries;
-    }
-    await this.prepareOptions(options);
-    const { req, url, timeout } = await this.buildRequest(options, {
-      retryCount: maxRetries - retriesRemaining
-    });
-    await this.prepareRequest(req, { url, options });
-    const requestLogID = "log_" + (Math.random() * (1 << 24) | 0).toString(16).padStart(6, "0");
-    const retryLogStr = retryOfRequestLogID === undefined ? "" : `, retryOf: ${retryOfRequestLogID}`;
-    const startTime = Date.now();
-    loggerFor(this).debug(`[${requestLogID}] sending request`, formatRequestDetails({
-      retryOfRequestLogID,
-      method: options.method,
-      url,
-      options,
-      headers: req.headers
-    }));
-    if (options.signal?.aborted) {
-      throw new APIUserAbortError;
-    }
-    const controller = new AbortController;
-    const response = await this.fetchWithTimeout(url, req, timeout, controller).catch(castToError);
-    const headersTime = Date.now();
-    if (response instanceof globalThis.Error) {
-      const retryMessage = `retrying, ${retriesRemaining} attempts remaining`;
-      if (options.signal?.aborted) {
-        throw new APIUserAbortError;
-      }
-      const isTimeout = isAbortError(response) || /timed? ?out/i.test(String(response) + ("cause" in response ? String(response.cause) : ""));
-      if (retriesRemaining) {
-        loggerFor(this).info(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} - ${retryMessage}`);
-        loggerFor(this).debug(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} (${retryMessage})`, formatRequestDetails({
-          retryOfRequestLogID,
-          url,
-          durationMs: headersTime - startTime,
-          message: response.message
-        }));
-        return this.retryRequest(options, retriesRemaining, retryOfRequestLogID ?? requestLogID);
-      }
-      loggerFor(this).info(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} - error; no more retries left`);
-      loggerFor(this).debug(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} (error; no more retries left)`, formatRequestDetails({
-        retryOfRequestLogID,
-        url,
-        durationMs: headersTime - startTime,
-        message: response.message
-      }));
-      if (isTimeout) {
-        throw new APIConnectionTimeoutError;
-      }
-      throw new APIConnectionError({ cause: response });
-    }
-    const specialHeaders = [...response.headers.entries()].filter(([name]) => name === "x-request-id").map(([name, value]) => ", " + name + ": " + JSON.stringify(value)).join("");
-    const responseInfo = `[${requestLogID}${retryLogStr}${specialHeaders}] ${req.method} ${url} ${response.ok ? "succeeded" : "failed"} with status ${response.status} in ${headersTime - startTime}ms`;
-    if (!response.ok) {
-      const shouldRetry = await this.shouldRetry(response);
-      if (retriesRemaining && shouldRetry) {
-        const retryMessage2 = `retrying, ${retriesRemaining} attempts remaining`;
-        await CancelReadableStream(response.body);
-        loggerFor(this).info(`${responseInfo} - ${retryMessage2}`);
-        loggerFor(this).debug(`[${requestLogID}] response error (${retryMessage2})`, formatRequestDetails({
-          retryOfRequestLogID,
-          url: response.url,
-          status: response.status,
-          headers: response.headers,
-          durationMs: headersTime - startTime
-        }));
-        return this.retryRequest(options, retriesRemaining, retryOfRequestLogID ?? requestLogID, response.headers);
-      }
-      const retryMessage = shouldRetry ? `error; no more retries left` : `error; not retryable`;
-      loggerFor(this).info(`${responseInfo} - ${retryMessage}`);
-      const errText = await response.text().catch((err2) => castToError(err2).message);
-      const errJSON = safeJSON(errText);
-      const errMessage = errJSON ? undefined : errText;
-      loggerFor(this).debug(`[${requestLogID}] response error (${retryMessage})`, formatRequestDetails({
-        retryOfRequestLogID,
-        url: response.url,
-        status: response.status,
-        headers: response.headers,
-        message: errMessage,
-        durationMs: Date.now() - startTime
-      }));
-      const err = this.makeStatusError(response.status, errJSON, errMessage, response.headers);
-      throw err;
-    }
-    loggerFor(this).info(responseInfo);
-    loggerFor(this).debug(`[${requestLogID}] response start`, formatRequestDetails({
-      retryOfRequestLogID,
-      url: response.url,
-      status: response.status,
-      headers: response.headers,
-      durationMs: headersTime - startTime
-    }));
-    return { response, options, controller, requestLogID, retryOfRequestLogID, startTime };
-  }
-  getAPIList(path3, Page2, opts) {
-    return this.requestAPIList(Page2, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path3, ...opts2 })) : { method: "get", path: path3, ...opts });
-  }
-  requestAPIList(Page2, options) {
-    const request2 = this.makeRequest(options, null, undefined);
-    return new PagePromise(this, request2, Page2);
-  }
-  async fetchWithTimeout(url, init, ms, controller) {
-    const { signal, method, ...options } = init || {};
-    const abort = this._makeAbort(controller);
-    if (signal)
-      signal.addEventListener("abort", abort, { once: true });
-    const timeout = setTimeout(abort, ms);
-    const isReadableBody = globalThis.ReadableStream && options.body instanceof globalThis.ReadableStream || typeof options.body === "object" && options.body !== null && Symbol.asyncIterator in options.body;
-    const fetchOptions = {
-      signal: controller.signal,
-      ...isReadableBody ? { duplex: "half" } : {},
-      method: "GET",
-      ...options
-    };
-    if (method) {
-      fetchOptions.method = method.toUpperCase();
-    }
-    try {
-      return await this.fetch.call(undefined, url, fetchOptions);
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-  async shouldRetry(response) {
-    const shouldRetryHeader = response.headers.get("x-should-retry");
-    if (shouldRetryHeader === "true")
-      return true;
-    if (shouldRetryHeader === "false")
-      return false;
-    if (response.status === 408)
-      return true;
-    if (response.status === 409)
-      return true;
-    if (response.status === 429)
-      return true;
-    if (response.status >= 500)
-      return true;
-    return false;
-  }
-  async retryRequest(options, retriesRemaining, requestLogID, responseHeaders) {
-    let timeoutMillis;
-    const retryAfterMillisHeader = responseHeaders?.get("retry-after-ms");
-    if (retryAfterMillisHeader) {
-      const timeoutMs = parseFloat(retryAfterMillisHeader);
-      if (!Number.isNaN(timeoutMs)) {
-        timeoutMillis = timeoutMs;
-      }
-    }
-    const retryAfterHeader = responseHeaders?.get("retry-after");
-    if (retryAfterHeader && !timeoutMillis) {
-      const timeoutSeconds = parseFloat(retryAfterHeader);
-      if (!Number.isNaN(timeoutSeconds)) {
-        timeoutMillis = timeoutSeconds * 1000;
-      } else {
-        timeoutMillis = Date.parse(retryAfterHeader) - Date.now();
-      }
-    }
-    if (!(timeoutMillis && 0 <= timeoutMillis && timeoutMillis < 60 * 1000)) {
-      const maxRetries = options.maxRetries ?? this.maxRetries;
-      timeoutMillis = this.calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries);
-    }
-    await sleep(timeoutMillis);
-    return this.makeRequest(options, retriesRemaining - 1, requestLogID);
-  }
-  calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries) {
-    const initialRetryDelay = 0.5;
-    const maxRetryDelay = 8;
-    const numRetries = maxRetries - retriesRemaining;
-    const sleepSeconds = Math.min(initialRetryDelay * Math.pow(2, numRetries), maxRetryDelay);
-    const jitter = 1 - Math.random() * 0.25;
-    return sleepSeconds * jitter * 1000;
-  }
-  async buildRequest(inputOptions, { retryCount = 0 } = {}) {
-    const options = { ...inputOptions };
-    const { method, path: path3, query, defaultBaseURL } = options;
-    const url = this.buildURL(path3, query, defaultBaseURL);
-    if ("timeout" in options)
-      validatePositiveInteger("timeout", options.timeout);
-    options.timeout = options.timeout ?? this.timeout;
-    const { bodyHeaders, body } = this.buildBody({ options });
-    const reqHeaders = await this.buildHeaders({ options: inputOptions, method, bodyHeaders, retryCount });
-    const req = {
-      method,
-      headers: reqHeaders,
-      ...options.signal && { signal: options.signal },
-      ...globalThis.ReadableStream && body instanceof globalThis.ReadableStream && { duplex: "half" },
-      ...body && { body },
-      ...this.fetchOptions ?? {},
-      ...options.fetchOptions ?? {}
-    };
-    return { req, url, timeout: options.timeout };
-  }
-  async buildHeaders({ options, method, bodyHeaders, retryCount }) {
-    let idempotencyHeaders = {};
-    if (this.idempotencyHeader && method !== "get") {
-      if (!options.idempotencyKey)
-        options.idempotencyKey = this.defaultIdempotencyKey();
-      idempotencyHeaders[this.idempotencyHeader] = options.idempotencyKey;
-    }
-    const headers = buildHeaders([
-      idempotencyHeaders,
-      {
-        Accept: "application/json",
-        "User-Agent": this.getUserAgent(),
-        "X-Stainless-Retry-Count": String(retryCount),
-        ...options.timeout ? { "X-Stainless-Timeout": String(Math.trunc(options.timeout / 1000)) } : {},
-        ...getPlatformHeaders(),
-        "OpenAI-Organization": this.organization,
-        "OpenAI-Project": this.project
-      },
-      await this.authHeaders(options),
-      this._options.defaultHeaders,
-      bodyHeaders,
-      options.headers
-    ]);
-    this.validateHeaders(headers);
-    return headers.values;
-  }
-  _makeAbort(controller) {
-    return () => controller.abort();
-  }
-  buildBody({ options: { body, headers: rawHeaders } }) {
-    if (!body) {
-      return { bodyHeaders: undefined, body: undefined };
-    }
-    const headers = buildHeaders([rawHeaders]);
-    if (ArrayBuffer.isView(body) || body instanceof ArrayBuffer || body instanceof DataView || typeof body === "string" && headers.values.has("content-type") || globalThis.Blob && body instanceof globalThis.Blob || body instanceof FormData || body instanceof URLSearchParams || globalThis.ReadableStream && body instanceof globalThis.ReadableStream) {
-      return { bodyHeaders: undefined, body };
-    } else if (typeof body === "object" && ((Symbol.asyncIterator in body) || (Symbol.iterator in body) && ("next" in body) && typeof body.next === "function")) {
-      return { bodyHeaders: undefined, body: ReadableStreamFrom(body) };
-    } else {
-      return __classPrivateFieldGet(this, _OpenAI_encoder, "f").call(this, { body, headers });
-    }
-  }
-}
-_a2 = OpenAI, _OpenAI_encoder = new WeakMap, _OpenAI_instances = new WeakSet, _OpenAI_baseURLOverridden = function _OpenAI_baseURLOverridden2() {
-  return this.baseURL !== "https://api.openai.com/v1";
-};
-OpenAI.OpenAI = _a2;
-OpenAI.DEFAULT_TIMEOUT = 600000;
-OpenAI.OpenAIError = OpenAIError;
-OpenAI.APIError = APIError;
-OpenAI.APIConnectionError = APIConnectionError;
-OpenAI.APIConnectionTimeoutError = APIConnectionTimeoutError;
-OpenAI.APIUserAbortError = APIUserAbortError;
-OpenAI.NotFoundError = NotFoundError;
-OpenAI.ConflictError = ConflictError;
-OpenAI.RateLimitError = RateLimitError;
-OpenAI.BadRequestError = BadRequestError;
-OpenAI.AuthenticationError = AuthenticationError;
-OpenAI.InternalServerError = InternalServerError;
-OpenAI.PermissionDeniedError = PermissionDeniedError;
-OpenAI.UnprocessableEntityError = UnprocessableEntityError;
-OpenAI.InvalidWebhookSignatureError = InvalidWebhookSignatureError;
-OpenAI.toFile = toFile;
-OpenAI.Completions = Completions2;
-OpenAI.Chat = Chat;
-OpenAI.Embeddings = Embeddings;
-OpenAI.Files = Files2;
-OpenAI.Images = Images;
-OpenAI.Audio = Audio;
-OpenAI.Moderations = Moderations;
-OpenAI.Models = Models;
-OpenAI.FineTuning = FineTuning;
-OpenAI.Graders = Graders2;
-OpenAI.VectorStores = VectorStores;
-OpenAI.Webhooks = Webhooks;
-OpenAI.Beta = Beta;
-OpenAI.Batches = Batches;
-OpenAI.Uploads = Uploads;
-OpenAI.Responses = Responses;
-OpenAI.Realtime = Realtime2;
-OpenAI.Conversations = Conversations;
-OpenAI.Evals = Evals;
-OpenAI.Containers = Containers;
-OpenAI.Videos = Videos;
-// node_modules/openai/azure.mjs
-var _deployments_endpoints = new Set([
-  "/completions",
-  "/chat/completions",
-  "/embeddings",
-  "/audio/transcriptions",
-  "/audio/translations",
-  "/audio/speech",
-  "/images/generations",
-  "/batches",
-  "/images/edits"
-]);
-// src/shared/model.ts
-function createLLMClient(apiKey) {
-  return new OpenAI({
-    apiKey
-  });
-}
-// src/features/pr/cve-detection/fetch-cves.ts
-async function fetchCVEs(newDependencies) {
-  const vulnerabilities = new Map;
-  const [requestError, response] = await expectError(fetch("https://api.osv.dev/v1/querybatch", {
-    body: JSON.stringify({ queries: newDependencies }),
-    headers: {
-      "Content-Type": "application/json"
-    },
-    method: "POST"
-  }));
-  if (requestError || !response || !response.ok) {
-    warning("Failed to connect to the OSV vulnerability database.");
-    debug(JSON.stringify({
-      cause: requestError?.message || response?.statusText,
-      message: "OSV request failed"
-    }));
-    return vulnerabilities;
-  }
-  let data;
-  try {
-    data = await response.json();
-  } catch (error3) {
-    warning("Failed to parse OSV response.");
-    debug(String(error3));
-    return vulnerabilities;
-  }
-  if (!data.results) {
-    debug("OSV response did not contain any results.");
-    return vulnerabilities;
-  }
-  for (let i = 0;i < data.results.length; i++) {
-    const result = data.results[i];
-    const dep = newDependencies[i];
-    if (!dep || !result?.vulns?.length) {
-      continue;
-    }
-    const key = `${dep.package.name}@${dep.version}`;
-    vulnerabilities.set(key, result.vulns.map((v) => v.id));
-  }
-  return vulnerabilities;
-}
-// src/features/pr/cve-detection/parsers/base-class.ts
-class DependencyParser {
-}
-var parserRegistry = [];
-function registerParser(parser) {
-  parserRegistry.push(parser);
-}
-// src/features/pr/cve-detection/parsers/node.ts
-class NpmParser extends DependencyParser {
-  canParse(fileName) {
-    return fileName.endsWith("package.json");
-  }
-  parse(content) {
-    content = content.trim();
-    if (!content || content.startsWith("#")) {
-      return null;
-    }
-    const match = content.match(/"([^"]+)":\s*"([^"]+)"/);
-    if (!match || !match[1] || !match[2]) {
-      return null;
-    }
-    const version = match[2].replace(/^[~^>=<]*/, "");
-    if (version.includes("file:") || version.includes("git+") || version.includes("workspace:")) {
-      return null;
-    }
-    if (!/^[\d.]+/.test(version)) {
-      return null;
-    }
-    return {
-      package: {
-        ecosystem: "npm",
-        name: match[1]
-      },
-      version
-    };
-  }
-}
-registerParser(new NpmParser);
-// src/features/pr/cve-detection/parsers/gradle.ts
-class GradleParser extends DependencyParser {
-  canParse(fileName) {
-    return fileName.endsWith("build.gradle") || fileName.endsWith("build.gradle.kts");
-  }
-  parse(content) {
-    const match = content.match(/(?:api|implementation|compileOnly|runtimeOnly|testImplementation)\s*\(?['"]([^'"]+):([^'"]+):([^'"]+)['"]\)?/);
-    if (!match || !match[1] || !match[2] || !match[3]) {
-      return null;
-    }
-    if (match[3].includes("$")) {
-      return null;
-    }
-    return {
-      package: {
-        ecosystem: "Maven",
-        name: `${match[1]}:${match[2]}`
-      },
-      version: match[3]
-    };
-  }
-}
-registerParser(new GradleParser);
-// src/features/pr/cve-detection/parsers/python.ts
-class PythonParser extends DependencyParser {
-  canParse(fileName) {
-    return fileName.endsWith("requirements.txt");
-  }
-  parse(content) {
-    content = content.trim();
-    if (!content || content.startsWith("#")) {
-      return null;
-    }
-    const line = content.split("#")[0]?.trim();
-    if (!line) {
-      return null;
-    }
-    const match = line.match(/^([a-zA-Z0-9_-]+)\s*(?:==|>=|<=|>|<|~=)\s*(.+)$/);
-    if (!match || !match[1] || !match[2]) {
-      return null;
-    }
-    const version = match[2].trim();
-    if (version.includes("@") || version.includes("git+") || version.includes("#")) {
-      return null;
-    }
-    return {
-      package: {
-        ecosystem: "PyPI",
-        name: match[1]
-      },
-      version
-    };
-  }
-}
-registerParser(new PythonParser);
-// node_modules/balanced-match/dist/esm/index.js
-var balanced = (a, b, str2) => {
-  const ma = a instanceof RegExp ? maybeMatch(a, str2) : a;
-  const mb = b instanceof RegExp ? maybeMatch(b, str2) : b;
-  const r = ma !== null && mb != null && range(ma, mb, str2);
-  return r && {
-    start: r[0],
-    end: r[1],
-    pre: str2.slice(0, r[0]),
-    body: str2.slice(r[0] + ma.length, r[1]),
-    post: str2.slice(r[1] + mb.length)
-  };
-};
-var maybeMatch = (reg, str2) => {
-  const m = str2.match(reg);
-  return m ? m[0] : null;
-};
-var range = (a, b, str2) => {
-  let begs, beg, left, right = undefined, result;
-  let ai = str2.indexOf(a);
-  let bi = str2.indexOf(b, ai + 1);
-  let i = ai;
-  if (ai >= 0 && bi > 0) {
-    if (a === b) {
-      return [ai, bi];
-    }
-    begs = [];
-    left = str2.length;
-    while (i >= 0 && !result) {
-      if (i === ai) {
-        begs.push(i);
-        ai = str2.indexOf(a, i + 1);
-      } else if (begs.length === 1) {
-        const r = begs.pop();
-        if (r !== undefined)
-          result = [r, bi];
-      } else {
-        beg = begs.pop();
-        if (beg !== undefined && beg < left) {
-          left = beg;
-          right = bi;
-        }
-        bi = str2.indexOf(b, i + 1);
-      }
-      i = ai < bi && ai >= 0 ? ai : bi;
-    }
-    if (begs.length && right !== undefined) {
-      result = [left, right];
-    }
-  }
-  return result;
-};
-
-// node_modules/brace-expansion/dist/esm/index.js
-var escSlash = "\x00SLASH" + Math.random() + "\x00";
-var escOpen = "\x00OPEN" + Math.random() + "\x00";
-var escClose = "\x00CLOSE" + Math.random() + "\x00";
-var escComma = "\x00COMMA" + Math.random() + "\x00";
-var escPeriod = "\x00PERIOD" + Math.random() + "\x00";
-var escSlashPattern = new RegExp(escSlash, "g");
-var escOpenPattern = new RegExp(escOpen, "g");
-var escClosePattern = new RegExp(escClose, "g");
-var escCommaPattern = new RegExp(escComma, "g");
-var escPeriodPattern = new RegExp(escPeriod, "g");
-var slashPattern = /\\\\/g;
-var openPattern = /\\{/g;
-var closePattern = /\\}/g;
-var commaPattern = /\\,/g;
-var periodPattern = /\\\./g;
-var EXPANSION_MAX = 1e5;
-function numeric(str2) {
-  return !isNaN(str2) ? parseInt(str2, 10) : str2.charCodeAt(0);
-}
-function escapeBraces(str2) {
-  return str2.replace(slashPattern, escSlash).replace(openPattern, escOpen).replace(closePattern, escClose).replace(commaPattern, escComma).replace(periodPattern, escPeriod);
-}
-function unescapeBraces(str2) {
-  return str2.replace(escSlashPattern, "\\").replace(escOpenPattern, "{").replace(escClosePattern, "}").replace(escCommaPattern, ",").replace(escPeriodPattern, ".");
-}
-function parseCommaParts(str2) {
-  if (!str2) {
-    return [""];
-  }
-  const parts = [];
-  const m = balanced("{", "}", str2);
-  if (!m) {
-    return str2.split(",");
-  }
-  const { pre, body, post } = m;
-  const p = pre.split(",");
-  p[p.length - 1] += "{" + body + "}";
-  const postParts = parseCommaParts(post);
-  if (post.length) {
-    p[p.length - 1] += postParts.shift();
-    p.push.apply(p, postParts);
-  }
-  parts.push.apply(parts, p);
-  return parts;
-}
-function expand2(str2, options = {}) {
-  if (!str2) {
-    return [];
-  }
-  const { max = EXPANSION_MAX } = options;
-  if (str2.slice(0, 2) === "{}") {
-    str2 = "\\{\\}" + str2.slice(2);
-  }
-  return expand_(escapeBraces(str2), max, true).map(unescapeBraces);
-}
-function embrace(str2) {
-  return "{" + str2 + "}";
-}
-function isPadded(el) {
-  return /^-?0\d/.test(el);
-}
-function lte(i, y) {
-  return i <= y;
-}
-function gte(i, y) {
-  return i >= y;
-}
-function expand_(str2, max, isTop) {
-  const expansions = [];
-  const m = balanced("{", "}", str2);
-  if (!m)
-    return [str2];
-  const pre = m.pre;
-  const post = m.post.length ? expand_(m.post, max, false) : [""];
-  if (/\$$/.test(m.pre)) {
-    for (let k = 0;k < post.length && k < max; k++) {
-      const expansion = pre + "{" + m.body + "}" + post[k];
-      expansions.push(expansion);
-    }
-  } else {
-    const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
-    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
-    const isSequence = isNumericSequence || isAlphaSequence;
-    const isOptions = m.body.indexOf(",") >= 0;
-    if (!isSequence && !isOptions) {
-      if (m.post.match(/,(?!,).*\}/)) {
-        str2 = m.pre + "{" + m.body + escClose + m.post;
-        return expand_(str2, max, true);
-      }
-      return [str2];
-    }
-    let n;
-    if (isSequence) {
-      n = m.body.split(/\.\./);
-    } else {
-      n = parseCommaParts(m.body);
-      if (n.length === 1 && n[0] !== undefined) {
-        n = expand_(n[0], max, false).map(embrace);
-        if (n.length === 1) {
-          return post.map((p) => m.pre + n[0] + p);
-        }
-      }
-    }
-    let N;
-    if (isSequence && n[0] !== undefined && n[1] !== undefined) {
-      const x = numeric(n[0]);
-      const y = numeric(n[1]);
-      const width = Math.max(n[0].length, n[1].length);
-      let incr = n.length === 3 && n[2] !== undefined ? Math.max(Math.abs(numeric(n[2])), 1) : 1;
-      let test = lte;
-      const reverse = y < x;
-      if (reverse) {
-        incr *= -1;
-        test = gte;
-      }
-      const pad = n.some(isPadded);
-      N = [];
-      for (let i = x;test(i, y) && N.length < max; i += incr) {
-        let c;
-        if (isAlphaSequence) {
-          c = String.fromCharCode(i);
-          if (c === "\\") {
-            c = "";
-          }
-        } else {
-          c = String(i);
-          if (pad) {
-            const need = width - c.length;
-            if (need > 0) {
-              const z = new Array(need + 1).join("0");
-              if (i < 0) {
-                c = "-" + z + c.slice(1);
-              } else {
-                c = z + c;
-              }
-            }
-          }
-        }
-        N.push(c);
-      }
-    } else {
-      N = [];
-      for (let j = 0;j < n.length; j++) {
-        N.push.apply(N, expand_(n[j], max, false));
-      }
-    }
-    for (let j = 0;j < N.length; j++) {
-      for (let k = 0;k < post.length && expansions.length < max; k++) {
-        const expansion = pre + N[j] + post[k];
-        if (!isTop || isSequence || expansion) {
-          expansions.push(expansion);
-        }
-      }
-    }
-  }
-  return expansions;
-}
-
-// node_modules/minimatch/dist/esm/assert-valid-pattern.js
-var MAX_PATTERN_LENGTH = 1024 * 64;
-var assertValidPattern = (pattern) => {
-  if (typeof pattern !== "string") {
-    throw new TypeError("invalid pattern");
-  }
-  if (pattern.length > MAX_PATTERN_LENGTH) {
-    throw new TypeError("pattern is too long");
-  }
-};
-
-// node_modules/minimatch/dist/esm/brace-expressions.js
-var posixClasses = {
-  "[:alnum:]": ["\\p{L}\\p{Nl}\\p{Nd}", true],
-  "[:alpha:]": ["\\p{L}\\p{Nl}", true],
-  "[:ascii:]": ["\\x" + "00-\\x" + "7f", false],
-  "[:blank:]": ["\\p{Zs}\\t", true],
-  "[:cntrl:]": ["\\p{Cc}", true],
-  "[:digit:]": ["\\p{Nd}", true],
-  "[:graph:]": ["\\p{Z}\\p{C}", true, true],
-  "[:lower:]": ["\\p{Ll}", true],
-  "[:print:]": ["\\p{C}", true],
-  "[:punct:]": ["\\p{P}", true],
-  "[:space:]": ["\\p{Z}\\t\\r\\n\\v\\f", true],
-  "[:upper:]": ["\\p{Lu}", true],
-  "[:word:]": ["\\p{L}\\p{Nl}\\p{Nd}\\p{Pc}", true],
-  "[:xdigit:]": ["A-Fa-f0-9", false]
-};
-var braceEscape = (s) => s.replace(/[[\]\\-]/g, "\\$&");
-var regexpEscape = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-var rangesToString = (ranges) => ranges.join("");
-var parseClass = (glob, position) => {
-  const pos = position;
-  if (glob.charAt(pos) !== "[") {
-    throw new Error("not in a brace expression");
-  }
-  const ranges = [];
-  const negs = [];
-  let i = pos + 1;
-  let sawStart = false;
-  let uflag = false;
-  let escaping = false;
-  let negate = false;
-  let endPos = pos;
-  let rangeStart = "";
-  WHILE:
-    while (i < glob.length) {
-      const c = glob.charAt(i);
-      if ((c === "!" || c === "^") && i === pos + 1) {
-        negate = true;
-        i++;
-        continue;
-      }
-      if (c === "]" && sawStart && !escaping) {
-        endPos = i + 1;
-        break;
-      }
-      sawStart = true;
-      if (c === "\\") {
-        if (!escaping) {
-          escaping = true;
-          i++;
-          continue;
-        }
-      }
-      if (c === "[" && !escaping) {
-        for (const [cls, [unip, u, neg]] of Object.entries(posixClasses)) {
-          if (glob.startsWith(cls, i)) {
-            if (rangeStart) {
-              return ["$.", false, glob.length - pos, true];
-            }
-            i += cls.length;
-            if (neg)
-              negs.push(unip);
-            else
-              ranges.push(unip);
-            uflag = uflag || u;
-            continue WHILE;
-          }
-        }
-      }
-      escaping = false;
-      if (rangeStart) {
-        if (c > rangeStart) {
-          ranges.push(braceEscape(rangeStart) + "-" + braceEscape(c));
-        } else if (c === rangeStart) {
-          ranges.push(braceEscape(c));
-        }
-        rangeStart = "";
-        i++;
-        continue;
-      }
-      if (glob.startsWith("-]", i + 1)) {
-        ranges.push(braceEscape(c + "-"));
-        i += 2;
-        continue;
-      }
-      if (glob.startsWith("-", i + 1)) {
-        rangeStart = c;
-        i += 2;
-        continue;
-      }
-      ranges.push(braceEscape(c));
-      i++;
-    }
-  if (endPos < i) {
-    return ["", false, 0, false];
-  }
-  if (!ranges.length && !negs.length) {
-    return ["$.", false, glob.length - pos, true];
-  }
-  if (negs.length === 0 && ranges.length === 1 && /^\\?.$/.test(ranges[0]) && !negate) {
-    const r = ranges[0].length === 2 ? ranges[0].slice(-1) : ranges[0];
-    return [regexpEscape(r), false, endPos - pos, false];
-  }
-  const sranges = "[" + (negate ? "^" : "") + rangesToString(ranges) + "]";
-  const snegs = "[" + (negate ? "" : "^") + rangesToString(negs) + "]";
-  const comb = ranges.length && negs.length ? "(" + sranges + "|" + snegs + ")" : ranges.length ? sranges : snegs;
-  return [comb, uflag, endPos - pos, true];
-};
-
-// node_modules/minimatch/dist/esm/unescape.js
-var unescape2 = (s, { windowsPathsNoEscape = false, magicalBraces = true } = {}) => {
-  if (magicalBraces) {
-    return windowsPathsNoEscape ? s.replace(/\[([^/\\])\]/g, "$1") : s.replace(/((?!\\).|^)\[([^/\\])\]/g, "$1$2").replace(/\\([^/])/g, "$1");
-  }
-  return windowsPathsNoEscape ? s.replace(/\[([^/\\{}])\]/g, "$1") : s.replace(/((?!\\).|^)\[([^/\\{}])\]/g, "$1$2").replace(/\\([^/{}])/g, "$1");
-};
-
-// node_modules/minimatch/dist/esm/ast.js
-var _a3;
-var types3 = new Set(["!", "?", "+", "*", "@"]);
-var isExtglobType = (c) => types3.has(c);
-var isExtglobAST = (c) => isExtglobType(c.type);
-var adoptionMap = new Map([
-  ["!", ["@"]],
-  ["?", ["?", "@"]],
-  ["@", ["@"]],
-  ["*", ["*", "+", "?", "@"]],
-  ["+", ["+", "@"]]
-]);
-var adoptionWithSpaceMap = new Map([
-  ["!", ["?"]],
-  ["@", ["?"]],
-  ["+", ["?", "*"]]
-]);
-var adoptionAnyMap = new Map([
-  ["!", ["?", "@"]],
-  ["?", ["?", "@"]],
-  ["@", ["?", "@"]],
-  ["*", ["*", "+", "?", "@"]],
-  ["+", ["+", "@", "?", "*"]]
-]);
-var usurpMap = new Map([
-  ["!", new Map([["!", "@"]])],
-  [
-    "?",
-    new Map([
-      ["*", "*"],
-      ["+", "*"]
-    ])
-  ],
-  [
-    "@",
-    new Map([
-      ["!", "!"],
-      ["?", "?"],
-      ["@", "@"],
-      ["*", "*"],
-      ["+", "+"]
-    ])
-  ],
-  [
-    "+",
-    new Map([
-      ["?", "*"],
-      ["*", "*"]
-    ])
-  ]
-]);
-var startNoTraversal = "(?!(?:^|/)\\.\\.?(?:$|/))";
-var startNoDot = "(?!\\.)";
-var addPatternStart = new Set(["[", "."]);
-var justDots = new Set(["..", "."]);
-var reSpecials = new Set("().*{}+?[]^$\\!");
-var regExpEscape = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-var qmark = "[^/]";
-var star = qmark + "*?";
-var starNoEmpty = qmark + "+?";
-var ID = 0;
-
-class AST {
-  type;
-  #root;
-  #hasMagic;
-  #uflag = false;
-  #parts = [];
-  #parent;
-  #parentIndex;
-  #negs;
-  #filledNegs = false;
-  #options;
-  #toString;
-  #emptyExt = false;
-  id = ++ID;
-  get depth() {
-    return (this.#parent?.depth ?? -1) + 1;
-  }
-  [Symbol.for("nodejs.util.inspect.custom")]() {
-    return {
-      "@@type": "AST",
-      id: this.id,
-      type: this.type,
-      root: this.#root.id,
-      parent: this.#parent?.id,
-      depth: this.depth,
-      partsLength: this.#parts.length,
-      parts: this.#parts
-    };
-  }
-  constructor(type, parent, options = {}) {
-    this.type = type;
-    if (type)
-      this.#hasMagic = true;
-    this.#parent = parent;
-    this.#root = this.#parent ? this.#parent.#root : this;
-    this.#options = this.#root === this ? options : this.#root.#options;
-    this.#negs = this.#root === this ? [] : this.#root.#negs;
-    if (type === "!" && !this.#root.#filledNegs)
-      this.#negs.push(this);
-    this.#parentIndex = this.#parent ? this.#parent.#parts.length : 0;
-  }
-  get hasMagic() {
-    if (this.#hasMagic !== undefined)
-      return this.#hasMagic;
-    for (const p of this.#parts) {
-      if (typeof p === "string")
-        continue;
-      if (p.type || p.hasMagic)
-        return this.#hasMagic = true;
-    }
-    return this.#hasMagic;
-  }
-  toString() {
-    return this.#toString !== undefined ? this.#toString : !this.type ? this.#toString = this.#parts.map((p) => String(p)).join("") : this.#toString = this.type + "(" + this.#parts.map((p) => String(p)).join("|") + ")";
-  }
-  #fillNegs() {
-    if (this !== this.#root)
-      throw new Error("should only call on root");
-    if (this.#filledNegs)
-      return this;
-    this.toString();
-    this.#filledNegs = true;
-    let n;
-    while (n = this.#negs.pop()) {
-      if (n.type !== "!")
-        continue;
-      let p = n;
-      let pp = p.#parent;
-      while (pp) {
-        for (let i = p.#parentIndex + 1;!pp.type && i < pp.#parts.length; i++) {
-          for (const part of n.#parts) {
-            if (typeof part === "string") {
-              throw new Error("string part in extglob AST??");
-            }
-            part.copyIn(pp.#parts[i]);
-          }
-        }
-        p = pp;
-        pp = p.#parent;
-      }
-    }
-    return this;
-  }
-  push(...parts) {
-    for (const p of parts) {
-      if (p === "")
-        continue;
-      if (typeof p !== "string" && !(p instanceof _a3 && p.#parent === this)) {
-        throw new Error("invalid part: " + p);
-      }
-      this.#parts.push(p);
-    }
-  }
-  toJSON() {
-    const ret = this.type === null ? this.#parts.slice().map((p) => typeof p === "string" ? p : p.toJSON()) : [this.type, ...this.#parts.map((p) => p.toJSON())];
-    if (this.isStart() && !this.type)
-      ret.unshift([]);
-    if (this.isEnd() && (this === this.#root || this.#root.#filledNegs && this.#parent?.type === "!")) {
-      ret.push({});
-    }
-    return ret;
-  }
-  isStart() {
-    if (this.#root === this)
-      return true;
-    if (!this.#parent?.isStart())
-      return false;
-    if (this.#parentIndex === 0)
-      return true;
-    const p = this.#parent;
-    for (let i = 0;i < this.#parentIndex; i++) {
-      const pp = p.#parts[i];
-      if (!(pp instanceof _a3 && pp.type === "!")) {
-        return false;
-      }
-    }
-    return true;
-  }
-  isEnd() {
-    if (this.#root === this)
-      return true;
-    if (this.#parent?.type === "!")
-      return true;
-    if (!this.#parent?.isEnd())
-      return false;
-    if (!this.type)
-      return this.#parent?.isEnd();
-    const pl = this.#parent ? this.#parent.#parts.length : 0;
-    return this.#parentIndex === pl - 1;
-  }
-  copyIn(part) {
-    if (typeof part === "string")
-      this.push(part);
-    else
-      this.push(part.clone(this));
-  }
-  clone(parent) {
-    const c = new _a3(this.type, parent);
-    for (const p of this.#parts) {
-      c.copyIn(p);
-    }
-    return c;
-  }
-  static #parseAST(str2, ast, pos, opt, extDepth) {
-    const maxDepth = opt.maxExtglobRecursion ?? 2;
-    let escaping = false;
-    let inBrace = false;
-    let braceStart = -1;
-    let braceNeg = false;
-    if (ast.type === null) {
-      let i2 = pos;
-      let acc2 = "";
-      while (i2 < str2.length) {
-        const c = str2.charAt(i2++);
-        if (escaping || c === "\\") {
-          escaping = !escaping;
-          acc2 += c;
-          continue;
-        }
-        if (inBrace) {
-          if (i2 === braceStart + 1) {
-            if (c === "^" || c === "!") {
-              braceNeg = true;
-            }
-          } else if (c === "]" && !(i2 === braceStart + 2 && braceNeg)) {
-            inBrace = false;
-          }
-          acc2 += c;
-          continue;
-        } else if (c === "[") {
-          inBrace = true;
-          braceStart = i2;
-          braceNeg = false;
-          acc2 += c;
-          continue;
-        }
-        const doRecurse = !opt.noext && isExtglobType(c) && str2.charAt(i2) === "(" && extDepth <= maxDepth;
-        if (doRecurse) {
-          ast.push(acc2);
-          acc2 = "";
-          const ext = new _a3(c, ast);
-          i2 = _a3.#parseAST(str2, ext, i2, opt, extDepth + 1);
-          ast.push(ext);
-          continue;
-        }
-        acc2 += c;
-      }
-      ast.push(acc2);
-      return i2;
-    }
-    let i = pos + 1;
-    let part = new _a3(null, ast);
-    const parts = [];
-    let acc = "";
-    while (i < str2.length) {
-      const c = str2.charAt(i++);
-      if (escaping || c === "\\") {
-        escaping = !escaping;
-        acc += c;
-        continue;
-      }
-      if (inBrace) {
-        if (i === braceStart + 1) {
-          if (c === "^" || c === "!") {
-            braceNeg = true;
-          }
-        } else if (c === "]" && !(i === braceStart + 2 && braceNeg)) {
-          inBrace = false;
-        }
-        acc += c;
-        continue;
-      } else if (c === "[") {
-        inBrace = true;
-        braceStart = i;
-        braceNeg = false;
-        acc += c;
-        continue;
-      }
-      const doRecurse = !opt.noext && isExtglobType(c) && str2.charAt(i) === "(" && (extDepth <= maxDepth || ast && ast.#canAdoptType(c));
-      if (doRecurse) {
-        const depthAdd = ast && ast.#canAdoptType(c) ? 0 : 1;
-        part.push(acc);
-        acc = "";
-        const ext = new _a3(c, part);
-        part.push(ext);
-        i = _a3.#parseAST(str2, ext, i, opt, extDepth + depthAdd);
-        continue;
-      }
-      if (c === "|") {
-        part.push(acc);
-        acc = "";
-        parts.push(part);
-        part = new _a3(null, ast);
-        continue;
-      }
-      if (c === ")") {
-        if (acc === "" && ast.#parts.length === 0) {
-          ast.#emptyExt = true;
-        }
-        part.push(acc);
-        acc = "";
-        ast.push(...parts, part);
-        return i;
-      }
-      acc += c;
-    }
-    ast.type = null;
-    ast.#hasMagic = undefined;
-    ast.#parts = [str2.substring(pos - 1)];
-    return i;
-  }
-  #canAdoptWithSpace(child) {
-    return this.#canAdopt(child, adoptionWithSpaceMap);
-  }
-  #canAdopt(child, map = adoptionMap) {
-    if (!child || typeof child !== "object" || child.type !== null || child.#parts.length !== 1 || this.type === null) {
-      return false;
-    }
-    const gc = child.#parts[0];
-    if (!gc || typeof gc !== "object" || gc.type === null) {
-      return false;
-    }
-    return this.#canAdoptType(gc.type, map);
-  }
-  #canAdoptType(c, map = adoptionAnyMap) {
-    return !!map.get(this.type)?.includes(c);
-  }
-  #adoptWithSpace(child, index) {
-    const gc = child.#parts[0];
-    const blank = new _a3(null, gc, this.options);
-    blank.#parts.push("");
-    gc.push(blank);
-    this.#adopt(child, index);
-  }
-  #adopt(child, index) {
-    const gc = child.#parts[0];
-    this.#parts.splice(index, 1, ...gc.#parts);
-    for (const p of gc.#parts) {
-      if (typeof p === "object")
-        p.#parent = this;
-    }
-    this.#toString = undefined;
-  }
-  #canUsurpType(c) {
-    const m = usurpMap.get(this.type);
-    return !!m?.has(c);
-  }
-  #canUsurp(child) {
-    if (!child || typeof child !== "object" || child.type !== null || child.#parts.length !== 1 || this.type === null || this.#parts.length !== 1) {
-      return false;
-    }
-    const gc = child.#parts[0];
-    if (!gc || typeof gc !== "object" || gc.type === null) {
-      return false;
-    }
-    return this.#canUsurpType(gc.type);
-  }
-  #usurp(child) {
-    const m = usurpMap.get(this.type);
-    const gc = child.#parts[0];
-    const nt = m?.get(gc.type);
-    if (!nt)
-      return false;
-    this.#parts = gc.#parts;
-    for (const p of this.#parts) {
-      if (typeof p === "object") {
-        p.#parent = this;
-      }
-    }
-    this.type = nt;
-    this.#toString = undefined;
-    this.#emptyExt = false;
-  }
-  static fromGlob(pattern, options = {}) {
-    const ast = new _a3(null, undefined, options);
-    _a3.#parseAST(pattern, ast, 0, options, 0);
-    return ast;
-  }
-  toMMPattern() {
-    if (this !== this.#root)
-      return this.#root.toMMPattern();
-    const glob = this.toString();
-    const [re, body, hasMagic, uflag] = this.toRegExpSource();
-    const anyMagic = hasMagic || this.#hasMagic || this.#options.nocase && !this.#options.nocaseMagicOnly && glob.toUpperCase() !== glob.toLowerCase();
-    if (!anyMagic) {
-      return body;
-    }
-    const flags = (this.#options.nocase ? "i" : "") + (uflag ? "u" : "");
-    return Object.assign(new RegExp(`^${re}$`, flags), {
-      _src: re,
-      _glob: glob
-    });
-  }
-  get options() {
-    return this.#options;
-  }
-  toRegExpSource(allowDot) {
-    const dot = allowDot ?? !!this.#options.dot;
-    if (this.#root === this) {
-      this.#flatten();
-      this.#fillNegs();
-    }
-    if (!isExtglobAST(this)) {
-      const noEmpty = this.isStart() && this.isEnd() && !this.#parts.some((s) => typeof s !== "string");
-      const src = this.#parts.map((p) => {
-        const [re, _, hasMagic, uflag] = typeof p === "string" ? _a3.#parseGlob(p, this.#hasMagic, noEmpty) : p.toRegExpSource(allowDot);
-        this.#hasMagic = this.#hasMagic || hasMagic;
-        this.#uflag = this.#uflag || uflag;
-        return re;
-      }).join("");
-      let start2 = "";
-      if (this.isStart()) {
-        if (typeof this.#parts[0] === "string") {
-          const dotTravAllowed = this.#parts.length === 1 && justDots.has(this.#parts[0]);
-          if (!dotTravAllowed) {
-            const aps = addPatternStart;
-            const needNoTrav = dot && aps.has(src.charAt(0)) || src.startsWith("\\.") && aps.has(src.charAt(2)) || src.startsWith("\\.\\.") && aps.has(src.charAt(4));
-            const needNoDot = !dot && !allowDot && aps.has(src.charAt(0));
-            start2 = needNoTrav ? startNoTraversal : needNoDot ? startNoDot : "";
-          }
-        }
-      }
-      let end = "";
-      if (this.isEnd() && this.#root.#filledNegs && this.#parent?.type === "!") {
-        end = "(?:$|\\/)";
-      }
-      const final2 = start2 + src + end;
-      return [
-        final2,
-        unescape2(src),
-        this.#hasMagic = !!this.#hasMagic,
-        this.#uflag
-      ];
-    }
-    const repeated = this.type === "*" || this.type === "+";
-    const start = this.type === "!" ? "(?:(?!(?:" : "(?:";
-    let body = this.#partsToRegExp(dot);
-    if (this.isStart() && this.isEnd() && !body && this.type !== "!") {
-      const s = this.toString();
-      const me = this;
-      me.#parts = [s];
-      me.type = null;
-      me.#hasMagic = undefined;
-      return [s, unescape2(this.toString()), false, false];
-    }
-    let bodyDotAllowed = !repeated || allowDot || dot || !startNoDot ? "" : this.#partsToRegExp(true);
-    if (bodyDotAllowed === body) {
-      bodyDotAllowed = "";
-    }
-    if (bodyDotAllowed) {
-      body = `(?:${body})(?:${bodyDotAllowed})*?`;
-    }
-    let final = "";
-    if (this.type === "!" && this.#emptyExt) {
-      final = (this.isStart() && !dot ? startNoDot : "") + starNoEmpty;
-    } else {
-      const close = this.type === "!" ? "))" + (this.isStart() && !dot && !allowDot ? startNoDot : "") + star + ")" : this.type === "@" ? ")" : this.type === "?" ? ")?" : this.type === "+" && bodyDotAllowed ? ")" : this.type === "*" && bodyDotAllowed ? `)?` : `)${this.type}`;
-      final = start + body + close;
-    }
-    return [
-      final,
-      unescape2(body),
-      this.#hasMagic = !!this.#hasMagic,
-      this.#uflag
-    ];
-  }
-  #flatten() {
-    if (!isExtglobAST(this)) {
-      for (const p of this.#parts) {
-        if (typeof p === "object") {
-          p.#flatten();
-        }
-      }
-    } else {
-      let iterations = 0;
-      let done = false;
-      do {
-        done = true;
-        for (let i = 0;i < this.#parts.length; i++) {
-          const c = this.#parts[i];
-          if (typeof c === "object") {
-            c.#flatten();
-            if (this.#canAdopt(c)) {
-              done = false;
-              this.#adopt(c, i);
-            } else if (this.#canAdoptWithSpace(c)) {
-              done = false;
-              this.#adoptWithSpace(c, i);
-            } else if (this.#canUsurp(c)) {
-              done = false;
-              this.#usurp(c);
-            }
-          }
-        }
-      } while (!done && ++iterations < 10);
-    }
-    this.#toString = undefined;
-  }
-  #partsToRegExp(dot) {
-    return this.#parts.map((p) => {
-      if (typeof p === "string") {
-        throw new Error("string type in extglob ast??");
-      }
-      const [re, _, _hasMagic, uflag] = p.toRegExpSource(dot);
-      this.#uflag = this.#uflag || uflag;
-      return re;
-    }).filter((p) => !(this.isStart() && this.isEnd()) || !!p).join("|");
-  }
-  static #parseGlob(glob, hasMagic, noEmpty = false) {
-    let escaping = false;
-    let re = "";
-    let uflag = false;
-    let inStar = false;
-    for (let i = 0;i < glob.length; i++) {
-      const c = glob.charAt(i);
-      if (escaping) {
-        escaping = false;
-        re += (reSpecials.has(c) ? "\\" : "") + c;
-        continue;
-      }
-      if (c === "*") {
-        if (inStar)
-          continue;
-        inStar = true;
-        re += noEmpty && /^[*]+$/.test(glob) ? starNoEmpty : star;
-        hasMagic = true;
-        continue;
-      } else {
-        inStar = false;
-      }
-      if (c === "\\") {
-        if (i === glob.length - 1) {
-          re += "\\\\";
-        } else {
-          escaping = true;
-        }
-        continue;
-      }
-      if (c === "[") {
-        const [src, needUflag, consumed, magic] = parseClass(glob, i);
-        if (consumed) {
-          re += src;
-          uflag = uflag || needUflag;
-          i += consumed - 1;
-          hasMagic = hasMagic || magic;
-          continue;
-        }
-      }
-      if (c === "?") {
-        re += qmark;
-        hasMagic = true;
-        continue;
-      }
-      re += regExpEscape(c);
-    }
-    return [re, unescape2(glob), !!hasMagic, uflag];
-  }
-}
-_a3 = AST;
-
-// node_modules/minimatch/dist/esm/escape.js
-var escape2 = (s, { windowsPathsNoEscape = false, magicalBraces = false } = {}) => {
-  if (magicalBraces) {
-    return windowsPathsNoEscape ? s.replace(/[?*()[\]{}]/g, "[$&]") : s.replace(/[?*()[\]\\{}]/g, "\\$&");
-  }
-  return windowsPathsNoEscape ? s.replace(/[?*()[\]]/g, "[$&]") : s.replace(/[?*()[\]\\]/g, "\\$&");
-};
-
-// node_modules/minimatch/dist/esm/index.js
-var minimatch = (p, pattern, options = {}) => {
-  assertValidPattern(pattern);
-  if (!options.nocomment && pattern.charAt(0) === "#") {
-    return false;
-  }
-  return new Minimatch(pattern, options).match(p);
-};
-var starDotExtRE = /^\*+([^+@!?*[(]*)$/;
-var starDotExtTest = (ext) => (f) => !f.startsWith(".") && f.endsWith(ext);
-var starDotExtTestDot = (ext) => (f) => f.endsWith(ext);
-var starDotExtTestNocase = (ext) => {
-  ext = ext.toLowerCase();
-  return (f) => !f.startsWith(".") && f.toLowerCase().endsWith(ext);
-};
-var starDotExtTestNocaseDot = (ext) => {
-  ext = ext.toLowerCase();
-  return (f) => f.toLowerCase().endsWith(ext);
-};
-var starDotStarRE = /^\*+\.\*+$/;
-var starDotStarTest = (f) => !f.startsWith(".") && f.includes(".");
-var starDotStarTestDot = (f) => f !== "." && f !== ".." && f.includes(".");
-var dotStarRE = /^\.\*+$/;
-var dotStarTest = (f) => f !== "." && f !== ".." && f.startsWith(".");
-var starRE = /^\*+$/;
-var starTest = (f) => f.length !== 0 && !f.startsWith(".");
-var starTestDot = (f) => f.length !== 0 && f !== "." && f !== "..";
-var qmarksRE = /^\?+([^+@!?*[(]*)?$/;
-var qmarksTestNocase = ([$0, ext = ""]) => {
-  const noext = qmarksTestNoExt([$0]);
-  if (!ext)
-    return noext;
-  ext = ext.toLowerCase();
-  return (f) => noext(f) && f.toLowerCase().endsWith(ext);
-};
-var qmarksTestNocaseDot = ([$0, ext = ""]) => {
-  const noext = qmarksTestNoExtDot([$0]);
-  if (!ext)
-    return noext;
-  ext = ext.toLowerCase();
-  return (f) => noext(f) && f.toLowerCase().endsWith(ext);
-};
-var qmarksTestDot = ([$0, ext = ""]) => {
-  const noext = qmarksTestNoExtDot([$0]);
-  return !ext ? noext : (f) => noext(f) && f.endsWith(ext);
-};
-var qmarksTest = ([$0, ext = ""]) => {
-  const noext = qmarksTestNoExt([$0]);
-  return !ext ? noext : (f) => noext(f) && f.endsWith(ext);
-};
-var qmarksTestNoExt = ([$0]) => {
-  const len = $0.length;
-  return (f) => f.length === len && !f.startsWith(".");
-};
-var qmarksTestNoExtDot = ([$0]) => {
-  const len = $0.length;
-  return (f) => f.length === len && f !== "." && f !== "..";
-};
-var defaultPlatform = typeof process === "object" && process ? typeof process.env === "object" && process.env && process.env.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
-var path3 = {
-  win32: { sep: "\\" },
-  posix: { sep: "/" }
-};
-var sep2 = defaultPlatform === "win32" ? path3.win32.sep : path3.posix.sep;
-minimatch.sep = sep2;
-var GLOBSTAR = Symbol("globstar **");
-minimatch.GLOBSTAR = GLOBSTAR;
-var qmark2 = "[^/]";
-var star2 = qmark2 + "*?";
-var twoStarDot = "(?:(?!(?:\\/|^)(?:\\.{1,2})($|\\/)).)*?";
-var twoStarNoDot = "(?:(?!(?:\\/|^)\\.).)*?";
-var filter = (pattern, options = {}) => (p) => minimatch(p, pattern, options);
-minimatch.filter = filter;
-var ext = (a, b = {}) => Object.assign({}, a, b);
-var defaults3 = (def) => {
-  if (!def || typeof def !== "object" || !Object.keys(def).length) {
-    return minimatch;
-  }
-  const orig = minimatch;
-  const m = (p, pattern, options = {}) => orig(p, pattern, ext(def, options));
-  return Object.assign(m, {
-    Minimatch: class Minimatch extends orig.Minimatch {
-      constructor(pattern, options = {}) {
-        super(pattern, ext(def, options));
-      }
-      static defaults(options) {
-        return orig.defaults(ext(def, options)).Minimatch;
-      }
-    },
-    AST: class AST2 extends orig.AST {
-      constructor(type, parent, options = {}) {
-        super(type, parent, ext(def, options));
-      }
-      static fromGlob(pattern, options = {}) {
-        return orig.AST.fromGlob(pattern, ext(def, options));
-      }
-    },
-    unescape: (s, options = {}) => orig.unescape(s, ext(def, options)),
-    escape: (s, options = {}) => orig.escape(s, ext(def, options)),
-    filter: (pattern, options = {}) => orig.filter(pattern, ext(def, options)),
-    defaults: (options) => orig.defaults(ext(def, options)),
-    makeRe: (pattern, options = {}) => orig.makeRe(pattern, ext(def, options)),
-    braceExpand: (pattern, options = {}) => orig.braceExpand(pattern, ext(def, options)),
-    match: (list, pattern, options = {}) => orig.match(list, pattern, ext(def, options)),
-    sep: orig.sep,
-    GLOBSTAR
-  });
-};
-minimatch.defaults = defaults3;
-var braceExpand = (pattern, options = {}) => {
-  assertValidPattern(pattern);
-  if (options.nobrace || !/\{(?:(?!\{).)*\}/.test(pattern)) {
-    return [pattern];
-  }
-  return expand2(pattern, { max: options.braceExpandMax });
-};
-minimatch.braceExpand = braceExpand;
-var makeRe = (pattern, options = {}) => new Minimatch(pattern, options).makeRe();
-minimatch.makeRe = makeRe;
-var match = (list, pattern, options = {}) => {
-  const mm = new Minimatch(pattern, options);
-  list = list.filter((f) => mm.match(f));
-  if (mm.options.nonull && !list.length) {
-    list.push(pattern);
-  }
-  return list;
-};
-minimatch.match = match;
-var globMagic = /[?*]|[+@!]\(.*?\)|\[|\]/;
-var regExpEscape2 = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-
-class Minimatch {
-  options;
-  set;
-  pattern;
-  windowsPathsNoEscape;
-  nonegate;
-  negate;
-  comment;
-  empty;
-  preserveMultipleSlashes;
-  partial;
-  globSet;
-  globParts;
-  nocase;
-  isWindows;
-  platform;
-  windowsNoMagicRoot;
-  maxGlobstarRecursion;
-  regexp;
-  constructor(pattern, options = {}) {
-    assertValidPattern(pattern);
-    options = options || {};
-    this.options = options;
-    this.maxGlobstarRecursion = options.maxGlobstarRecursion ?? 200;
-    this.pattern = pattern;
-    this.platform = options.platform || defaultPlatform;
-    this.isWindows = this.platform === "win32";
-    const awe = "allowWindow" + "sEscape";
-    this.windowsPathsNoEscape = !!options.windowsPathsNoEscape || options[awe] === false;
-    if (this.windowsPathsNoEscape) {
-      this.pattern = this.pattern.replace(/\\/g, "/");
-    }
-    this.preserveMultipleSlashes = !!options.preserveMultipleSlashes;
-    this.regexp = null;
-    this.negate = false;
-    this.nonegate = !!options.nonegate;
-    this.comment = false;
-    this.empty = false;
-    this.partial = !!options.partial;
-    this.nocase = !!this.options.nocase;
-    this.windowsNoMagicRoot = options.windowsNoMagicRoot !== undefined ? options.windowsNoMagicRoot : !!(this.isWindows && this.nocase);
-    this.globSet = [];
-    this.globParts = [];
-    this.set = [];
-    this.make();
-  }
-  hasMagic() {
-    if (this.options.magicalBraces && this.set.length > 1) {
-      return true;
-    }
-    for (const pattern of this.set) {
-      for (const part of pattern) {
-        if (typeof part !== "string")
-          return true;
-      }
-    }
-    return false;
-  }
-  debug(..._) {}
-  make() {
-    const pattern = this.pattern;
-    const options = this.options;
-    if (!options.nocomment && pattern.charAt(0) === "#") {
-      this.comment = true;
-      return;
-    }
-    if (!pattern) {
-      this.empty = true;
-      return;
-    }
-    this.parseNegate();
-    this.globSet = [...new Set(this.braceExpand())];
-    if (options.debug) {
-      this.debug = (...args) => console.error(...args);
-    }
-    this.debug(this.pattern, this.globSet);
-    const rawGlobParts = this.globSet.map((s) => this.slashSplit(s));
-    this.globParts = this.preprocess(rawGlobParts);
-    this.debug(this.pattern, this.globParts);
-    let set = this.globParts.map((s, _, __) => {
-      if (this.isWindows && this.windowsNoMagicRoot) {
-        const isUNC = s[0] === "" && s[1] === "" && (s[2] === "?" || !globMagic.test(s[2])) && !globMagic.test(s[3]);
-        const isDrive = /^[a-z]:/i.test(s[0]);
-        if (isUNC) {
-          return [
-            ...s.slice(0, 4),
-            ...s.slice(4).map((ss) => this.parse(ss))
-          ];
-        } else if (isDrive) {
-          return [s[0], ...s.slice(1).map((ss) => this.parse(ss))];
-        }
-      }
-      return s.map((ss) => this.parse(ss));
-    });
-    this.debug(this.pattern, set);
-    this.set = set.filter((s) => s.indexOf(false) === -1);
-    if (this.isWindows) {
-      for (let i = 0;i < this.set.length; i++) {
-        const p = this.set[i];
-        if (p[0] === "" && p[1] === "" && this.globParts[i][2] === "?" && typeof p[3] === "string" && /^[a-z]:$/i.test(p[3])) {
-          p[2] = "?";
-        }
-      }
-    }
-    this.debug(this.pattern, this.set);
-  }
-  preprocess(globParts) {
-    if (this.options.noglobstar) {
-      for (const partset of globParts) {
-        for (let j = 0;j < partset.length; j++) {
-          if (partset[j] === "**") {
-            partset[j] = "*";
-          }
-        }
-      }
-    }
-    const { optimizationLevel = 1 } = this.options;
-    if (optimizationLevel >= 2) {
-      globParts = this.firstPhasePreProcess(globParts);
-      globParts = this.secondPhasePreProcess(globParts);
-    } else if (optimizationLevel >= 1) {
-      globParts = this.levelOneOptimize(globParts);
-    } else {
-      globParts = this.adjascentGlobstarOptimize(globParts);
-    }
-    return globParts;
-  }
-  adjascentGlobstarOptimize(globParts) {
-    return globParts.map((parts) => {
-      let gs = -1;
-      while ((gs = parts.indexOf("**", gs + 1)) !== -1) {
-        let i = gs;
-        while (parts[i + 1] === "**") {
-          i++;
-        }
-        if (i !== gs) {
-          parts.splice(gs, i - gs);
-        }
-      }
-      return parts;
-    });
-  }
-  levelOneOptimize(globParts) {
-    return globParts.map((parts) => {
-      parts = parts.reduce((set, part) => {
-        const prev = set[set.length - 1];
-        if (part === "**" && prev === "**") {
-          return set;
-        }
-        if (part === "..") {
-          if (prev && prev !== ".." && prev !== "." && prev !== "**") {
-            set.pop();
-            return set;
-          }
-        }
-        set.push(part);
-        return set;
-      }, []);
-      return parts.length === 0 ? [""] : parts;
-    });
-  }
-  levelTwoFileOptimize(parts) {
-    if (!Array.isArray(parts)) {
-      parts = this.slashSplit(parts);
-    }
-    let didSomething = false;
-    do {
-      didSomething = false;
-      if (!this.preserveMultipleSlashes) {
-        for (let i = 1;i < parts.length - 1; i++) {
-          const p = parts[i];
-          if (i === 1 && p === "" && parts[0] === "")
-            continue;
-          if (p === "." || p === "") {
-            didSomething = true;
-            parts.splice(i, 1);
-            i--;
-          }
-        }
-        if (parts[0] === "." && parts.length === 2 && (parts[1] === "." || parts[1] === "")) {
-          didSomething = true;
-          parts.pop();
-        }
-      }
-      let dd = 0;
-      while ((dd = parts.indexOf("..", dd + 1)) !== -1) {
-        const p = parts[dd - 1];
-        if (p && p !== "." && p !== ".." && p !== "**" && !(this.isWindows && /^[a-z]:$/i.test(p))) {
-          didSomething = true;
-          parts.splice(dd - 1, 2);
-          dd -= 2;
-        }
-      }
-    } while (didSomething);
-    return parts.length === 0 ? [""] : parts;
-  }
-  firstPhasePreProcess(globParts) {
-    let didSomething = false;
-    do {
-      didSomething = false;
-      for (let parts of globParts) {
-        let gs = -1;
-        while ((gs = parts.indexOf("**", gs + 1)) !== -1) {
-          let gss = gs;
-          while (parts[gss + 1] === "**") {
-            gss++;
-          }
-          if (gss > gs) {
-            parts.splice(gs + 1, gss - gs);
-          }
-          let next = parts[gs + 1];
-          const p = parts[gs + 2];
-          const p2 = parts[gs + 3];
-          if (next !== "..")
-            continue;
-          if (!p || p === "." || p === ".." || !p2 || p2 === "." || p2 === "..") {
-            continue;
-          }
-          didSomething = true;
-          parts.splice(gs, 1);
-          const other = parts.slice(0);
-          other[gs] = "**";
-          globParts.push(other);
-          gs--;
-        }
-        if (!this.preserveMultipleSlashes) {
-          for (let i = 1;i < parts.length - 1; i++) {
-            const p = parts[i];
-            if (i === 1 && p === "" && parts[0] === "")
-              continue;
-            if (p === "." || p === "") {
-              didSomething = true;
-              parts.splice(i, 1);
-              i--;
-            }
-          }
-          if (parts[0] === "." && parts.length === 2 && (parts[1] === "." || parts[1] === "")) {
-            didSomething = true;
-            parts.pop();
-          }
-        }
-        let dd = 0;
-        while ((dd = parts.indexOf("..", dd + 1)) !== -1) {
-          const p = parts[dd - 1];
-          if (p && p !== "." && p !== ".." && p !== "**") {
-            didSomething = true;
-            const needDot = dd === 1 && parts[dd + 1] === "**";
-            const splin = needDot ? ["."] : [];
-            parts.splice(dd - 1, 2, ...splin);
-            if (parts.length === 0)
-              parts.push("");
-            dd -= 2;
-          }
-        }
-      }
-    } while (didSomething);
-    return globParts;
-  }
-  secondPhasePreProcess(globParts) {
-    for (let i = 0;i < globParts.length - 1; i++) {
-      for (let j = i + 1;j < globParts.length; j++) {
-        const matched = this.partsMatch(globParts[i], globParts[j], !this.preserveMultipleSlashes);
-        if (matched) {
-          globParts[i] = [];
-          globParts[j] = matched;
-          break;
-        }
-      }
-    }
-    return globParts.filter((gs) => gs.length);
-  }
-  partsMatch(a, b, emptyGSMatch = false) {
-    let ai = 0;
-    let bi = 0;
-    let result = [];
-    let which2 = "";
-    while (ai < a.length && bi < b.length) {
-      if (a[ai] === b[bi]) {
-        result.push(which2 === "b" ? b[bi] : a[ai]);
-        ai++;
-        bi++;
-      } else if (emptyGSMatch && a[ai] === "**" && b[bi] === a[ai + 1]) {
-        result.push(a[ai]);
-        ai++;
-      } else if (emptyGSMatch && b[bi] === "**" && a[ai] === b[bi + 1]) {
-        result.push(b[bi]);
-        bi++;
-      } else if (a[ai] === "*" && b[bi] && (this.options.dot || !b[bi].startsWith(".")) && b[bi] !== "**") {
-        if (which2 === "b")
-          return false;
-        which2 = "a";
-        result.push(a[ai]);
-        ai++;
-        bi++;
-      } else if (b[bi] === "*" && a[ai] && (this.options.dot || !a[ai].startsWith(".")) && a[ai] !== "**") {
-        if (which2 === "a")
-          return false;
-        which2 = "b";
-        result.push(b[bi]);
-        ai++;
-        bi++;
-      } else {
-        return false;
-      }
-    }
-    return a.length === b.length && result;
-  }
-  parseNegate() {
-    if (this.nonegate)
-      return;
-    const pattern = this.pattern;
-    let negate = false;
-    let negateOffset = 0;
-    for (let i = 0;i < pattern.length && pattern.charAt(i) === "!"; i++) {
-      negate = !negate;
-      negateOffset++;
-    }
-    if (negateOffset)
-      this.pattern = pattern.slice(negateOffset);
-    this.negate = negate;
-  }
-  matchOne(file, pattern, partial = false) {
-    let fileStartIndex = 0;
-    let patternStartIndex = 0;
-    if (this.isWindows) {
-      const fileDrive = typeof file[0] === "string" && /^[a-z]:$/i.test(file[0]);
-      const fileUNC = !fileDrive && file[0] === "" && file[1] === "" && file[2] === "?" && /^[a-z]:$/i.test(file[3]);
-      const patternDrive = typeof pattern[0] === "string" && /^[a-z]:$/i.test(pattern[0]);
-      const patternUNC = !patternDrive && pattern[0] === "" && pattern[1] === "" && pattern[2] === "?" && typeof pattern[3] === "string" && /^[a-z]:$/i.test(pattern[3]);
-      const fdi = fileUNC ? 3 : fileDrive ? 0 : undefined;
-      const pdi = patternUNC ? 3 : patternDrive ? 0 : undefined;
-      if (typeof fdi === "number" && typeof pdi === "number") {
-        const [fd, pd] = [
-          file[fdi],
-          pattern[pdi]
-        ];
-        if (fd.toLowerCase() === pd.toLowerCase()) {
-          pattern[pdi] = fd;
-          patternStartIndex = pdi;
-          fileStartIndex = fdi;
-        }
-      }
-    }
-    const { optimizationLevel = 1 } = this.options;
-    if (optimizationLevel >= 2) {
-      file = this.levelTwoFileOptimize(file);
-    }
-    if (pattern.includes(GLOBSTAR)) {
-      return this.#matchGlobstar(file, pattern, partial, fileStartIndex, patternStartIndex);
-    }
-    return this.#matchOne(file, pattern, partial, fileStartIndex, patternStartIndex);
-  }
-  #matchGlobstar(file, pattern, partial, fileIndex, patternIndex) {
-    const firstgs = pattern.indexOf(GLOBSTAR, patternIndex);
-    const lastgs = pattern.lastIndexOf(GLOBSTAR);
-    const [head, body, tail] = partial ? [
-      pattern.slice(patternIndex, firstgs),
-      pattern.slice(firstgs + 1),
-      []
-    ] : [
-      pattern.slice(patternIndex, firstgs),
-      pattern.slice(firstgs + 1, lastgs),
-      pattern.slice(lastgs + 1)
-    ];
-    if (head.length) {
-      const fileHead = file.slice(fileIndex, fileIndex + head.length);
-      if (!this.#matchOne(fileHead, head, partial, 0, 0)) {
-        return false;
-      }
-      fileIndex += head.length;
-      patternIndex += head.length;
-    }
-    let fileTailMatch = 0;
-    if (tail.length) {
-      if (tail.length + fileIndex > file.length)
-        return false;
-      let tailStart = file.length - tail.length;
-      if (this.#matchOne(file, tail, partial, tailStart, 0)) {
-        fileTailMatch = tail.length;
-      } else {
-        if (file[file.length - 1] !== "" || fileIndex + tail.length === file.length) {
-          return false;
-        }
-        tailStart--;
-        if (!this.#matchOne(file, tail, partial, tailStart, 0)) {
-          return false;
-        }
-        fileTailMatch = tail.length + 1;
-      }
-    }
-    if (!body.length) {
-      let sawSome = !!fileTailMatch;
-      for (let i2 = fileIndex;i2 < file.length - fileTailMatch; i2++) {
-        const f = String(file[i2]);
-        sawSome = true;
-        if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
-          return false;
-        }
-      }
-      return partial || sawSome;
-    }
-    const bodySegments = [[[], 0]];
-    let currentBody = bodySegments[0];
-    let nonGsParts = 0;
-    const nonGsPartsSums = [0];
-    for (const b of body) {
-      if (b === GLOBSTAR) {
-        nonGsPartsSums.push(nonGsParts);
-        currentBody = [[], 0];
-        bodySegments.push(currentBody);
-      } else {
-        currentBody[0].push(b);
-        nonGsParts++;
-      }
-    }
-    let i = bodySegments.length - 1;
-    const fileLength = file.length - fileTailMatch;
-    for (const b of bodySegments) {
-      b[1] = fileLength - (nonGsPartsSums[i--] + b[0].length);
-    }
-    return !!this.#matchGlobStarBodySections(file, bodySegments, fileIndex, 0, partial, 0, !!fileTailMatch);
-  }
-  #matchGlobStarBodySections(file, bodySegments, fileIndex, bodyIndex, partial, globStarDepth, sawTail) {
-    const bs = bodySegments[bodyIndex];
-    if (!bs) {
-      for (let i = fileIndex;i < file.length; i++) {
-        sawTail = true;
-        const f = file[i];
-        if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
-          return false;
-        }
-      }
-      return sawTail;
-    }
-    const [body, after] = bs;
-    while (fileIndex <= after) {
-      const m = this.#matchOne(file.slice(0, fileIndex + body.length), body, partial, fileIndex, 0);
-      if (m && globStarDepth < this.maxGlobstarRecursion) {
-        const sub = this.#matchGlobStarBodySections(file, bodySegments, fileIndex + body.length, bodyIndex + 1, partial, globStarDepth + 1, sawTail);
-        if (sub !== false) {
-          return sub;
-        }
-      }
-      const f = file[fileIndex];
-      if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
-        return false;
-      }
-      fileIndex++;
-    }
-    return partial || null;
-  }
-  #matchOne(file, pattern, partial, fileIndex, patternIndex) {
-    let fi;
-    let pi;
-    let pl;
-    let fl;
-    for (fi = fileIndex, pi = patternIndex, fl = file.length, pl = pattern.length;fi < fl && pi < pl; fi++, pi++) {
-      this.debug("matchOne loop");
-      let p = pattern[pi];
-      let f = file[fi];
-      this.debug(pattern, p, f);
-      if (p === false || p === GLOBSTAR) {
-        return false;
-      }
-      let hit;
-      if (typeof p === "string") {
-        hit = f === p;
-        this.debug("string match", p, f, hit);
-      } else {
-        hit = p.test(f);
-        this.debug("pattern match", p, f, hit);
-      }
-      if (!hit)
-        return false;
-    }
-    if (fi === fl && pi === pl) {
-      return true;
-    } else if (fi === fl) {
-      return partial;
-    } else if (pi === pl) {
-      return fi === fl - 1 && file[fi] === "";
-    } else {
-      throw new Error("wtf?");
-    }
-  }
-  braceExpand() {
-    return braceExpand(this.pattern, this.options);
-  }
-  parse(pattern) {
-    assertValidPattern(pattern);
-    const options = this.options;
-    if (pattern === "**")
-      return GLOBSTAR;
-    if (pattern === "")
-      return "";
-    let m;
-    let fastTest = null;
-    if (m = pattern.match(starRE)) {
-      fastTest = options.dot ? starTestDot : starTest;
-    } else if (m = pattern.match(starDotExtRE)) {
-      fastTest = (options.nocase ? options.dot ? starDotExtTestNocaseDot : starDotExtTestNocase : options.dot ? starDotExtTestDot : starDotExtTest)(m[1]);
-    } else if (m = pattern.match(qmarksRE)) {
-      fastTest = (options.nocase ? options.dot ? qmarksTestNocaseDot : qmarksTestNocase : options.dot ? qmarksTestDot : qmarksTest)(m);
-    } else if (m = pattern.match(starDotStarRE)) {
-      fastTest = options.dot ? starDotStarTestDot : starDotStarTest;
-    } else if (m = pattern.match(dotStarRE)) {
-      fastTest = dotStarTest;
-    }
-    const re = AST.fromGlob(pattern, this.options).toMMPattern();
-    if (fastTest && typeof re === "object") {
-      Reflect.defineProperty(re, "test", { value: fastTest });
-    }
-    return re;
-  }
-  makeRe() {
-    if (this.regexp || this.regexp === false)
-      return this.regexp;
-    const set = this.set;
-    if (!set.length) {
-      this.regexp = false;
-      return this.regexp;
-    }
-    const options = this.options;
-    const twoStar = options.noglobstar ? star2 : options.dot ? twoStarDot : twoStarNoDot;
-    const flags = new Set(options.nocase ? ["i"] : []);
-    let re = set.map((pattern) => {
-      const pp = pattern.map((p) => {
-        if (p instanceof RegExp) {
-          for (const f of p.flags.split(""))
-            flags.add(f);
-        }
-        return typeof p === "string" ? regExpEscape2(p) : p === GLOBSTAR ? GLOBSTAR : p._src;
-      });
-      pp.forEach((p, i) => {
-        const next = pp[i + 1];
-        const prev = pp[i - 1];
-        if (p !== GLOBSTAR || prev === GLOBSTAR) {
-          return;
-        }
-        if (prev === undefined) {
-          if (next !== undefined && next !== GLOBSTAR) {
-            pp[i + 1] = "(?:\\/|" + twoStar + "\\/)?" + next;
-          } else {
-            pp[i] = twoStar;
-          }
-        } else if (next === undefined) {
-          pp[i - 1] = prev + "(?:\\/|\\/" + twoStar + ")?";
-        } else if (next !== GLOBSTAR) {
-          pp[i - 1] = prev + "(?:\\/|\\/" + twoStar + "\\/)" + next;
-          pp[i + 1] = GLOBSTAR;
-        }
-      });
-      const filtered = pp.filter((p) => p !== GLOBSTAR);
-      if (this.partial && filtered.length >= 1) {
-        const prefixes = [];
-        for (let i = 1;i <= filtered.length; i++) {
-          prefixes.push(filtered.slice(0, i).join("/"));
-        }
-        return "(?:" + prefixes.join("|") + ")";
-      }
-      return filtered.join("/");
-    }).join("|");
-    const [open, close] = set.length > 1 ? ["(?:", ")"] : ["", ""];
-    re = "^" + open + re + close + "$";
-    if (this.partial) {
-      re = "^(?:\\/|" + open + re.slice(1, -1) + close + ")$";
-    }
-    if (this.negate)
-      re = "^(?!" + re + ").+$";
-    try {
-      this.regexp = new RegExp(re, [...flags].join(""));
-    } catch {
-      this.regexp = false;
-    }
-    return this.regexp;
-  }
-  slashSplit(p) {
-    if (this.preserveMultipleSlashes) {
-      return p.split("/");
-    } else if (this.isWindows && /^\/\/[^/]+/.test(p)) {
-      return ["", ...p.split(/\/+/)];
-    } else {
-      return p.split(/\/+/);
-    }
-  }
-  match(f, partial = this.partial) {
-    this.debug("match", f, this.pattern);
-    if (this.comment) {
-      return false;
-    }
-    if (this.empty) {
-      return f === "";
-    }
-    if (f === "/" && partial) {
-      return true;
-    }
-    const options = this.options;
-    if (this.isWindows) {
-      f = f.split("\\").join("/");
-    }
-    const ff = this.slashSplit(f);
-    this.debug(this.pattern, "split", ff);
-    const set = this.set;
-    this.debug(this.pattern, "set", set);
-    let filename = ff[ff.length - 1];
-    if (!filename) {
-      for (let i = ff.length - 2;!filename && i >= 0; i--) {
-        filename = ff[i];
-      }
-    }
-    for (const pattern of set) {
-      let file = ff;
-      if (options.matchBase && pattern.length === 1) {
-        file = [filename];
-      }
-      const hit = this.matchOne(file, pattern, partial);
-      if (hit) {
-        if (options.flipNegate) {
-          return true;
-        }
-        return !this.negate;
-      }
-    }
-    if (options.flipNegate) {
-      return false;
-    }
-    return this.negate;
-  }
-  static defaults(def) {
-    return minimatch.defaults(def).Minimatch;
-  }
-}
-minimatch.AST = AST;
-minimatch.Minimatch = Minimatch;
-minimatch.escape = escape2;
-minimatch.unescape = unescape2;
-
-// src/features/pr/git-diff/parse.ts
-var import_parse_diff = __toESM(require_parse_diff(), 1);
-var DEFAULT_IGNORED_PATTERNS = [
-  "*.png",
-  "*.jpg",
-  "*.jpeg",
-  "*.gif",
-  "*.svg",
-  "*.ico",
-  "*.pdf",
-  "*.mp3",
-  "*.mp4",
-  "*.map",
-  "package-lock.json",
-  "pnpm-lock.yaml",
-  "bun.lockb",
-  "go.sum",
-  "Cargo.lock",
-  "Gemfile.lock",
-  "composer.lock"
-];
-function parseGitDiff(diff) {
-  const parsedFiles = import_parse_diff.default(diff);
-  const config2 = getConfig();
-  const ignoredPatterns = [
-    ...DEFAULT_IGNORED_PATTERNS,
-    ...config2.ignore || []
-  ];
-  const scanPatterns = config2.filesToScan || [];
-  return parsedFiles.map((file) => {
-    const fileName = file.to ?? file.from ?? "unknown";
-    if (scanPatterns.length > 0) {
-      const matchesScan = scanPatterns.some((p) => minimatch(fileName, p));
-      if (!matchesScan) {
-        return null;
-      }
-    }
-    const isIgnored = ignoredPatterns.some((p) => minimatch(fileName, p, { matchBase: true }));
-    if (isIgnored) {
-      return null;
-    }
-    const added = [];
-    const removed = [];
-    const context3 = [];
-    const changesList = [];
-    for (const chunk of file.chunks) {
-      for (const change of chunk.changes) {
-        const content = change.content.slice(1);
-        switch (change.type) {
-          case "add":
-            added.push({ content, lineNumber: change.ln });
-            changesList.push({ content, lineNumber: change.ln, prefix: "+" });
-            break;
-          case "del":
-            removed.push({ content, lineNumber: change.ln });
-            changesList.push({ content, lineNumber: change.ln, prefix: "-" });
-            break;
-          case "normal":
-            context3.push({ content, lineNumber: change.ln2 });
-            changesList.push({
-              content,
-              lineNumber: change.ln2,
-              prefix: " "
-            });
-            break;
-        }
-      }
-    }
-    return {
-      added,
-      changes: changesList,
-      context: context3,
-      file: fileName,
-      removed
-    };
-  }).filter((file) => file !== null);
+function inferRuleId(description) {
+  return description.trim().slice(0, 40).toLowerCase().replace(/\s+/g, "-");
 }
 // node_modules/zod/v4/classic/external.js
 var exports_external = {};
@@ -36968,7 +29421,7 @@ __export(exports_external, {
   uuidv7: () => uuidv7,
   uuidv6: () => uuidv6,
   uuidv4: () => uuidv4,
-  uuid: () => uuid3,
+  uuid: () => uuid2,
   util: () => exports_util,
   url: () => url,
   uppercase: () => _uppercase,
@@ -37019,7 +29472,7 @@ __export(exports_external, {
   pipe: () => pipe,
   partialRecord: () => partialRecord,
   parseAsync: () => parseAsync2,
-  parse: () => parse5,
+  parse: () => parse4,
   overwrite: () => _overwrite,
   optional: () => optional,
   object: () => object,
@@ -37087,7 +29540,7 @@ __export(exports_external, {
   enum: () => _enum2,
   endsWith: () => _endsWith,
   encodeAsync: () => encodeAsync2,
-  encode: () => encode3,
+  encode: () => encode2,
   emoji: () => emoji2,
   email: () => email2,
   e164: () => e1642,
@@ -37099,8 +29552,8 @@ __export(exports_external, {
   custom: () => custom,
   cuid2: () => cuid22,
   cuid: () => cuid3,
-  core: () => exports_core3,
-  config: () => config2,
+  core: () => exports_core2,
+  config: () => config,
   coerce: () => exports_coerce,
   codec: () => codec,
   clone: () => clone,
@@ -37111,7 +29564,7 @@ __export(exports_external, {
   boolean: () => boolean2,
   bigint: () => bigint2,
   base64url: () => base64url2,
-  base64: () => base643,
+  base64: () => base642,
   array: () => array,
   any: () => any,
   _function: () => _function,
@@ -37201,8 +29654,8 @@ __export(exports_external, {
 });
 
 // node_modules/zod/v4/core/index.js
-var exports_core3 = {};
-__export(exports_core3, {
+var exports_core2 = {};
+__export(exports_core2, {
   version: () => version,
   util: () => exports_util,
   treeifyError: () => treeifyError,
@@ -37219,7 +29672,7 @@ __export(exports_core3, {
   process: () => process2,
   prettifyError: () => prettifyError,
   parseAsync: () => parseAsync,
-  parse: () => parse3,
+  parse: () => parse2,
   meta: () => meta,
   locales: () => exports_locales,
   isValidJWT: () => isValidJWT,
@@ -37233,13 +29686,13 @@ __export(exports_core3, {
   finalize: () => finalize,
   extractDefs: () => extractDefs,
   encodeAsync: () => encodeAsync,
-  encode: () => encode2,
+  encode: () => encode,
   describe: () => describe,
   decodeAsync: () => decodeAsync,
   decode: () => decode,
   createToJSONSchemaMethod: () => createToJSONSchemaMethod,
   createStandardJSONSchemaMethod: () => createStandardJSONSchemaMethod,
-  config: () => config2,
+  config: () => config,
   clone: () => clone,
   _xor: () => _xor,
   _xid: () => _xid,
@@ -37514,10 +29967,10 @@ function $constructor(name, initializer, params) {
   }
   Object.defineProperty(Definition, "name", { value: name });
   function _(def) {
-    var _a4;
+    var _a;
     const inst = params?.Parent ? new Definition : this;
     init(inst, def);
-    (_a4 = inst._zod).deferred ?? (_a4.deferred = []);
+    (_a = inst._zod).deferred ?? (_a.deferred = []);
     for (const fn of inst._zod.deferred) {
       fn();
     }
@@ -37549,7 +30002,7 @@ class $ZodEncodeError extends Error {
   }
 }
 var globalConfig = {};
-function config2(newConfig) {
+function config(newConfig) {
   if (newConfig)
     Object.assign(globalConfig, newConfig);
   return globalConfig;
@@ -37610,7 +30063,7 @@ __export(exports_util, {
   base64ToUint8Array: () => base64ToUint8Array,
   assignProp: () => assignProp,
   assertNotEqual: () => assertNotEqual,
-  assertNever: () => assertNever3,
+  assertNever: () => assertNever,
   assertIs: () => assertIs,
   assertEqual: () => assertEqual,
   assert: () => assert,
@@ -37627,14 +30080,14 @@ function assertNotEqual(val) {
   return val;
 }
 function assertIs(_arg) {}
-function assertNever3(_x) {
+function assertNever(_x) {
   throw new Error("Unexpected value in exhaustive check");
 }
 function assert(_) {}
 function getEnumValues(entries) {
   const numericValues = Object.values(entries).filter((v) => typeof v === "number");
-  const values2 = Object.entries(entries).filter(([k, _]) => numericValues.indexOf(+k) === -1).map(([_, v]) => v);
-  return values2;
+  const values = Object.entries(entries).filter(([k, _]) => numericValues.indexOf(+k) === -1).map(([_, v]) => v);
+  return values;
 }
 function joinValues(array, separator = "|") {
   return array.map((val) => stringifyPrimitive(val)).join(separator);
@@ -37670,9 +30123,9 @@ function floatSafeRemainder(val, step) {
   const stepString = step.toString();
   let stepDecCount = (stepString.split(".")[1] || "").length;
   if (stepDecCount === 0 && /\d?e-\d?/.test(stepString)) {
-    const match2 = stepString.match(/\d?e-(\d?)/);
-    if (match2?.[1]) {
-      stepDecCount = Number.parseInt(match2[1]);
+    const match = stepString.match(/\d?e-(\d?)/);
+    if (match?.[1]) {
+      stepDecCount = Number.parseInt(match[1]);
     }
   }
   const decCount = valDecCount > stepDecCount ? valDecCount : stepDecCount;
@@ -37724,10 +30177,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path4) {
-  if (!path4)
+function getElementAtPath(obj, path) {
+  if (!path)
     return obj;
-  return path4.reduce((acc, key) => acc?.[key], obj);
+  return path.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -37742,14 +30195,14 @@ function promiseAllObject(promisesObj) {
 }
 function randomString(length = 10) {
   const chars = "abcdefghijklmnopqrstuvwxyz";
-  let str2 = "";
+  let str = "";
   for (let i = 0;i < length; i++) {
-    str2 += chars[Math.floor(Math.random() * chars.length)];
+    str += chars[Math.floor(Math.random() * chars.length)];
   }
-  return str2;
+  return str;
 }
-function esc(str2) {
-  return JSON.stringify(str2);
+function esc(str) {
+  return JSON.stringify(str);
 }
 function slugify(input) {
   return input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
@@ -37848,8 +30301,8 @@ var getParsedType = (data) => {
 };
 var propertyKeyTypes = new Set(["string", "number", "symbol"]);
 var primitiveTypes = new Set(["string", "number", "bigint", "boolean", "symbol", "undefined"]);
-function escapeRegex(str2) {
-  return str2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function clone(inst, def, params) {
   const cl = new inst._zod.constr(def ?? inst._zod.def);
@@ -38108,21 +30561,21 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path4, issues) {
+function prefixIssues(path, issues) {
   return issues.map((iss) => {
-    var _a4;
-    (_a4 = iss).path ?? (_a4.path = []);
-    iss.path.unshift(path4);
+    var _a;
+    (_a = iss).path ?? (_a.path = []);
+    iss.path.unshift(path);
     return iss;
   });
 }
 function unwrapMessage(message) {
   return typeof message === "string" ? message : message?.message;
 }
-function finalizeIssue(iss, ctx, config3) {
+function finalizeIssue(iss, ctx, config2) {
   const full = { ...iss, path: iss.path ?? [] };
   if (!iss.message) {
-    const message = unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config3.customError?.(iss)) ?? unwrapMessage(config3.localeError?.(iss)) ?? "Invalid input";
+    const message = unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config2.customError?.(iss)) ?? unwrapMessage(config2.localeError?.(iss)) ?? "Invalid input";
     full.message = message;
   }
   delete full.inst;
@@ -38186,8 +30639,8 @@ function cleanEnum(obj) {
     return Number.isNaN(Number.parseInt(k, 10));
   }).map((el) => el[1]);
 }
-function base64ToUint8Array(base642) {
-  const binaryString = atob(base642);
+function base64ToUint8Array(base64) {
+  const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0;i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
@@ -38202,9 +30655,9 @@ function uint8ArrayToBase64(bytes) {
   return btoa(binaryString);
 }
 function base64urlToUint8Array(base64url) {
-  const base642 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = "=".repeat((4 - base642.length % 4) % 4);
-  return base64ToUint8Array(base642 + padding);
+  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = "=".repeat((4 - base64.length % 4) % 4);
+  return base64ToUint8Array(base64 + padding);
 }
 function uint8ArrayToBase64url(bytes) {
   return uint8ArrayToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
@@ -38247,10 +30700,10 @@ var initializer = (inst, def) => {
 };
 var $ZodError = $constructor("$ZodError", initializer);
 var $ZodRealError = $constructor("$ZodError", initializer, { Parent: Error });
-function flattenError(error3, mapper = (issue3) => issue3.message) {
+function flattenError(error2, mapper = (issue3) => issue3.message) {
   const fieldErrors = {};
   const formErrors = [];
-  for (const sub of error3.issues) {
+  for (const sub of error2.issues) {
     if (sub.path.length > 0) {
       fieldErrors[sub.path[0]] = fieldErrors[sub.path[0]] || [];
       fieldErrors[sub.path[0]].push(mapper(sub));
@@ -38260,10 +30713,10 @@ function flattenError(error3, mapper = (issue3) => issue3.message) {
   }
   return { formErrors, fieldErrors };
 }
-function formatError(error3, mapper = (issue3) => issue3.message) {
+function formatError(error2, mapper = (issue3) => issue3.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error4) => {
-    for (const issue3 of error4.issues) {
+  const processError = (error3) => {
+    for (const issue3 of error3.issues) {
       if (issue3.code === "invalid_union" && issue3.errors.length) {
         issue3.errors.map((issues) => processError({ issues }));
       } else if (issue3.code === "invalid_key") {
@@ -38290,14 +30743,14 @@ function formatError(error3, mapper = (issue3) => issue3.message) {
       }
     }
   };
-  processError(error3);
+  processError(error2);
   return fieldErrors;
 }
-function treeifyError(error3, mapper = (issue3) => issue3.message) {
+function treeifyError(error2, mapper = (issue3) => issue3.message) {
   const result = { errors: [] };
-  const processError = (error4, path4 = []) => {
-    var _a4, _b;
-    for (const issue3 of error4.issues) {
+  const processError = (error3, path = []) => {
+    var _a, _b;
+    for (const issue3 of error3.issues) {
       if (issue3.code === "invalid_union" && issue3.errors.length) {
         issue3.errors.map((issues) => processError({ issues }, issue3.path));
       } else if (issue3.code === "invalid_key") {
@@ -38305,7 +30758,7 @@ function treeifyError(error3, mapper = (issue3) => issue3.message) {
       } else if (issue3.code === "invalid_element") {
         processError({ issues: issue3.issues }, issue3.path);
       } else {
-        const fullpath = [...path4, ...issue3.path];
+        const fullpath = [...path, ...issue3.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue3));
           continue;
@@ -38317,7 +30770,7 @@ function treeifyError(error3, mapper = (issue3) => issue3.message) {
           const terminal = i === fullpath.length - 1;
           if (typeof el === "string") {
             curr.properties ?? (curr.properties = {});
-            (_a4 = curr.properties)[el] ?? (_a4[el] = { errors: [] });
+            (_a = curr.properties)[el] ?? (_a[el] = { errors: [] });
             curr = curr.properties[el];
           } else {
             curr.items ?? (curr.items = []);
@@ -38332,13 +30785,13 @@ function treeifyError(error3, mapper = (issue3) => issue3.message) {
       }
     }
   };
-  processError(error3);
+  processError(error2);
   return result;
 }
 function toDotPath(_path) {
   const segs = [];
-  const path4 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path4) {
+  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -38353,9 +30806,9 @@ function toDotPath(_path) {
   }
   return segs.join("");
 }
-function prettifyError(error3) {
+function prettifyError(error2) {
   const lines = [];
-  const issues = [...error3.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
+  const issues = [...error2.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
   for (const issue3 of issues) {
     lines.push(`✖ ${issue3.message}`);
     if (issue3.path?.length)
@@ -38373,20 +30826,20 @@ var _parse = (_Err) => (schema, value, _ctx, _params) => {
     throw new $ZodAsyncError;
   }
   if (result.issues.length) {
-    const e = new (_params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config2())));
+    const e = new (_params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config())));
     captureStackTrace(e, _params?.callee);
     throw e;
   }
   return result.value;
 };
-var parse3 = /* @__PURE__ */ _parse($ZodRealError);
+var parse2 = /* @__PURE__ */ _parse($ZodRealError);
 var _parseAsync = (_Err) => async (schema, value, _ctx, params) => {
   const ctx = _ctx ? Object.assign(_ctx, { async: true }) : { async: true };
   let result = schema._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise)
     result = await result;
   if (result.issues.length) {
-    const e = new (params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config2())));
+    const e = new (params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config())));
     captureStackTrace(e, params?.callee);
     throw e;
   }
@@ -38401,7 +30854,7 @@ var _safeParse = (_Err) => (schema, value, _ctx) => {
   }
   return result.issues.length ? {
     success: false,
-    error: new (_Err ?? $ZodError)(result.issues.map((iss) => finalizeIssue(iss, ctx, config2())))
+    error: new (_Err ?? $ZodError)(result.issues.map((iss) => finalizeIssue(iss, ctx, config())))
   } : { success: true, data: result.value };
 };
 var safeParse2 = /* @__PURE__ */ _safeParse($ZodRealError);
@@ -38412,7 +30865,7 @@ var _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
     result = await result;
   return result.issues.length ? {
     success: false,
-    error: new _Err(result.issues.map((iss) => finalizeIssue(iss, ctx, config2())))
+    error: new _Err(result.issues.map((iss) => finalizeIssue(iss, ctx, config())))
   } : { success: true, data: result.value };
 };
 var safeParseAsync = /* @__PURE__ */ _safeParseAsync($ZodRealError);
@@ -38420,7 +30873,7 @@ var _encode = (_Err) => (schema, value, _ctx) => {
   const ctx = _ctx ? Object.assign(_ctx, { direction: "backward" }) : { direction: "backward" };
   return _parse(_Err)(schema, value, ctx);
 };
-var encode2 = /* @__PURE__ */ _encode($ZodRealError);
+var encode = /* @__PURE__ */ _encode($ZodRealError);
 var _decode = (_Err) => (schema, value, _ctx) => {
   return _parse(_Err)(schema, value, _ctx);
 };
@@ -38458,8 +30911,8 @@ __export(exports_regexes, {
   xid: () => xid,
   uuid7: () => uuid7,
   uuid6: () => uuid6,
-  uuid4: () => uuid42,
-  uuid: () => uuid2,
+  uuid4: () => uuid4,
+  uuid: () => uuid,
   uppercase: () => uppercase,
   unicodeEmail: () => unicodeEmail,
   undefined: () => _undefined,
@@ -38512,7 +30965,7 @@ __export(exports_regexes, {
   boolean: () => boolean,
   bigint: () => bigint,
   base64url: () => base64url,
-  base64: () => base642
+  base64: () => base64
 });
 var cuid = /^[cC][^\s-]{8,}$/;
 var cuid2 = /^[0-9a-z]+$/;
@@ -38523,14 +30976,14 @@ var nanoid = /^[a-zA-Z0-9_-]{21}$/;
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
 var extendedDuration = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
 var guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-var uuid2 = (version) => {
+var uuid = (version) => {
   if (!version)
     return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
   return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 };
-var uuid42 = /* @__PURE__ */ uuid2(4);
-var uuid6 = /* @__PURE__ */ uuid2(6);
-var uuid7 = /* @__PURE__ */ uuid2(7);
+var uuid4 = /* @__PURE__ */ uuid(4);
+var uuid6 = /* @__PURE__ */ uuid(6);
+var uuid7 = /* @__PURE__ */ uuid(7);
 var email = /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
 var html5Email = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 var rfc5322Email = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -38549,7 +31002,7 @@ var mac = (delimiter) => {
 };
 var cidrv4 = /^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\/([0-9]|[1-2][0-9]|3[0-2])$/;
 var cidrv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::|([0-9a-fA-F]{1,4})?::([0-9a-fA-F]{1,4}:?){0,6})\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
-var base642 = /^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$/;
+var base64 = /^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$/;
 var base64url = /^[A-Za-z0-9_-]*$/;
 var hostname = /^(?=.{1,253}\.?$)[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[-0-9a-zA-Z]{0,61}[0-9a-zA-Z])?)*\.?$/;
 var domain = /^([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
@@ -38611,10 +31064,10 @@ var sha512_base64url = /* @__PURE__ */ fixedBase64url(86);
 
 // node_modules/zod/v4/core/checks.js
 var $ZodCheck = /* @__PURE__ */ $constructor("$ZodCheck", (inst, def) => {
-  var _a4;
+  var _a;
   inst._zod ?? (inst._zod = {});
   inst._zod.def = def;
-  (_a4 = inst._zod).onattach ?? (_a4.onattach = []);
+  (_a = inst._zod).onattach ?? (_a.onattach = []);
 });
 var numericOriginMap = {
   number: "number",
@@ -38680,8 +31133,8 @@ var $ZodCheckGreaterThan = /* @__PURE__ */ $constructor("$ZodCheckGreaterThan", 
 var $ZodCheckMultipleOf = /* @__PURE__ */ $constructor("$ZodCheckMultipleOf", (inst, def) => {
   $ZodCheck.init(inst, def);
   inst._zod.onattach.push((inst2) => {
-    var _a4;
-    (_a4 = inst2._zod.bag).multipleOf ?? (_a4.multipleOf = def.value);
+    var _a;
+    (_a = inst2._zod.bag).multipleOf ?? (_a.multipleOf = def.value);
   });
   inst._zod.check = (payload) => {
     if (typeof payload.value !== typeof def.value)
@@ -38814,9 +31267,9 @@ var $ZodCheckBigIntFormat = /* @__PURE__ */ $constructor("$ZodCheckBigIntFormat"
   };
 });
 var $ZodCheckMaxSize = /* @__PURE__ */ $constructor("$ZodCheckMaxSize", (inst, def) => {
-  var _a4;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a4 = inst._zod.def).when ?? (_a4.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.size !== undefined;
   });
@@ -38842,9 +31295,9 @@ var $ZodCheckMaxSize = /* @__PURE__ */ $constructor("$ZodCheckMaxSize", (inst, d
   };
 });
 var $ZodCheckMinSize = /* @__PURE__ */ $constructor("$ZodCheckMinSize", (inst, def) => {
-  var _a4;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a4 = inst._zod.def).when ?? (_a4.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.size !== undefined;
   });
@@ -38870,9 +31323,9 @@ var $ZodCheckMinSize = /* @__PURE__ */ $constructor("$ZodCheckMinSize", (inst, d
   };
 });
 var $ZodCheckSizeEquals = /* @__PURE__ */ $constructor("$ZodCheckSizeEquals", (inst, def) => {
-  var _a4;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a4 = inst._zod.def).when ?? (_a4.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.size !== undefined;
   });
@@ -38900,9 +31353,9 @@ var $ZodCheckSizeEquals = /* @__PURE__ */ $constructor("$ZodCheckSizeEquals", (i
   };
 });
 var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (inst, def) => {
-  var _a4;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a4 = inst._zod.def).when ?? (_a4.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
@@ -38929,9 +31382,9 @@ var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (ins
   };
 });
 var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (inst, def) => {
-  var _a4;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a4 = inst._zod.def).when ?? (_a4.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
@@ -38958,9 +31411,9 @@ var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (ins
   };
 });
 var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals", (inst, def) => {
-  var _a4;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a4 = inst._zod.def).when ?? (_a4.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
@@ -38989,7 +31442,7 @@ var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals"
   };
 });
 var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat", (inst, def) => {
-  var _a4, _b;
+  var _a, _b;
   $ZodCheck.init(inst, def);
   inst._zod.onattach.push((inst2) => {
     const bag = inst2._zod.bag;
@@ -39000,7 +31453,7 @@ var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat"
     }
   });
   if (def.pattern)
-    (_a4 = inst._zod).check ?? (_a4.check = (payload) => {
+    (_a = inst._zod).check ?? (_a.check = (payload) => {
       def.pattern.lastIndex = 0;
       if (def.pattern.test(payload.value))
         return;
@@ -39203,7 +31656,7 @@ var version = {
 
 // node_modules/zod/v4/core/schemas.js
 var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
-  var _a4;
+  var _a;
   inst ?? (inst = {});
   inst._zod.def = def;
   inst._zod.bag = inst._zod.bag || {};
@@ -39218,7 +31671,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
     }
   }
   if (checks.length === 0) {
-    (_a4 = inst._zod).deferred ?? (_a4.deferred = []);
+    (_a = inst._zod).deferred ?? (_a.deferred = []);
     inst._zod.deferred?.push(() => {
       inst._zod.run = inst._zod.parse;
     });
@@ -39353,9 +31806,9 @@ var $ZodUUID = /* @__PURE__ */ $constructor("$ZodUUID", (inst, def) => {
     const v = versionMap[def.version];
     if (v === undefined)
       throw new Error(`Invalid UUID version: "${def.version}"`);
-    def.pattern ?? (def.pattern = uuid2(v));
+    def.pattern ?? (def.pattern = uuid(v));
   } else
-    def.pattern ?? (def.pattern = uuid2());
+    def.pattern ?? (def.pattern = uuid());
   $ZodStringFormat.init(inst, def);
 });
 var $ZodEmail = /* @__PURE__ */ $constructor("$ZodEmail", (inst, def) => {
@@ -39530,7 +31983,7 @@ function isValidBase64(data) {
   }
 }
 var $ZodBase64 = /* @__PURE__ */ $constructor("$ZodBase64", (inst, def) => {
-  def.pattern ?? (def.pattern = base642);
+  def.pattern ?? (def.pattern = base64);
   $ZodStringFormat.init(inst, def);
   inst._zod.bag.contentEncoding = "base64";
   inst._zod.check = (payload) => {
@@ -39548,8 +32001,8 @@ var $ZodBase64 = /* @__PURE__ */ $constructor("$ZodBase64", (inst, def) => {
 function isValidBase64URL(data) {
   if (!base64url.test(data))
     return false;
-  const base643 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
-  const padded = base643.padEnd(Math.ceil(base643.length / 4) * 4, "=");
+  const base642 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
+  const padded = base642.padEnd(Math.ceil(base642.length / 4) * 4, "=");
   return isValidBase64(padded);
 }
 var $ZodBase64URL = /* @__PURE__ */ $constructor("$ZodBase64URL", (inst, def) => {
@@ -40081,7 +32534,7 @@ function handleUnionResults(results, final, inst, ctx) {
     code: "invalid_union",
     input: final.value,
     inst,
-    errors: results.map((result) => result.issues.map((iss) => finalizeIssue(iss, ctx, config2())))
+    errors: results.map((result) => result.issues.map((iss) => finalizeIssue(iss, ctx, config())))
   });
   return final;
 }
@@ -40142,7 +32595,7 @@ function handleExclusiveUnionResults(results, final, inst, ctx) {
       code: "invalid_union",
       input: final.value,
       inst,
-      errors: results.map((result) => result.issues.map((iss) => finalizeIssue(iss, ctx, config2())))
+      errors: results.map((result) => result.issues.map((iss) => finalizeIssue(iss, ctx, config())))
     });
   } else {
     final.issues.push({
@@ -40209,10 +32662,10 @@ var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnio
     const opts = def.options;
     const map = new Map;
     for (const o of opts) {
-      const values2 = o._zod.propValues?.[def.discriminator];
-      if (!values2 || values2.size === 0)
+      const values = o._zod.propValues?.[def.discriminator];
+      if (!values || values.size === 0)
         throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(o)}"`);
-      for (const v of values2) {
+      for (const v of values) {
         if (map.has(v)) {
           throw new Error(`Duplicate discriminator value "${String(v)}"`);
         }
@@ -40437,11 +32890,11 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
       return payload;
     }
     const proms = [];
-    const values2 = def.keyType._zod.values;
-    if (values2) {
+    const values = def.keyType._zod.values;
+    if (values) {
       payload.value = {};
       const recordKeys = new Set;
-      for (const key of values2) {
+      for (const key of values) {
         if (typeof key === "string" || typeof key === "number" || typeof key === "symbol") {
           recordKeys.add(typeof key === "number" ? key.toString() : key);
           const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
@@ -40501,7 +32954,7 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
             payload.issues.push({
               code: "invalid_key",
               origin: "record",
-              issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config2())),
+              issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
               input: key,
               path: [key],
               inst
@@ -40572,7 +33025,7 @@ function handleMapResult(keyResult, valueResult, final, key, input, inst, ctx) {
         origin: "map",
         input,
         inst,
-        issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config2()))
+        issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
       });
     }
   }
@@ -40586,7 +33039,7 @@ function handleMapResult(keyResult, valueResult, final, key, input, inst, ctx) {
         input,
         inst,
         key,
-        issues: valueResult.issues.map((iss) => finalizeIssue(iss, ctx, config2()))
+        issues: valueResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
       });
     }
   }
@@ -40627,10 +33080,10 @@ function handleSetResult(result, final) {
 }
 var $ZodEnum = /* @__PURE__ */ $constructor("$ZodEnum", (inst, def) => {
   $ZodType.init(inst, def);
-  const values2 = getEnumValues(def.entries);
-  const valuesSet = new Set(values2);
+  const values = getEnumValues(def.entries);
+  const valuesSet = new Set(values);
   inst._zod.values = valuesSet;
-  inst._zod.pattern = new RegExp(`^(${values2.filter((k) => propertyKeyTypes.has(typeof k)).map((o) => typeof o === "string" ? escapeRegex(o) : o.toString()).join("|")})$`);
+  inst._zod.pattern = new RegExp(`^(${values.filter((k) => propertyKeyTypes.has(typeof k)).map((o) => typeof o === "string" ? escapeRegex(o) : o.toString()).join("|")})$`);
   inst._zod.parse = (payload, _ctx) => {
     const input = payload.value;
     if (valuesSet.has(input)) {
@@ -40638,7 +33091,7 @@ var $ZodEnum = /* @__PURE__ */ $constructor("$ZodEnum", (inst, def) => {
     }
     payload.issues.push({
       code: "invalid_value",
-      values: values2,
+      values,
       input,
       inst
     });
@@ -40650,12 +33103,12 @@ var $ZodLiteral = /* @__PURE__ */ $constructor("$ZodLiteral", (inst, def) => {
   if (def.values.length === 0) {
     throw new Error("Cannot create literal schema with no valid values");
   }
-  const values2 = new Set(def.values);
-  inst._zod.values = values2;
+  const values = new Set(def.values);
+  inst._zod.values = values;
   inst._zod.pattern = new RegExp(`^(${def.values.map((o) => typeof o === "string" ? escapeRegex(o) : o ? escapeRegex(o.toString()) : String(o)).join("|")})$`);
   inst._zod.parse = (payload, _ctx) => {
     const input = payload.value;
-    if (values2.has(input)) {
+    if (values.has(input)) {
       return payload;
     }
     payload.issues.push({
@@ -40856,7 +33309,7 @@ var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
           payload.value = def.catchValue({
             ...payload,
             error: {
-              issues: result2.issues.map((iss) => finalizeIssue(iss, ctx, config2()))
+              issues: result2.issues.map((iss) => finalizeIssue(iss, ctx, config()))
             },
             input: payload.value
           });
@@ -40870,7 +33323,7 @@ var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
       payload.value = def.catchValue({
         ...payload,
         error: {
-          issues: result.issues.map((iss) => finalizeIssue(iss, ctx, config2()))
+          issues: result.issues.map((iss) => finalizeIssue(iss, ctx, config()))
         },
         input: payload.value
       });
@@ -41047,10 +33500,10 @@ var $ZodFunction = /* @__PURE__ */ $constructor("$ZodFunction", (inst, def) => {
       throw new Error("implement() must be called with a function");
     }
     return function(...args) {
-      const parsedArgs = inst._def.input ? parse3(inst._def.input, args) : args;
+      const parsedArgs = inst._def.input ? parse2(inst._def.input, args) : args;
       const result = Reflect.apply(func, this, parsedArgs);
       if (inst._def.output) {
-        return parse3(inst._def.output, result);
+        return parse2(inst._def.output, result);
       }
       return result;
     };
@@ -41218,7 +33671,7 @@ __export(exports_locales, {
 });
 
 // node_modules/zod/v4/locales/ar.js
-var error3 = () => {
+var error2 = () => {
   const Sizable = {
     string: { unit: "حرف", verb: "أن يحوي" },
     file: { unit: "بايت", verb: "أن يحوي" },
@@ -41320,11 +33773,11 @@ var error3 = () => {
 };
 function ar_default() {
   return {
-    localeError: error3()
+    localeError: error2()
   };
 }
 // node_modules/zod/v4/locales/az.js
-var error4 = () => {
+var error3 = () => {
   const Sizable = {
     string: { unit: "simvol", verb: "olmalıdır" },
     file: { unit: "bayt", verb: "olmalıdır" },
@@ -41425,7 +33878,7 @@ var error4 = () => {
 };
 function az_default() {
   return {
-    localeError: error4()
+    localeError: error3()
   };
 }
 // node_modules/zod/v4/locales/be.js
@@ -41444,7 +33897,7 @@ function getBelarusianPlural(count, one, few, many) {
   }
   return many;
 }
-var error5 = () => {
+var error4 = () => {
   const Sizable = {
     string: {
       unit: {
@@ -41581,11 +34034,11 @@ var error5 = () => {
 };
 function be_default() {
   return {
-    localeError: error5()
+    localeError: error4()
   };
 }
 // node_modules/zod/v4/locales/bg.js
-var error6 = () => {
+var error5 = () => {
   const Sizable = {
     string: { unit: "символа", verb: "да съдържа" },
     file: { unit: "байта", verb: "да съдържа" },
@@ -41701,11 +34154,11 @@ var error6 = () => {
 };
 function bg_default() {
   return {
-    localeError: error6()
+    localeError: error5()
   };
 }
 // node_modules/zod/v4/locales/ca.js
-var error7 = () => {
+var error6 = () => {
   const Sizable = {
     string: { unit: "caràcters", verb: "contenir" },
     file: { unit: "bytes", verb: "contenir" },
@@ -41808,11 +34261,11 @@ var error7 = () => {
 };
 function ca_default() {
   return {
-    localeError: error7()
+    localeError: error6()
   };
 }
 // node_modules/zod/v4/locales/cs.js
-var error8 = () => {
+var error7 = () => {
   const Sizable = {
     string: { unit: "znaků", verb: "mít" },
     file: { unit: "bajtů", verb: "mít" },
@@ -41919,11 +34372,11 @@ var error8 = () => {
 };
 function cs_default() {
   return {
-    localeError: error8()
+    localeError: error7()
   };
 }
 // node_modules/zod/v4/locales/da.js
-var error9 = () => {
+var error8 = () => {
   const Sizable = {
     string: { unit: "tegn", verb: "havde" },
     file: { unit: "bytes", verb: "havde" },
@@ -42034,11 +34487,11 @@ var error9 = () => {
 };
 function da_default() {
   return {
-    localeError: error9()
+    localeError: error8()
   };
 }
 // node_modules/zod/v4/locales/de.js
-var error10 = () => {
+var error9 = () => {
   const Sizable = {
     string: { unit: "Zeichen", verb: "zu haben" },
     file: { unit: "Bytes", verb: "zu haben" },
@@ -42142,11 +34595,11 @@ var error10 = () => {
 };
 function de_default() {
   return {
-    localeError: error10()
+    localeError: error9()
   };
 }
 // node_modules/zod/v4/locales/en.js
-var error11 = () => {
+var error10 = () => {
   const Sizable = {
     string: { unit: "characters", verb: "to have" },
     file: { unit: "bytes", verb: "to have" },
@@ -42248,11 +34701,11 @@ var error11 = () => {
 };
 function en_default() {
   return {
-    localeError: error11()
+    localeError: error10()
   };
 }
 // node_modules/zod/v4/locales/eo.js
-var error12 = () => {
+var error11 = () => {
   const Sizable = {
     string: { unit: "karaktrojn", verb: "havi" },
     file: { unit: "bajtojn", verb: "havi" },
@@ -42357,11 +34810,11 @@ var error12 = () => {
 };
 function eo_default() {
   return {
-    localeError: error12()
+    localeError: error11()
   };
 }
 // node_modules/zod/v4/locales/es.js
-var error13 = () => {
+var error12 = () => {
   const Sizable = {
     string: { unit: "caracteres", verb: "tener" },
     file: { unit: "bytes", verb: "tener" },
@@ -42489,11 +34942,11 @@ var error13 = () => {
 };
 function es_default() {
   return {
-    localeError: error13()
+    localeError: error12()
   };
 }
 // node_modules/zod/v4/locales/fa.js
-var error14 = () => {
+var error13 = () => {
   const Sizable = {
     string: { unit: "کاراکتر", verb: "داشته باشد" },
     file: { unit: "بایت", verb: "داشته باشد" },
@@ -42603,11 +35056,11 @@ var error14 = () => {
 };
 function fa_default() {
   return {
-    localeError: error14()
+    localeError: error13()
   };
 }
 // node_modules/zod/v4/locales/fi.js
-var error15 = () => {
+var error14 = () => {
   const Sizable = {
     string: { unit: "merkkiä", subject: "merkkijonon" },
     file: { unit: "tavua", subject: "tiedoston" },
@@ -42715,11 +35168,11 @@ var error15 = () => {
 };
 function fi_default() {
   return {
-    localeError: error15()
+    localeError: error14()
   };
 }
 // node_modules/zod/v4/locales/fr.js
-var error16 = () => {
+var error15 = () => {
   const Sizable = {
     string: { unit: "caractères", verb: "avoir" },
     file: { unit: "octets", verb: "avoir" },
@@ -42823,11 +35276,11 @@ var error16 = () => {
 };
 function fr_default() {
   return {
-    localeError: error16()
+    localeError: error15()
   };
 }
 // node_modules/zod/v4/locales/fr-CA.js
-var error17 = () => {
+var error16 = () => {
   const Sizable = {
     string: { unit: "caractères", verb: "avoir" },
     file: { unit: "octets", verb: "avoir" },
@@ -42930,11 +35383,11 @@ var error17 = () => {
 };
 function fr_CA_default() {
   return {
-    localeError: error17()
+    localeError: error16()
   };
 }
 // node_modules/zod/v4/locales/he.js
-var error18 = () => {
+var error17 = () => {
   const TypeNames = {
     string: { label: "מחרוזת", gender: "f" },
     number: { label: "מספר", gender: "m" },
@@ -43123,11 +35576,11 @@ var error18 = () => {
 };
 function he_default() {
   return {
-    localeError: error18()
+    localeError: error17()
   };
 }
 // node_modules/zod/v4/locales/hu.js
-var error19 = () => {
+var error18 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "legyen" },
     file: { unit: "byte", verb: "legyen" },
@@ -43231,7 +35684,7 @@ var error19 = () => {
 };
 function hu_default() {
   return {
-    localeError: error19()
+    localeError: error18()
   };
 }
 // node_modules/zod/v4/locales/hy.js
@@ -43245,7 +35698,7 @@ function withDefiniteArticle(word) {
   const lastChar = word[word.length - 1];
   return word + (vowels.includes(lastChar) ? "ն" : "ը");
 }
-var error20 = () => {
+var error19 = () => {
   const Sizable = {
     string: {
       unit: {
@@ -43378,11 +35831,11 @@ var error20 = () => {
 };
 function hy_default() {
   return {
-    localeError: error20()
+    localeError: error19()
   };
 }
 // node_modules/zod/v4/locales/id.js
-var error21 = () => {
+var error20 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "memiliki" },
     file: { unit: "byte", verb: "memiliki" },
@@ -43484,11 +35937,11 @@ var error21 = () => {
 };
 function id_default() {
   return {
-    localeError: error21()
+    localeError: error20()
   };
 }
 // node_modules/zod/v4/locales/is.js
-var error22 = () => {
+var error21 = () => {
   const Sizable = {
     string: { unit: "stafi", verb: "að hafa" },
     file: { unit: "bæti", verb: "að hafa" },
@@ -43593,11 +36046,11 @@ var error22 = () => {
 };
 function is_default() {
   return {
-    localeError: error22()
+    localeError: error21()
   };
 }
 // node_modules/zod/v4/locales/it.js
-var error23 = () => {
+var error22 = () => {
   const Sizable = {
     string: { unit: "caratteri", verb: "avere" },
     file: { unit: "byte", verb: "avere" },
@@ -43701,11 +36154,11 @@ var error23 = () => {
 };
 function it_default() {
   return {
-    localeError: error23()
+    localeError: error22()
   };
 }
 // node_modules/zod/v4/locales/ja.js
-var error24 = () => {
+var error23 = () => {
   const Sizable = {
     string: { unit: "文字", verb: "である" },
     file: { unit: "バイト", verb: "である" },
@@ -43808,11 +36261,11 @@ var error24 = () => {
 };
 function ja_default() {
   return {
-    localeError: error24()
+    localeError: error23()
   };
 }
 // node_modules/zod/v4/locales/ka.js
-var error25 = () => {
+var error24 = () => {
   const Sizable = {
     string: { unit: "სიმბოლო", verb: "უნდა შეიცავდეს" },
     file: { unit: "ბაიტი", verb: "უნდა შეიცავდეს" },
@@ -43920,11 +36373,11 @@ var error25 = () => {
 };
 function ka_default() {
   return {
-    localeError: error25()
+    localeError: error24()
   };
 }
 // node_modules/zod/v4/locales/km.js
-var error26 = () => {
+var error25 = () => {
   const Sizable = {
     string: { unit: "តួអក្សរ", verb: "គួរមាន" },
     file: { unit: "បៃ", verb: "គួរមាន" },
@@ -44030,7 +36483,7 @@ var error26 = () => {
 };
 function km_default() {
   return {
-    localeError: error26()
+    localeError: error25()
   };
 }
 
@@ -44039,7 +36492,7 @@ function kh_default() {
   return km_default();
 }
 // node_modules/zod/v4/locales/ko.js
-var error27 = () => {
+var error26 = () => {
   const Sizable = {
     string: { unit: "문자", verb: "to have" },
     file: { unit: "바이트", verb: "to have" },
@@ -44146,7 +36599,7 @@ var error27 = () => {
 };
 function ko_default() {
   return {
-    localeError: error27()
+    localeError: error26()
   };
 }
 // node_modules/zod/v4/locales/lt.js
@@ -44163,7 +36616,7 @@ function getUnitTypeFromNumber(number2) {
     return "one";
   return "few";
 }
-var error28 = () => {
+var error27 = () => {
   const Sizable = {
     string: {
       unit: {
@@ -44349,11 +36802,11 @@ var error28 = () => {
 };
 function lt_default() {
   return {
-    localeError: error28()
+    localeError: error27()
   };
 }
 // node_modules/zod/v4/locales/mk.js
-var error29 = () => {
+var error28 = () => {
   const Sizable = {
     string: { unit: "знаци", verb: "да имаат" },
     file: { unit: "бајти", verb: "да имаат" },
@@ -44458,11 +36911,11 @@ var error29 = () => {
 };
 function mk_default() {
   return {
-    localeError: error29()
+    localeError: error28()
   };
 }
 // node_modules/zod/v4/locales/ms.js
-var error30 = () => {
+var error29 = () => {
   const Sizable = {
     string: { unit: "aksara", verb: "mempunyai" },
     file: { unit: "bait", verb: "mempunyai" },
@@ -44565,11 +37018,11 @@ var error30 = () => {
 };
 function ms_default() {
   return {
-    localeError: error30()
+    localeError: error29()
   };
 }
 // node_modules/zod/v4/locales/nl.js
-var error31 = () => {
+var error30 = () => {
   const Sizable = {
     string: { unit: "tekens", verb: "heeft" },
     file: { unit: "bytes", verb: "heeft" },
@@ -44675,11 +37128,11 @@ var error31 = () => {
 };
 function nl_default() {
   return {
-    localeError: error31()
+    localeError: error30()
   };
 }
 // node_modules/zod/v4/locales/no.js
-var error32 = () => {
+var error31 = () => {
   const Sizable = {
     string: { unit: "tegn", verb: "å ha" },
     file: { unit: "bytes", verb: "å ha" },
@@ -44783,11 +37236,11 @@ var error32 = () => {
 };
 function no_default() {
   return {
-    localeError: error32()
+    localeError: error31()
   };
 }
 // node_modules/zod/v4/locales/ota.js
-var error33 = () => {
+var error32 = () => {
   const Sizable = {
     string: { unit: "harf", verb: "olmalıdır" },
     file: { unit: "bayt", verb: "olmalıdır" },
@@ -44892,11 +37345,11 @@ var error33 = () => {
 };
 function ota_default() {
   return {
-    localeError: error33()
+    localeError: error32()
   };
 }
 // node_modules/zod/v4/locales/ps.js
-var error34 = () => {
+var error33 = () => {
   const Sizable = {
     string: { unit: "توکي", verb: "ولري" },
     file: { unit: "بایټس", verb: "ولري" },
@@ -45006,11 +37459,11 @@ var error34 = () => {
 };
 function ps_default() {
   return {
-    localeError: error34()
+    localeError: error33()
   };
 }
 // node_modules/zod/v4/locales/pl.js
-var error35 = () => {
+var error34 = () => {
   const Sizable = {
     string: { unit: "znaków", verb: "mieć" },
     file: { unit: "bajtów", verb: "mieć" },
@@ -45115,11 +37568,11 @@ var error35 = () => {
 };
 function pl_default() {
   return {
-    localeError: error35()
+    localeError: error34()
   };
 }
 // node_modules/zod/v4/locales/pt.js
-var error36 = () => {
+var error35 = () => {
   const Sizable = {
     string: { unit: "caracteres", verb: "ter" },
     file: { unit: "bytes", verb: "ter" },
@@ -45223,7 +37676,7 @@ var error36 = () => {
 };
 function pt_default() {
   return {
-    localeError: error36()
+    localeError: error35()
   };
 }
 // node_modules/zod/v4/locales/ru.js
@@ -45242,7 +37695,7 @@ function getRussianPlural(count, one, few, many) {
   }
   return many;
 }
-var error37 = () => {
+var error36 = () => {
   const Sizable = {
     string: {
       unit: {
@@ -45379,11 +37832,11 @@ var error37 = () => {
 };
 function ru_default() {
   return {
-    localeError: error37()
+    localeError: error36()
   };
 }
 // node_modules/zod/v4/locales/sl.js
-var error38 = () => {
+var error37 = () => {
   const Sizable = {
     string: { unit: "znakov", verb: "imeti" },
     file: { unit: "bajtov", verb: "imeti" },
@@ -45488,11 +37941,11 @@ var error38 = () => {
 };
 function sl_default() {
   return {
-    localeError: error38()
+    localeError: error37()
   };
 }
 // node_modules/zod/v4/locales/sv.js
-var error39 = () => {
+var error38 = () => {
   const Sizable = {
     string: { unit: "tecken", verb: "att ha" },
     file: { unit: "bytes", verb: "att ha" },
@@ -45598,11 +38051,11 @@ var error39 = () => {
 };
 function sv_default() {
   return {
-    localeError: error39()
+    localeError: error38()
   };
 }
 // node_modules/zod/v4/locales/ta.js
-var error40 = () => {
+var error39 = () => {
   const Sizable = {
     string: { unit: "எழுத்துக்கள்", verb: "கொண்டிருக்க வேண்டும்" },
     file: { unit: "பைட்டுகள்", verb: "கொண்டிருக்க வேண்டும்" },
@@ -45708,11 +38161,11 @@ var error40 = () => {
 };
 function ta_default() {
   return {
-    localeError: error40()
+    localeError: error39()
   };
 }
 // node_modules/zod/v4/locales/th.js
-var error41 = () => {
+var error40 = () => {
   const Sizable = {
     string: { unit: "ตัวอักษร", verb: "ควรมี" },
     file: { unit: "ไบต์", verb: "ควรมี" },
@@ -45818,11 +38271,11 @@ var error41 = () => {
 };
 function th_default() {
   return {
-    localeError: error41()
+    localeError: error40()
   };
 }
 // node_modules/zod/v4/locales/tr.js
-var error42 = () => {
+var error41 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "olmalı" },
     file: { unit: "bayt", verb: "olmalı" },
@@ -45923,11 +38376,11 @@ var error42 = () => {
 };
 function tr_default() {
   return {
-    localeError: error42()
+    localeError: error41()
   };
 }
 // node_modules/zod/v4/locales/uk.js
-var error43 = () => {
+var error42 = () => {
   const Sizable = {
     string: { unit: "символів", verb: "матиме" },
     file: { unit: "байтів", verb: "матиме" },
@@ -46031,7 +38484,7 @@ var error43 = () => {
 };
 function uk_default() {
   return {
-    localeError: error43()
+    localeError: error42()
   };
 }
 
@@ -46040,7 +38493,7 @@ function ua_default() {
   return uk_default();
 }
 // node_modules/zod/v4/locales/ur.js
-var error44 = () => {
+var error43 = () => {
   const Sizable = {
     string: { unit: "حروف", verb: "ہونا" },
     file: { unit: "بائٹس", verb: "ہونا" },
@@ -46146,11 +38599,11 @@ var error44 = () => {
 };
 function ur_default() {
   return {
-    localeError: error44()
+    localeError: error43()
   };
 }
 // node_modules/zod/v4/locales/uz.js
-var error45 = () => {
+var error44 = () => {
   const Sizable = {
     string: { unit: "belgi", verb: "bo‘lishi kerak" },
     file: { unit: "bayt", verb: "bo‘lishi kerak" },
@@ -46255,11 +38708,11 @@ var error45 = () => {
 };
 function uz_default() {
   return {
-    localeError: error45()
+    localeError: error44()
   };
 }
 // node_modules/zod/v4/locales/vi.js
-var error46 = () => {
+var error45 = () => {
   const Sizable = {
     string: { unit: "ký tự", verb: "có" },
     file: { unit: "byte", verb: "có" },
@@ -46363,11 +38816,11 @@ var error46 = () => {
 };
 function vi_default() {
   return {
-    localeError: error46()
+    localeError: error45()
   };
 }
 // node_modules/zod/v4/locales/zh-CN.js
-var error47 = () => {
+var error46 = () => {
   const Sizable = {
     string: { unit: "字符", verb: "包含" },
     file: { unit: "字节", verb: "包含" },
@@ -46472,11 +38925,11 @@ var error47 = () => {
 };
 function zh_CN_default() {
   return {
-    localeError: error47()
+    localeError: error46()
   };
 }
 // node_modules/zod/v4/locales/zh-TW.js
-var error48 = () => {
+var error47 = () => {
   const Sizable = {
     string: { unit: "字元", verb: "擁有" },
     file: { unit: "位元組", verb: "擁有" },
@@ -46579,11 +39032,11 @@ var error48 = () => {
 };
 function zh_TW_default() {
   return {
-    localeError: error48()
+    localeError: error47()
   };
 }
 // node_modules/zod/v4/locales/yo.js
-var error49 = () => {
+var error48 = () => {
   const Sizable = {
     string: { unit: "àmi", verb: "ní" },
     file: { unit: "bytes", verb: "ní" },
@@ -46686,11 +39139,11 @@ var error49 = () => {
 };
 function yo_default() {
   return {
-    localeError: error49()
+    localeError: error48()
   };
 }
 // node_modules/zod/v4/core/registries.js
-var _a4;
+var _a;
 var $output = Symbol("ZodOutput");
 var $input = Symbol("ZodInput");
 
@@ -46737,7 +39190,7 @@ class $ZodRegistry {
 function registry() {
   return new $ZodRegistry;
 }
-(_a4 = globalThis).__zod_globalRegistry ?? (_a4.__zod_globalRegistry = registry());
+(_a = globalThis).__zod_globalRegistry ?? (_a.__zod_globalRegistry = registry());
 var globalRegistry = globalThis.__zod_globalRegistry;
 // node_modules/zod/v4/core/api.js
 function _string(Class2, params) {
@@ -47317,10 +39770,10 @@ function _property(property, schema, params) {
     ...normalizeParams(params)
   });
 }
-function _mime(types5, params) {
+function _mime(types2, params) {
   return new $ZodCheckMimeType({
     check: "mime_type",
-    mime: types5,
+    mime: types2,
     ...normalizeParams(params)
   });
 }
@@ -47416,8 +39869,8 @@ function _set(Class2, valueType, params) {
     ...normalizeParams(params)
   });
 }
-function _enum(Class2, values2, params) {
-  const entries = Array.isArray(values2) ? Object.fromEntries(values2.map((v) => [v, v])) : values2;
+function _enum(Class2, values, params) {
+  const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
   return new Class2({
     type: "enum",
     entries,
@@ -47681,7 +40134,7 @@ function initializeContext(params) {
   };
 }
 function process2(schema, ctx, _params = { path: [], schemaPath: [] }) {
-  var _a5;
+  var _a2;
   const def = schema._zod.def;
   const seen = ctx.seen.get(schema);
   if (seen) {
@@ -47729,7 +40182,7 @@ function process2(schema, ctx, _params = { path: [], schemaPath: [] }) {
     delete result.schema.default;
   }
   if (ctx.io === "input" && result.schema._prefault)
-    (_a5 = result.schema).default ?? (_a5.default = result.schema._prefault);
+    (_a2 = result.schema).default ?? (_a2.default = result.schema._prefault);
   delete result.schema._prefault;
   const _result = ctx.seen.get(schema);
   return _result.schema;
@@ -47799,8 +40252,8 @@ function extractDefs(ctx, schema) {
       continue;
     }
     if (ctx.external) {
-      const ext2 = ctx.external.registry.get(entry[0])?.id;
-      if (schema !== entry[0] && ext2) {
+      const ext = ctx.external.registry.get(entry[0])?.id;
+      if (schema !== entry[0] && ext) {
         extractToDef(entry);
         continue;
       }
@@ -48132,12 +40585,12 @@ var dateProcessor = (_schema, ctx, _json, _params) => {
 };
 var enumProcessor = (schema, _ctx, json, _params) => {
   const def = schema._zod.def;
-  const values2 = getEnumValues(def.entries);
-  if (values2.every((v) => typeof v === "number"))
+  const values = getEnumValues(def.entries);
+  if (values.every((v) => typeof v === "number"))
     json.type = "number";
-  if (values2.every((v) => typeof v === "string"))
+  if (values.every((v) => typeof v === "string"))
     json.type = "string";
-  json.enum = values2;
+  json.enum = values;
 };
 var literalProcessor = (schema, ctx, json, _params) => {
   const def = schema._zod.def;
@@ -48619,7 +41072,7 @@ __export(exports_schemas2, {
   uuidv7: () => uuidv7,
   uuidv6: () => uuidv6,
   uuidv4: () => uuidv4,
-  uuid: () => uuid3,
+  uuid: () => uuid2,
   url: () => url,
   unknown: () => unknown,
   union: () => union,
@@ -48703,7 +41156,7 @@ __export(exports_schemas2, {
   boolean: () => boolean2,
   bigint: () => bigint2,
   base64url: () => base64url2,
-  base64: () => base643,
+  base64: () => base642,
   array: () => array,
   any: () => any,
   _function: () => _function,
@@ -48890,11 +41343,11 @@ var ZodRealError = $constructor("ZodError", initializer2, {
 });
 
 // node_modules/zod/v4/classic/parse.js
-var parse5 = /* @__PURE__ */ _parse(ZodRealError);
+var parse4 = /* @__PURE__ */ _parse(ZodRealError);
 var parseAsync2 = /* @__PURE__ */ _parseAsync(ZodRealError);
 var safeParse3 = /* @__PURE__ */ _safeParse(ZodRealError);
 var safeParseAsync2 = /* @__PURE__ */ _safeParseAsync(ZodRealError);
-var encode3 = /* @__PURE__ */ _encode(ZodRealError);
+var encode2 = /* @__PURE__ */ _encode(ZodRealError);
 var decode2 = /* @__PURE__ */ _decode(ZodRealError);
 var encodeAsync2 = /* @__PURE__ */ _encodeAsync(ZodRealError);
 var decodeAsync2 = /* @__PURE__ */ _decodeAsync(ZodRealError);
@@ -48933,12 +41386,12 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
     reg.add(inst, meta2);
     return inst;
   };
-  inst.parse = (data, params) => parse5(inst, data, params, { callee: inst.parse });
+  inst.parse = (data, params) => parse4(inst, data, params, { callee: inst.parse });
   inst.safeParse = (data, params) => safeParse3(inst, data, params);
   inst.parseAsync = async (data, params) => parseAsync2(inst, data, params, { callee: inst.parseAsync });
   inst.safeParseAsync = async (data, params) => safeParseAsync2(inst, data, params);
   inst.spa = inst.safeParseAsync;
-  inst.encode = (data, params) => encode3(inst, data, params);
+  inst.encode = (data, params) => encode2(inst, data, params);
   inst.decode = (data, params) => decode2(inst, data, params);
   inst.encodeAsync = async (data, params) => encodeAsync2(inst, data, params);
   inst.decodeAsync = async (data, params) => decodeAsync2(inst, data, params);
@@ -49067,7 +41520,7 @@ var ZodUUID = /* @__PURE__ */ $constructor("ZodUUID", (inst, def) => {
   $ZodUUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function uuid3(params) {
+function uuid2(params) {
   return _uuid(ZodUUID, params);
 }
 function uuidv4(params) {
@@ -49181,7 +41634,7 @@ var ZodBase64 = /* @__PURE__ */ $constructor("ZodBase64", (inst, def) => {
   $ZodBase64.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function base643(params) {
+function base642(params) {
   return _base64(ZodBase64, params);
 }
 var ZodBase64URL = /* @__PURE__ */ $constructor("ZodBase64URL", (inst, def) => {
@@ -49600,9 +42053,9 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
   inst.enum = def.entries;
   inst.options = Object.values(def.entries);
   const keys = new Set(Object.keys(def.entries));
-  inst.extract = (values2, params) => {
+  inst.extract = (values, params) => {
     const newEntries = {};
-    for (const value of values2) {
+    for (const value of values) {
       if (keys.has(value)) {
         newEntries[value] = def.entries[value];
       } else
@@ -49615,9 +42068,9 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
       entries: newEntries
     });
   };
-  inst.exclude = (values2, params) => {
+  inst.exclude = (values, params) => {
     const newEntries = { ...def.entries };
-    for (const value of values2) {
+    for (const value of values) {
       if (keys.has(value)) {
         delete newEntries[value];
       } else
@@ -49631,8 +42084,8 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
     });
   };
 });
-function _enum2(values2, params) {
-  const entries = Array.isArray(values2) ? Object.fromEntries(values2.map((v) => [v, v])) : values2;
+function _enum2(values, params) {
+  const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
   return new ZodEnum({
     type: "enum",
     entries,
@@ -49673,7 +42126,7 @@ var ZodFile = /* @__PURE__ */ $constructor("ZodFile", (inst, def) => {
   inst._zod.processJSONSchema = (ctx, json, params) => fileProcessor(inst, ctx, json, params);
   inst.min = (size, params) => inst.check(_minSize(size, params));
   inst.max = (size, params) => inst.check(_maxSize(size, params));
-  inst.mime = (types5, params) => inst.check(_mime(Array.isArray(types5) ? types5 : [types5], params));
+  inst.mime = (types2, params) => inst.check(_mime(Array.isArray(types2) ? types2 : [types2], params));
 });
 function file(params) {
   return _file(ZodFile, params);
@@ -49994,12 +42447,12 @@ var ZodIssueCode = {
   custom: "custom"
 };
 function setErrorMap(map2) {
-  config2({
+  config({
     customError: map2
   });
 }
 function getErrorMap() {
-  return config2().customError;
+  return config().customError;
 }
 var ZodFirstPartyTypeKind;
 (function(ZodFirstPartyTypeKind2) {})(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
@@ -50085,13 +42538,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path4 = ref.slice(1).split("/").filter(Boolean);
-  if (path4.length === 0) {
+  const path = ref.slice(1).split("/").filter(Boolean);
+  if (path.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path4[0] === defsKey) {
-    const key = path4[1];
+  if (path[0] === defsKey) {
+    const key = path[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -50490,7 +42943,284 @@ function date4(params) {
 }
 
 // node_modules/zod/v4/classic/external.js
-config2(en_default());
+config(en_default());
+// node_modules/zod/v4/classic/index.js
+var classic_default = exports_external;
+
+// node_modules/zod/v4/index.js
+var v4_default = classic_default;
+
+// node_modules/openai/internal/errors.mjs
+function isAbortError(err) {
+  return typeof err === "object" && err !== null && (("name" in err) && err.name === "AbortError" || ("message" in err) && String(err.message).includes("FetchRequestCanceledException"));
+}
+var castToError = (err) => {
+  if (err instanceof Error)
+    return err;
+  if (typeof err === "object" && err !== null) {
+    try {
+      if (Object.prototype.toString.call(err) === "[object Error]") {
+        const error49 = new Error(err.message, err.cause ? { cause: err.cause } : {});
+        if (err.stack)
+          error49.stack = err.stack;
+        if (err.cause && !error49.cause)
+          error49.cause = err.cause;
+        if (err.name)
+          error49.name = err.name;
+        return error49;
+      }
+    } catch {}
+    try {
+      return new Error(JSON.stringify(err));
+    } catch {}
+  }
+  return new Error(err);
+};
+
+// node_modules/openai/core/error.mjs
+class OpenAIError extends Error {
+}
+
+class APIError extends OpenAIError {
+  constructor(status, error49, message, headers) {
+    super(`${APIError.makeMessage(status, error49, message)}`);
+    this.status = status;
+    this.headers = headers;
+    this.requestID = headers?.get("x-request-id");
+    this.error = error49;
+    const data = error49;
+    this.code = data?.["code"];
+    this.param = data?.["param"];
+    this.type = data?.["type"];
+  }
+  static makeMessage(status, error49, message) {
+    const msg = error49?.message ? typeof error49.message === "string" ? error49.message : JSON.stringify(error49.message) : error49 ? JSON.stringify(error49) : message;
+    if (status && msg) {
+      return `${status} ${msg}`;
+    }
+    if (status) {
+      return `${status} status code (no body)`;
+    }
+    if (msg) {
+      return msg;
+    }
+    return "(no status code or body)";
+  }
+  static generate(status, errorResponse, message, headers) {
+    if (!status || !headers) {
+      return new APIConnectionError({ message, cause: castToError(errorResponse) });
+    }
+    const error49 = errorResponse?.["error"];
+    if (status === 400) {
+      return new BadRequestError(status, error49, message, headers);
+    }
+    if (status === 401) {
+      return new AuthenticationError(status, error49, message, headers);
+    }
+    if (status === 403) {
+      return new PermissionDeniedError(status, error49, message, headers);
+    }
+    if (status === 404) {
+      return new NotFoundError(status, error49, message, headers);
+    }
+    if (status === 409) {
+      return new ConflictError(status, error49, message, headers);
+    }
+    if (status === 422) {
+      return new UnprocessableEntityError(status, error49, message, headers);
+    }
+    if (status === 429) {
+      return new RateLimitError(status, error49, message, headers);
+    }
+    if (status >= 500) {
+      return new InternalServerError(status, error49, message, headers);
+    }
+    return new APIError(status, error49, message, headers);
+  }
+}
+
+class APIUserAbortError extends APIError {
+  constructor({ message } = {}) {
+    super(undefined, undefined, message || "Request was aborted.", undefined);
+  }
+}
+
+class APIConnectionError extends APIError {
+  constructor({ message, cause }) {
+    super(undefined, undefined, message || "Connection error.", undefined);
+    if (cause)
+      this.cause = cause;
+  }
+}
+
+class APIConnectionTimeoutError extends APIConnectionError {
+  constructor({ message } = {}) {
+    super({ message: message ?? "Request timed out." });
+  }
+}
+
+class BadRequestError extends APIError {
+}
+
+class AuthenticationError extends APIError {
+}
+
+class PermissionDeniedError extends APIError {
+}
+
+class NotFoundError extends APIError {
+}
+
+class ConflictError extends APIError {
+}
+
+class UnprocessableEntityError extends APIError {
+}
+
+class RateLimitError extends APIError {
+}
+
+class InternalServerError extends APIError {
+}
+
+class LengthFinishReasonError extends OpenAIError {
+  constructor() {
+    super(`Could not parse response content as the length limit was reached`);
+  }
+}
+
+class ContentFilterFinishReasonError extends OpenAIError {
+  constructor() {
+    super(`Could not parse response content as the request was rejected by the content filter`);
+  }
+}
+
+class InvalidWebhookSignatureError extends Error {
+  constructor(message) {
+    super(message);
+  }
+}
+// node_modules/openai/lib/parser.mjs
+function isChatCompletionFunctionTool(tool) {
+  return tool !== undefined && "function" in tool && tool.function !== undefined;
+}
+function makeParseableTextFormat(response_format, parser2) {
+  const obj = { ...response_format };
+  Object.defineProperties(obj, {
+    $brand: {
+      value: "auto-parseable-response-format",
+      enumerable: false
+    },
+    $parseRaw: {
+      value: parser2,
+      enumerable: false
+    }
+  });
+  return obj;
+}
+function isAutoParsableResponseFormat(response_format) {
+  return response_format?.["$brand"] === "auto-parseable-response-format";
+}
+function isAutoParsableTool(tool) {
+  return tool?.["$brand"] === "auto-parseable-tool";
+}
+function maybeParseChatCompletion(completion, params) {
+  if (!params || !hasAutoParseableInput(params)) {
+    return {
+      ...completion,
+      choices: completion.choices.map((choice) => {
+        assertToolCallsAreChatCompletionFunctionToolCalls(choice.message.tool_calls);
+        return {
+          ...choice,
+          message: {
+            ...choice.message,
+            parsed: null,
+            ...choice.message.tool_calls ? {
+              tool_calls: choice.message.tool_calls
+            } : undefined
+          }
+        };
+      })
+    };
+  }
+  return parseChatCompletion(completion, params);
+}
+function parseChatCompletion(completion, params) {
+  const choices = completion.choices.map((choice) => {
+    if (choice.finish_reason === "length") {
+      throw new LengthFinishReasonError;
+    }
+    if (choice.finish_reason === "content_filter") {
+      throw new ContentFilterFinishReasonError;
+    }
+    assertToolCallsAreChatCompletionFunctionToolCalls(choice.message.tool_calls);
+    return {
+      ...choice,
+      message: {
+        ...choice.message,
+        ...choice.message.tool_calls ? {
+          tool_calls: choice.message.tool_calls?.map((toolCall) => parseToolCall(params, toolCall)) ?? undefined
+        } : undefined,
+        parsed: choice.message.content && !choice.message.refusal ? parseResponseFormat(params, choice.message.content) : null
+      }
+    };
+  });
+  return { ...completion, choices };
+}
+function parseResponseFormat(params, content) {
+  if (params.response_format?.type !== "json_schema") {
+    return null;
+  }
+  if (params.response_format?.type === "json_schema") {
+    if ("$parseRaw" in params.response_format) {
+      const response_format = params.response_format;
+      return response_format.$parseRaw(content);
+    }
+    return JSON.parse(content);
+  }
+  return null;
+}
+function parseToolCall(params, toolCall) {
+  const inputTool = params.tools?.find((inputTool2) => isChatCompletionFunctionTool(inputTool2) && inputTool2.function?.name === toolCall.function.name);
+  return {
+    ...toolCall,
+    function: {
+      ...toolCall.function,
+      parsed_arguments: isAutoParsableTool(inputTool) ? inputTool.$parseRaw(toolCall.function.arguments) : inputTool?.function.strict ? JSON.parse(toolCall.function.arguments) : null
+    }
+  };
+}
+function shouldParseToolCall(params, toolCall) {
+  if (!params || !("tools" in params) || !params.tools) {
+    return false;
+  }
+  const inputTool = params.tools?.find((inputTool2) => isChatCompletionFunctionTool(inputTool2) && inputTool2.function?.name === toolCall.function.name);
+  return isChatCompletionFunctionTool(inputTool) && (isAutoParsableTool(inputTool) || inputTool?.function.strict || false);
+}
+function hasAutoParseableInput(params) {
+  if (isAutoParsableResponseFormat(params.response_format)) {
+    return true;
+  }
+  return params.tools?.some((t) => isAutoParsableTool(t) || t.type === "function" && t.function.strict === true) ?? false;
+}
+function assertToolCallsAreChatCompletionFunctionToolCalls(toolCalls) {
+  for (const toolCall of toolCalls || []) {
+    if (toolCall.type !== "function") {
+      throw new OpenAIError(`Currently only \`function\` tool calls are supported; Received \`${toolCall.type}\``);
+    }
+  }
+}
+function validateInputTools(tools) {
+  for (const tool of tools ?? []) {
+    if (tool.type !== "function") {
+      throw new OpenAIError(`Currently only \`function\` tool types support auto-parsing; Received \`${tool.type}\``);
+    }
+    if (tool.function.strict !== true) {
+      throw new OpenAIError(`The \`${tool.function.name}\` tool is not marked with \`strict: true\`. Only strict function tools can be auto-parsed`);
+    }
+  }
+}
+
 // node_modules/openai/_vendor/zod-to-json-schema/Options.mjs
 var ignoreOverride = Symbol("Let zodToJsonSchema decide on which parser to use");
 var defaultOptions = {
@@ -50530,7 +43260,7 @@ var getDefaultOptions = (options) => {
 var zodDef = (zodSchema) => {
   return "_def" in zodSchema ? zodSchema._def : zodSchema;
 };
-function isEmptyObj2(obj) {
+function isEmptyObj(obj) {
   if (!obj)
     return true;
   for (const _k in obj)
@@ -50578,10 +43308,10 @@ var util;
   util2.assertEqual = (_) => {};
   function assertIs2(_arg) {}
   util2.assertIs = assertIs2;
-  function assertNever4(_x) {
+  function assertNever2(_x) {
     throw new Error;
   }
-  util2.assertNever = assertNever4;
+  util2.assertNever = assertNever2;
   util2.arrayToEnum = (items) => {
     const obj = {};
     for (const item of items) {
@@ -50928,8 +43658,8 @@ function getErrorMap2() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path4, errorMaps, issueData } = params;
-  const fullPath = [...path4, ...issueData.path || []];
+  const { data, path, errorMaps, issueData } = params;
+  const fullPath = [...path, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -51041,11 +43771,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 class ParseInputLazyPath {
-  constructor(parent, value, path4, key) {
+  constructor(parent, value, path, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path4;
+    this._path = path;
     this._key = key;
   }
   get path() {
@@ -51441,8 +44171,8 @@ function isValidJWT2(jwt2, alg) {
     const [header] = jwt2.split(".");
     if (!header)
       return false;
-    const base644 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
-    const decoded = JSON.parse(atob(base644));
+    const base643 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
+    const decoded = JSON.parse(atob(base643));
     if (typeof decoded !== "object" || decoded === null)
       return false;
     if ("typ" in decoded && decoded?.typ !== "JWT")
@@ -53164,9 +45894,9 @@ class ZodUnion2 extends ZodType2 {
     return this._def.options;
   }
 }
-ZodUnion2.create = (types5, params) => {
+ZodUnion2.create = (types2, params) => {
   return new ZodUnion2({
-    options: types5,
+    options: types2,
     typeName: ZodFirstPartyTypeKind2.ZodUnion,
     ...processCreateParams(params)
   });
@@ -53787,9 +46517,9 @@ ZodLiteral2.create = (value, params) => {
     ...processCreateParams(params)
   });
 };
-function createZodEnum(values2, params) {
+function createZodEnum(values, params) {
   return new ZodEnum2({
-    values: values2,
+    values,
     typeName: ZodFirstPartyTypeKind2.ZodEnum,
     ...processCreateParams(params)
   });
@@ -53846,14 +46576,14 @@ class ZodEnum2 extends ZodType2 {
     }
     return enumValues;
   }
-  extract(values2, newDef = this._def) {
-    return ZodEnum2.create(values2, {
+  extract(values, newDef = this._def) {
+    return ZodEnum2.create(values, {
       ...this._def,
       ...newDef
     });
   }
-  exclude(values2, newDef = this._def) {
-    return ZodEnum2.create(this.options.filter((opt) => !values2.includes(opt)), {
+  exclude(values, newDef = this._def) {
+    return ZodEnum2.create(this.options.filter((opt) => !values.includes(opt)), {
       ...this._def,
       ...newDef
     });
@@ -53892,9 +46622,9 @@ class ZodNativeEnum extends ZodType2 {
     return this._def.values;
   }
 }
-ZodNativeEnum.create = (values2, params) => {
+ZodNativeEnum.create = (values, params) => {
   return new ZodNativeEnum({
-    values: values2,
+    values,
     typeName: ZodFirstPartyTypeKind2.ZodNativeEnum,
     ...processCreateParams(params)
   });
@@ -54923,7 +47653,7 @@ function parseMapDef(def, refs) {
     ...refs,
     currentPath: [...refs.currentPath, "items", "items", "0"]
   }) || {};
-  const values2 = parseDef(def.valueType._def, {
+  const values = parseDef(def.valueType._def, {
     ...refs,
     currentPath: [...refs.currentPath, "items", "items", "1"]
   }) || {};
@@ -54932,7 +47662,7 @@ function parseMapDef(def, refs) {
     maxItems: 125,
     items: {
       type: "array",
-      items: [keys, values2],
+      items: [keys, values],
       minItems: 2,
       maxItems: 2
     }
@@ -54946,7 +47676,7 @@ function parseNativeEnumDef(def) {
     return typeof object2[object2[key]] !== "number";
   });
   const actualValues = actualKeys.map((key) => object2[key]);
-  const parsedTypes = Array.from(new Set(actualValues.map((values2) => typeof values2)));
+  const parsedTypes = Array.from(new Set(actualValues.map((values) => typeof values)));
   return {
     type: parsedTypes.length === 1 ? parsedTypes[0] === "string" ? "string" : "number" : ["string", "number"],
     enum: actualValues
@@ -54983,15 +47713,15 @@ function parseUnionDef(def, refs) {
     return asAnyOf(def, refs);
   const options = def.options instanceof Map ? Array.from(def.options.values()) : def.options;
   if (options.every((x) => (x._def.typeName in primitiveMappings) && (!x._def.checks || !x._def.checks.length))) {
-    const types5 = options.reduce((types6, x) => {
+    const types2 = options.reduce((types3, x) => {
       const type = primitiveMappings[x._def.typeName];
-      return type && !types6.includes(type) ? [...types6, type] : types6;
+      return type && !types3.includes(type) ? [...types3, type] : types3;
     }, []);
     return {
-      type: types5.length > 1 ? types5 : types5[0]
+      type: types2.length > 1 ? types2 : types2[0]
     };
   } else if (options.every((x) => x._def.typeName === "ZodLiteral" && !x.description)) {
-    const types5 = options.reduce((acc, x) => {
+    const types2 = options.reduce((acc, x) => {
       const type = typeof x._def.value;
       switch (type) {
         case "string":
@@ -55010,8 +47740,8 @@ function parseUnionDef(def, refs) {
           return acc;
       }
     }, []);
-    if (types5.length === options.length) {
-      const uniqueTypes = types5.filter((x, i, a) => a.indexOf(x) === i);
+    if (types2.length === options.length) {
+      const uniqueTypes = types2.filter((x, i, a) => a.indexOf(x) === i);
       return {
         type: uniqueTypes.length > 1 ? uniqueTypes : uniqueTypes[0],
         enum: options.reduce((acc, x) => {
@@ -55423,7 +48153,7 @@ var zodToJsonSchema = (schema, options) => {
     main.title = title;
   }
   const definitions = (() => {
-    if (isEmptyObj2(refs.definitions)) {
+    if (isEmptyObj(refs.definitions)) {
       return;
     }
     const definitions2 = {};
@@ -55464,6 +48194,127 @@ var zodToJsonSchema = (schema, options) => {
   }
   return combined;
 };
+// node_modules/openai/lib/ResponsesParser.mjs
+function maybeParseResponse(response, params) {
+  if (!params || !hasAutoParseableInput2(params)) {
+    return {
+      ...response,
+      output_parsed: null,
+      output: response.output.map((item) => {
+        if (item.type === "function_call") {
+          return {
+            ...item,
+            parsed_arguments: null
+          };
+        }
+        if (item.type === "message") {
+          return {
+            ...item,
+            content: item.content.map((content) => ({
+              ...content,
+              parsed: null
+            }))
+          };
+        } else {
+          return item;
+        }
+      })
+    };
+  }
+  return parseResponse(response, params);
+}
+function parseResponse(response, params) {
+  const output = response.output.map((item) => {
+    if (item.type === "function_call") {
+      return {
+        ...item,
+        parsed_arguments: parseToolCall2(params, item)
+      };
+    }
+    if (item.type === "message") {
+      const content = item.content.map((content2) => {
+        if (content2.type === "output_text") {
+          return {
+            ...content2,
+            parsed: parseTextFormat(params, content2.text)
+          };
+        }
+        return content2;
+      });
+      return {
+        ...item,
+        content
+      };
+    }
+    return item;
+  });
+  const parsed = Object.assign({}, response, { output });
+  if (!Object.getOwnPropertyDescriptor(response, "output_text")) {
+    addOutputText(parsed);
+  }
+  Object.defineProperty(parsed, "output_parsed", {
+    enumerable: true,
+    get() {
+      for (const output2 of parsed.output) {
+        if (output2.type !== "message") {
+          continue;
+        }
+        for (const content of output2.content) {
+          if (content.type === "output_text" && content.parsed !== null) {
+            return content.parsed;
+          }
+        }
+      }
+      return null;
+    }
+  });
+  return parsed;
+}
+function parseTextFormat(params, content) {
+  if (params.text?.format?.type !== "json_schema") {
+    return null;
+  }
+  if ("$parseRaw" in params.text?.format) {
+    const text_format = params.text?.format;
+    return text_format.$parseRaw(content);
+  }
+  return JSON.parse(content);
+}
+function hasAutoParseableInput2(params) {
+  if (isAutoParsableResponseFormat(params.text?.format)) {
+    return true;
+  }
+  return false;
+}
+function isAutoParsableTool2(tool) {
+  return tool?.["$brand"] === "auto-parseable-tool";
+}
+function getInputToolByName(input_tools, name) {
+  return input_tools.find((tool) => tool.type === "function" && tool.name === name);
+}
+function parseToolCall2(params, toolCall) {
+  const inputTool = getInputToolByName(params.tools ?? [], toolCall.name);
+  return {
+    ...toolCall,
+    ...toolCall,
+    parsed_arguments: isAutoParsableTool2(inputTool) ? inputTool.$parseRaw(toolCall.arguments) : inputTool?.strict ? JSON.parse(toolCall.arguments) : null
+  };
+}
+function addOutputText(rsp) {
+  const texts = [];
+  for (const output of rsp.output) {
+    if (output.type !== "message") {
+      continue;
+    }
+    for (const content of output.content) {
+      if (content.type === "output_text") {
+        texts.push(content.text);
+      }
+    }
+  }
+  rsp.output_text = texts.join("");
+}
+
 // node_modules/openai/lib/transform.mjs
 function toStrictJsonSchema(schema) {
   if (schema.type !== "object") {
@@ -55491,23 +48342,23 @@ function isNullable(schema) {
   }
   return false;
 }
-function ensureStrictJsonSchema(jsonSchema, path4, root) {
+function ensureStrictJsonSchema(jsonSchema, path, root) {
   if (typeof jsonSchema === "boolean") {
-    throw new TypeError(`Expected object schema but got boolean; path=${path4.join("/")}`);
+    throw new TypeError(`Expected object schema but got boolean; path=${path.join("/")}`);
   }
   if (!isObject2(jsonSchema)) {
-    throw new TypeError(`Expected ${JSON.stringify(jsonSchema)} to be an object; path=${path4.join("/")}`);
+    throw new TypeError(`Expected ${JSON.stringify(jsonSchema)} to be an object; path=${path.join("/")}`);
   }
   const defs = jsonSchema.$defs;
   if (isObject2(defs)) {
     for (const [defName, defSchema] of Object.entries(defs)) {
-      ensureStrictJsonSchema(defSchema, [...path4, "$defs", defName], root);
+      ensureStrictJsonSchema(defSchema, [...path, "$defs", defName], root);
     }
   }
   const definitions = jsonSchema.definitions;
   if (isObject2(definitions)) {
     for (const [definitionName, definitionSchema] of Object.entries(definitions)) {
-      ensureStrictJsonSchema(definitionSchema, [...path4, "definitions", definitionName], root);
+      ensureStrictJsonSchema(definitionSchema, [...path, "definitions", definitionName], root);
     }
   }
   const typ = jsonSchema.type;
@@ -55519,31 +48370,31 @@ function ensureStrictJsonSchema(jsonSchema, path4, root) {
   if (isObject2(properties)) {
     for (const [key, value] of Object.entries(properties)) {
       if (!isNullable(value) && !required2.includes(key)) {
-        throw new Error(`Zod field at \`${[...path4, "properties", key].join("/")}\` uses \`.optional()\` without \`.nullable()\` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required`);
+        throw new Error(`Zod field at \`${[...path, "properties", key].join("/")}\` uses \`.optional()\` without \`.nullable()\` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required`);
       }
     }
     jsonSchema.required = Object.keys(properties);
     jsonSchema.properties = Object.fromEntries(Object.entries(properties).map(([key, propSchema]) => [
       key,
-      ensureStrictJsonSchema(propSchema, [...path4, "properties", key], root)
+      ensureStrictJsonSchema(propSchema, [...path, "properties", key], root)
     ]));
   }
   const items = jsonSchema.items;
   if (isObject2(items)) {
-    jsonSchema.items = ensureStrictJsonSchema(items, [...path4, "items"], root);
+    jsonSchema.items = ensureStrictJsonSchema(items, [...path, "items"], root);
   }
   const anyOf = jsonSchema.anyOf;
   if (Array.isArray(anyOf)) {
-    jsonSchema.anyOf = anyOf.map((variant, i) => ensureStrictJsonSchema(variant, [...path4, "anyOf", String(i)], root));
+    jsonSchema.anyOf = anyOf.map((variant, i) => ensureStrictJsonSchema(variant, [...path, "anyOf", String(i)], root));
   }
   const allOf = jsonSchema.allOf;
   if (Array.isArray(allOf)) {
     if (allOf.length === 1) {
-      const resolved = ensureStrictJsonSchema(allOf[0], [...path4, "allOf", "0"], root);
+      const resolved = ensureStrictJsonSchema(allOf[0], [...path, "allOf", "0"], root);
       Object.assign(jsonSchema, resolved);
       delete jsonSchema.allOf;
     } else {
-      jsonSchema.allOf = allOf.map((entry, i) => ensureStrictJsonSchema(entry, [...path4, "allOf", String(i)], root));
+      jsonSchema.allOf = allOf.map((entry, i) => ensureStrictJsonSchema(entry, [...path, "allOf", String(i)], root));
     }
   }
   if (jsonSchema.default === null) {
@@ -55552,7 +48403,7 @@ function ensureStrictJsonSchema(jsonSchema, path4, root) {
   const ref = jsonSchema.$ref;
   if (ref && hasMoreThanNKeys(jsonSchema, 1)) {
     if (typeof ref !== "string") {
-      throw new TypeError(`Received non-string $ref - ${ref}; path=${path4.join("/")}`);
+      throw new TypeError(`Received non-string $ref - ${ref}; path=${path.join("/")}`);
     }
     const resolved = resolveRef2(root, ref);
     if (typeof resolved === "boolean") {
@@ -55563,7 +48414,7 @@ function ensureStrictJsonSchema(jsonSchema, path4, root) {
     }
     Object.assign(jsonSchema, { ...resolved, ...jsonSchema });
     delete jsonSchema.$ref;
-    return ensureStrictJsonSchema(jsonSchema, path4, root);
+    return ensureStrictJsonSchema(jsonSchema, path, root);
   }
   return jsonSchema;
 }
@@ -55627,25 +48478,25 @@ function zodTextFormat(zodObject, name, props) {
   }, (content) => zodObject.parse(JSON.parse(content)));
 }
 
-// src/features/pr/llm-call/api.ts
+// src/shared/call-llm-with-retry.ts
 var MAX_RETRIES = 3;
 var INITIAL_RETRY_DELAY_MS = 1000;
 var RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 function isRetryableError(error50) {
-  if (error50 instanceof Error && "status" in error50) {
-    return RETRYABLE_STATUS_CODES.has(error50.status);
-  }
-  return false;
+  return error50 instanceof Error && "status" in error50 && RETRYABLE_STATUS_CODES.has(error50.status);
 }
-var sleep3 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-async function callWithRetry(openai, model2, userMessage) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function callWithRetry(systemPrompt, userMessage, schema, schemaName) {
+  const model = getConfig().review?.model || DEFAULT_MODEL;
   let lastError;
   for (let attempt = 1;attempt <= MAX_RETRIES; attempt++) {
     try {
       const response = await openai.responses.parse({
         input: [
           {
-            content: SYSTEM_PROMPT,
+            content: systemPrompt,
             role: "system"
           },
           {
@@ -55653,39 +48504,1906 @@ async function callWithRetry(openai, model2, userMessage) {
             role: "user"
           }
         ],
-        model: model2,
+        model,
         text: {
-          format: zodTextFormat(ReviewsSchema, "reviews")
+          format: zodTextFormat(schema, schemaName)
         }
       });
       if (!response.output_parsed) {
-        throw new LLMCallError("LLM returned empty output", {
-          attempts: attempt,
-          cause: null,
-          retryable: false
-        });
+        throw new Error("Received an empty structured response from the LLM.");
       }
-      return response.output_parsed.reviews;
+      return response.output_parsed;
     } catch (error50) {
       lastError = error50;
-      if (!isRetryableError(error50) || attempt === MAX_RETRIES) {
-        const errorMessage = error50 instanceof Error ? error50.message : JSON.stringify(error50);
-        throw new LLMCallError(`LLM call failed after ${attempt} attempt(s): ${errorMessage}`, {
-          attempts: attempt,
-          cause: error50,
-          retryable: isRetryableError(error50)
+      const shouldRetry = isRetryableError(error50) && attempt < MAX_RETRIES;
+      if (!shouldRetry) {
+        throw new Error(`LLM request failed after ${attempt} attempt(s).`, {
+          cause: error50
         });
       }
-      const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-      warning(`Error in LLM call. Retrying in ${delay}ms.`);
-      await sleep3(delay);
+      const delay = INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1);
+      warning(`LLM request failed (attempt ${attempt}/${MAX_RETRIES}). Retrying in ${delay}ms.`);
+      await sleep(delay);
     }
   }
-  throw new LLMCallError(`LLM call failed after ${MAX_RETRIES} attempts`, {
-    attempts: MAX_RETRIES,
-    cause: lastError,
-    retryable: false
+  throw new Error(`LLM request failed after ${MAX_RETRIES} attempts.`, {
+    cause: lastError
   });
+}
+// src/shared/config/load.ts
+import * as fs2 from "node:fs";
+import * as path from "node:path";
+var import_yaml = __toESM(require_dist(), 1);
+var cachedConfig;
+function loadConfig(workspacePath) {
+  if (!workspacePath) {
+    warning("No workspace path provided. Using default configuration.");
+    cachedConfig = {};
+    return cachedConfig;
+  }
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+  const configPath = path.join(workspacePath, ".mifoshawk.yml");
+  if (!fs2.existsSync(configPath)) {
+    info("No .mifoshawk.yml found. Using default configuration.");
+    cachedConfig = {};
+    return cachedConfig;
+  }
+  try {
+    const fileContent = fs2.readFileSync(configPath, "utf8");
+    const parsedYaml = import_yaml.default.parse(fileContent);
+    cachedConfig = ConfigSchema.parse(parsedYaml);
+    info(`Loaded configuration from ${configPath}`);
+    return cachedConfig;
+  } catch (error50) {
+    throw new Error(`Invalid configuration in ${configPath}`, {
+      cause: error50
+    });
+  }
+}
+function getConfig() {
+  return cachedConfig ?? loadConfig(process.env["GITHUB_WORKSPACE"]);
+}
+// src/shared/config/schema.ts
+var AudienceSchema = exports_external.enum(["user", "implementor", "developer"]);
+var CommonDocumentSchema = {
+  audience: AudienceSchema,
+  enabled: exports_external.boolean().optional(),
+  purpose: exports_external.string()
+};
+var GitHubDocSchema = {
+  branch: exports_external.string().optional(),
+  path: exports_external.string(),
+  repo: exports_external.string().optional()
+};
+var GitBookDocumentSchema = exports_external.object({
+  ...CommonDocumentSchema,
+  ...GitHubDocSchema,
+  platform: exports_external.literal("gitbook")
+});
+var ReadMeDocumentSchema = exports_external.object({
+  ...CommonDocumentSchema,
+  ...GitHubDocSchema,
+  platform: exports_external.literal("readme")
+});
+var ConfluenceDocumentSchema = exports_external.object({
+  ...CommonDocumentSchema,
+  pageId: exports_external.string(),
+  platform: exports_external.literal("confluence")
+});
+var DocumentSchema = exports_external.discriminatedUnion("platform", [
+  GitBookDocumentSchema,
+  ReadMeDocumentSchema,
+  ConfluenceDocumentSchema
+]);
+var DocumentationSchema = exports_external.object({
+  documents: exports_external.array(DocumentSchema),
+  enabled: exports_external.boolean().optional()
+});
+var ReviewFilesSchema = exports_external.object({
+  exclude: exports_external.array(exports_external.string()).optional(),
+  include: exports_external.array(exports_external.string()).optional()
+});
+var ReviewSecuritySchema = exports_external.object({
+  dependencyFiles: exports_external.array(exports_external.string()).optional(),
+  rules: exports_external.array(exports_external.any()).optional()
+});
+var ReviewSchema = exports_external.object({
+  files: ReviewFilesSchema.optional(),
+  model: exports_external.string().optional(),
+  security: ReviewSecuritySchema.optional()
+});
+var ConfigSchema = exports_external.object({
+  documentation: DocumentationSchema.optional(),
+  review: ReviewSchema.optional()
+});
+// src/shared/error/expect-error.ts
+async function expectError(promise3, errorsToCatch) {
+  return promise3.then((data) => {
+    return [undefined, data];
+  }).catch((error50) => {
+    if (errorsToCatch === undefined) {
+      return [error50];
+    }
+    if (errorsToCatch.some((e) => error50 instanceof e)) {
+      return [error50];
+    }
+    throw error50;
+  });
+}
+// src/shared/error/failed-action.ts
+function exitFailedAction(contextMessage, error50) {
+  let details;
+  if (error50 instanceof Error) {
+    details = error50.message;
+    if (error50.cause) {
+      let causeMessage;
+      if (error50.cause instanceof Error) {
+        causeMessage = error50.cause.message;
+      } else {
+        causeMessage = String(error50.cause);
+      }
+      details += `
+Cause: ${causeMessage}`;
+    }
+    if (error50.stack) {
+      debug(error50.stack);
+    }
+  } else {
+    details = String(error50);
+  }
+  const message = `${contextMessage}: ${details}`;
+  error(message);
+  setFailed(message);
+}
+// src/shared/git-diff/chunking.ts
+var MAX_TOKENS_PER_CHUNK = 1e4;
+var MAX_CONCURRENT_CHUNKS = 3;
+function chunkDiffs(items, getTokenCount, maxTokens = MAX_TOKENS_PER_CHUNK) {
+  const chunks = [];
+  let currentChunk = [];
+  let currentChunkTokens = 0;
+  for (const item of items) {
+    const itemTokens = getTokenCount(item);
+    const wouldExceedLimit = currentChunk.length > 0 && currentChunkTokens + itemTokens > maxTokens;
+    if (wouldExceedLimit) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentChunkTokens = 0;
+    }
+    currentChunk.push(item);
+    currentChunkTokens += itemTokens;
+  }
+  if (currentChunk.length > 0) {
+    chunks.push(currentChunk);
+  }
+  const result = [];
+  let chunkIndex = 0;
+  for (const chunk of chunks) {
+    result.push({
+      chunkIndex,
+      diffs: chunk,
+      totalChunks: chunks.length
+    });
+    chunkIndex++;
+  }
+  return result;
+}
+// node_modules/balanced-match/dist/esm/index.js
+var balanced = (a, b, str) => {
+  const ma = a instanceof RegExp ? maybeMatch(a, str) : a;
+  const mb = b instanceof RegExp ? maybeMatch(b, str) : b;
+  const r = ma !== null && mb != null && range(ma, mb, str);
+  return r && {
+    start: r[0],
+    end: r[1],
+    pre: str.slice(0, r[0]),
+    body: str.slice(r[0] + ma.length, r[1]),
+    post: str.slice(r[1] + mb.length)
+  };
+};
+var maybeMatch = (reg, str) => {
+  const m = str.match(reg);
+  return m ? m[0] : null;
+};
+var range = (a, b, str) => {
+  let begs, beg, left, right = undefined, result;
+  let ai = str.indexOf(a);
+  let bi = str.indexOf(b, ai + 1);
+  let i = ai;
+  if (ai >= 0 && bi > 0) {
+    if (a === b) {
+      return [ai, bi];
+    }
+    begs = [];
+    left = str.length;
+    while (i >= 0 && !result) {
+      if (i === ai) {
+        begs.push(i);
+        ai = str.indexOf(a, i + 1);
+      } else if (begs.length === 1) {
+        const r = begs.pop();
+        if (r !== undefined)
+          result = [r, bi];
+      } else {
+        beg = begs.pop();
+        if (beg !== undefined && beg < left) {
+          left = beg;
+          right = bi;
+        }
+        bi = str.indexOf(b, i + 1);
+      }
+      i = ai < bi && ai >= 0 ? ai : bi;
+    }
+    if (begs.length && right !== undefined) {
+      result = [left, right];
+    }
+  }
+  return result;
+};
+
+// node_modules/brace-expansion/dist/esm/index.js
+var escSlash = "\x00SLASH" + Math.random() + "\x00";
+var escOpen = "\x00OPEN" + Math.random() + "\x00";
+var escClose = "\x00CLOSE" + Math.random() + "\x00";
+var escComma = "\x00COMMA" + Math.random() + "\x00";
+var escPeriod = "\x00PERIOD" + Math.random() + "\x00";
+var escSlashPattern = new RegExp(escSlash, "g");
+var escOpenPattern = new RegExp(escOpen, "g");
+var escClosePattern = new RegExp(escClose, "g");
+var escCommaPattern = new RegExp(escComma, "g");
+var escPeriodPattern = new RegExp(escPeriod, "g");
+var slashPattern = /\\\\/g;
+var openPattern = /\\{/g;
+var closePattern = /\\}/g;
+var commaPattern = /\\,/g;
+var periodPattern = /\\\./g;
+var EXPANSION_MAX = 1e5;
+function numeric(str) {
+  return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
+}
+function escapeBraces(str) {
+  return str.replace(slashPattern, escSlash).replace(openPattern, escOpen).replace(closePattern, escClose).replace(commaPattern, escComma).replace(periodPattern, escPeriod);
+}
+function unescapeBraces(str) {
+  return str.replace(escSlashPattern, "\\").replace(escOpenPattern, "{").replace(escClosePattern, "}").replace(escCommaPattern, ",").replace(escPeriodPattern, ".");
+}
+function parseCommaParts(str) {
+  if (!str) {
+    return [""];
+  }
+  const parts = [];
+  const m = balanced("{", "}", str);
+  if (!m) {
+    return str.split(",");
+  }
+  const { pre, body, post } = m;
+  const p = pre.split(",");
+  p[p.length - 1] += "{" + body + "}";
+  const postParts = parseCommaParts(post);
+  if (post.length) {
+    p[p.length - 1] += postParts.shift();
+    p.push.apply(p, postParts);
+  }
+  parts.push.apply(parts, p);
+  return parts;
+}
+function expand2(str, options = {}) {
+  if (!str) {
+    return [];
+  }
+  const { max = EXPANSION_MAX } = options;
+  if (str.slice(0, 2) === "{}") {
+    str = "\\{\\}" + str.slice(2);
+  }
+  return expand_(escapeBraces(str), max, true).map(unescapeBraces);
+}
+function embrace(str) {
+  return "{" + str + "}";
+}
+function isPadded(el) {
+  return /^-?0\d/.test(el);
+}
+function lte(i, y) {
+  return i <= y;
+}
+function gte(i, y) {
+  return i >= y;
+}
+function expand_(str, max, isTop) {
+  const expansions = [];
+  const m = balanced("{", "}", str);
+  if (!m)
+    return [str];
+  const pre = m.pre;
+  const post = m.post.length ? expand_(m.post, max, false) : [""];
+  if (/\$$/.test(m.pre)) {
+    for (let k = 0;k < post.length && k < max; k++) {
+      const expansion = pre + "{" + m.body + "}" + post[k];
+      expansions.push(expansion);
+    }
+  } else {
+    const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
+    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
+    const isSequence = isNumericSequence || isAlphaSequence;
+    const isOptions = m.body.indexOf(",") >= 0;
+    if (!isSequence && !isOptions) {
+      if (m.post.match(/,(?!,).*\}/)) {
+        str = m.pre + "{" + m.body + escClose + m.post;
+        return expand_(str, max, true);
+      }
+      return [str];
+    }
+    let n;
+    if (isSequence) {
+      n = m.body.split(/\.\./);
+    } else {
+      n = parseCommaParts(m.body);
+      if (n.length === 1 && n[0] !== undefined) {
+        n = expand_(n[0], max, false).map(embrace);
+        if (n.length === 1) {
+          return post.map((p) => m.pre + n[0] + p);
+        }
+      }
+    }
+    let N;
+    if (isSequence && n[0] !== undefined && n[1] !== undefined) {
+      const x = numeric(n[0]);
+      const y = numeric(n[1]);
+      const width = Math.max(n[0].length, n[1].length);
+      let incr = n.length === 3 && n[2] !== undefined ? Math.max(Math.abs(numeric(n[2])), 1) : 1;
+      let test = lte;
+      const reverse = y < x;
+      if (reverse) {
+        incr *= -1;
+        test = gte;
+      }
+      const pad = n.some(isPadded);
+      N = [];
+      for (let i = x;test(i, y) && N.length < max; i += incr) {
+        let c;
+        if (isAlphaSequence) {
+          c = String.fromCharCode(i);
+          if (c === "\\") {
+            c = "";
+          }
+        } else {
+          c = String(i);
+          if (pad) {
+            const need = width - c.length;
+            if (need > 0) {
+              const z2 = new Array(need + 1).join("0");
+              if (i < 0) {
+                c = "-" + z2 + c.slice(1);
+              } else {
+                c = z2 + c;
+              }
+            }
+          }
+        }
+        N.push(c);
+      }
+    } else {
+      N = [];
+      for (let j = 0;j < n.length; j++) {
+        N.push.apply(N, expand_(n[j], max, false));
+      }
+    }
+    for (let j = 0;j < N.length; j++) {
+      for (let k = 0;k < post.length && expansions.length < max; k++) {
+        const expansion = pre + N[j] + post[k];
+        if (!isTop || isSequence || expansion) {
+          expansions.push(expansion);
+        }
+      }
+    }
+  }
+  return expansions;
+}
+
+// node_modules/minimatch/dist/esm/assert-valid-pattern.js
+var MAX_PATTERN_LENGTH = 1024 * 64;
+var assertValidPattern = (pattern) => {
+  if (typeof pattern !== "string") {
+    throw new TypeError("invalid pattern");
+  }
+  if (pattern.length > MAX_PATTERN_LENGTH) {
+    throw new TypeError("pattern is too long");
+  }
+};
+
+// node_modules/minimatch/dist/esm/brace-expressions.js
+var posixClasses = {
+  "[:alnum:]": ["\\p{L}\\p{Nl}\\p{Nd}", true],
+  "[:alpha:]": ["\\p{L}\\p{Nl}", true],
+  "[:ascii:]": ["\\x" + "00-\\x" + "7f", false],
+  "[:blank:]": ["\\p{Zs}\\t", true],
+  "[:cntrl:]": ["\\p{Cc}", true],
+  "[:digit:]": ["\\p{Nd}", true],
+  "[:graph:]": ["\\p{Z}\\p{C}", true, true],
+  "[:lower:]": ["\\p{Ll}", true],
+  "[:print:]": ["\\p{C}", true],
+  "[:punct:]": ["\\p{P}", true],
+  "[:space:]": ["\\p{Z}\\t\\r\\n\\v\\f", true],
+  "[:upper:]": ["\\p{Lu}", true],
+  "[:word:]": ["\\p{L}\\p{Nl}\\p{Nd}\\p{Pc}", true],
+  "[:xdigit:]": ["A-Fa-f0-9", false]
+};
+var braceEscape = (s) => s.replace(/[[\]\\-]/g, "\\$&");
+var regexpEscape = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+var rangesToString = (ranges) => ranges.join("");
+var parseClass = (glob, position) => {
+  const pos = position;
+  if (glob.charAt(pos) !== "[") {
+    throw new Error("not in a brace expression");
+  }
+  const ranges = [];
+  const negs = [];
+  let i = pos + 1;
+  let sawStart = false;
+  let uflag = false;
+  let escaping = false;
+  let negate = false;
+  let endPos = pos;
+  let rangeStart = "";
+  WHILE:
+    while (i < glob.length) {
+      const c = glob.charAt(i);
+      if ((c === "!" || c === "^") && i === pos + 1) {
+        negate = true;
+        i++;
+        continue;
+      }
+      if (c === "]" && sawStart && !escaping) {
+        endPos = i + 1;
+        break;
+      }
+      sawStart = true;
+      if (c === "\\") {
+        if (!escaping) {
+          escaping = true;
+          i++;
+          continue;
+        }
+      }
+      if (c === "[" && !escaping) {
+        for (const [cls, [unip, u, neg]] of Object.entries(posixClasses)) {
+          if (glob.startsWith(cls, i)) {
+            if (rangeStart) {
+              return ["$.", false, glob.length - pos, true];
+            }
+            i += cls.length;
+            if (neg)
+              negs.push(unip);
+            else
+              ranges.push(unip);
+            uflag = uflag || u;
+            continue WHILE;
+          }
+        }
+      }
+      escaping = false;
+      if (rangeStart) {
+        if (c > rangeStart) {
+          ranges.push(braceEscape(rangeStart) + "-" + braceEscape(c));
+        } else if (c === rangeStart) {
+          ranges.push(braceEscape(c));
+        }
+        rangeStart = "";
+        i++;
+        continue;
+      }
+      if (glob.startsWith("-]", i + 1)) {
+        ranges.push(braceEscape(c + "-"));
+        i += 2;
+        continue;
+      }
+      if (glob.startsWith("-", i + 1)) {
+        rangeStart = c;
+        i += 2;
+        continue;
+      }
+      ranges.push(braceEscape(c));
+      i++;
+    }
+  if (endPos < i) {
+    return ["", false, 0, false];
+  }
+  if (!ranges.length && !negs.length) {
+    return ["$.", false, glob.length - pos, true];
+  }
+  if (negs.length === 0 && ranges.length === 1 && /^\\?.$/.test(ranges[0]) && !negate) {
+    const r = ranges[0].length === 2 ? ranges[0].slice(-1) : ranges[0];
+    return [regexpEscape(r), false, endPos - pos, false];
+  }
+  const sranges = "[" + (negate ? "^" : "") + rangesToString(ranges) + "]";
+  const snegs = "[" + (negate ? "" : "^") + rangesToString(negs) + "]";
+  const comb = ranges.length && negs.length ? "(" + sranges + "|" + snegs + ")" : ranges.length ? sranges : snegs;
+  return [comb, uflag, endPos - pos, true];
+};
+
+// node_modules/minimatch/dist/esm/unescape.js
+var unescape2 = (s, { windowsPathsNoEscape = false, magicalBraces = true } = {}) => {
+  if (magicalBraces) {
+    return windowsPathsNoEscape ? s.replace(/\[([^/\\])\]/g, "$1") : s.replace(/((?!\\).|^)\[([^/\\])\]/g, "$1$2").replace(/\\([^/])/g, "$1");
+  }
+  return windowsPathsNoEscape ? s.replace(/\[([^/\\{}])\]/g, "$1") : s.replace(/((?!\\).|^)\[([^/\\{}])\]/g, "$1$2").replace(/\\([^/{}])/g, "$1");
+};
+
+// node_modules/minimatch/dist/esm/ast.js
+var _a2;
+var types3 = new Set(["!", "?", "+", "*", "@"]);
+var isExtglobType = (c) => types3.has(c);
+var isExtglobAST = (c) => isExtglobType(c.type);
+var adoptionMap = new Map([
+  ["!", ["@"]],
+  ["?", ["?", "@"]],
+  ["@", ["@"]],
+  ["*", ["*", "+", "?", "@"]],
+  ["+", ["+", "@"]]
+]);
+var adoptionWithSpaceMap = new Map([
+  ["!", ["?"]],
+  ["@", ["?"]],
+  ["+", ["?", "*"]]
+]);
+var adoptionAnyMap = new Map([
+  ["!", ["?", "@"]],
+  ["?", ["?", "@"]],
+  ["@", ["?", "@"]],
+  ["*", ["*", "+", "?", "@"]],
+  ["+", ["+", "@", "?", "*"]]
+]);
+var usurpMap = new Map([
+  ["!", new Map([["!", "@"]])],
+  [
+    "?",
+    new Map([
+      ["*", "*"],
+      ["+", "*"]
+    ])
+  ],
+  [
+    "@",
+    new Map([
+      ["!", "!"],
+      ["?", "?"],
+      ["@", "@"],
+      ["*", "*"],
+      ["+", "+"]
+    ])
+  ],
+  [
+    "+",
+    new Map([
+      ["?", "*"],
+      ["*", "*"]
+    ])
+  ]
+]);
+var startNoTraversal = "(?!(?:^|/)\\.\\.?(?:$|/))";
+var startNoDot = "(?!\\.)";
+var addPatternStart = new Set(["[", "."]);
+var justDots = new Set(["..", "."]);
+var reSpecials = new Set("().*{}+?[]^$\\!");
+var regExpEscape = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+var qmark = "[^/]";
+var star = qmark + "*?";
+var starNoEmpty = qmark + "+?";
+var ID = 0;
+
+class AST {
+  type;
+  #root;
+  #hasMagic;
+  #uflag = false;
+  #parts = [];
+  #parent;
+  #parentIndex;
+  #negs;
+  #filledNegs = false;
+  #options;
+  #toString;
+  #emptyExt = false;
+  id = ++ID;
+  get depth() {
+    return (this.#parent?.depth ?? -1) + 1;
+  }
+  [Symbol.for("nodejs.util.inspect.custom")]() {
+    return {
+      "@@type": "AST",
+      id: this.id,
+      type: this.type,
+      root: this.#root.id,
+      parent: this.#parent?.id,
+      depth: this.depth,
+      partsLength: this.#parts.length,
+      parts: this.#parts
+    };
+  }
+  constructor(type, parent, options = {}) {
+    this.type = type;
+    if (type)
+      this.#hasMagic = true;
+    this.#parent = parent;
+    this.#root = this.#parent ? this.#parent.#root : this;
+    this.#options = this.#root === this ? options : this.#root.#options;
+    this.#negs = this.#root === this ? [] : this.#root.#negs;
+    if (type === "!" && !this.#root.#filledNegs)
+      this.#negs.push(this);
+    this.#parentIndex = this.#parent ? this.#parent.#parts.length : 0;
+  }
+  get hasMagic() {
+    if (this.#hasMagic !== undefined)
+      return this.#hasMagic;
+    for (const p of this.#parts) {
+      if (typeof p === "string")
+        continue;
+      if (p.type || p.hasMagic)
+        return this.#hasMagic = true;
+    }
+    return this.#hasMagic;
+  }
+  toString() {
+    return this.#toString !== undefined ? this.#toString : !this.type ? this.#toString = this.#parts.map((p) => String(p)).join("") : this.#toString = this.type + "(" + this.#parts.map((p) => String(p)).join("|") + ")";
+  }
+  #fillNegs() {
+    if (this !== this.#root)
+      throw new Error("should only call on root");
+    if (this.#filledNegs)
+      return this;
+    this.toString();
+    this.#filledNegs = true;
+    let n;
+    while (n = this.#negs.pop()) {
+      if (n.type !== "!")
+        continue;
+      let p = n;
+      let pp = p.#parent;
+      while (pp) {
+        for (let i = p.#parentIndex + 1;!pp.type && i < pp.#parts.length; i++) {
+          for (const part of n.#parts) {
+            if (typeof part === "string") {
+              throw new Error("string part in extglob AST??");
+            }
+            part.copyIn(pp.#parts[i]);
+          }
+        }
+        p = pp;
+        pp = p.#parent;
+      }
+    }
+    return this;
+  }
+  push(...parts) {
+    for (const p of parts) {
+      if (p === "")
+        continue;
+      if (typeof p !== "string" && !(p instanceof _a2 && p.#parent === this)) {
+        throw new Error("invalid part: " + p);
+      }
+      this.#parts.push(p);
+    }
+  }
+  toJSON() {
+    const ret = this.type === null ? this.#parts.slice().map((p) => typeof p === "string" ? p : p.toJSON()) : [this.type, ...this.#parts.map((p) => p.toJSON())];
+    if (this.isStart() && !this.type)
+      ret.unshift([]);
+    if (this.isEnd() && (this === this.#root || this.#root.#filledNegs && this.#parent?.type === "!")) {
+      ret.push({});
+    }
+    return ret;
+  }
+  isStart() {
+    if (this.#root === this)
+      return true;
+    if (!this.#parent?.isStart())
+      return false;
+    if (this.#parentIndex === 0)
+      return true;
+    const p = this.#parent;
+    for (let i = 0;i < this.#parentIndex; i++) {
+      const pp = p.#parts[i];
+      if (!(pp instanceof _a2 && pp.type === "!")) {
+        return false;
+      }
+    }
+    return true;
+  }
+  isEnd() {
+    if (this.#root === this)
+      return true;
+    if (this.#parent?.type === "!")
+      return true;
+    if (!this.#parent?.isEnd())
+      return false;
+    if (!this.type)
+      return this.#parent?.isEnd();
+    const pl = this.#parent ? this.#parent.#parts.length : 0;
+    return this.#parentIndex === pl - 1;
+  }
+  copyIn(part) {
+    if (typeof part === "string")
+      this.push(part);
+    else
+      this.push(part.clone(this));
+  }
+  clone(parent) {
+    const c = new _a2(this.type, parent);
+    for (const p of this.#parts) {
+      c.copyIn(p);
+    }
+    return c;
+  }
+  static #parseAST(str, ast, pos, opt, extDepth) {
+    const maxDepth = opt.maxExtglobRecursion ?? 2;
+    let escaping = false;
+    let inBrace = false;
+    let braceStart = -1;
+    let braceNeg = false;
+    if (ast.type === null) {
+      let i2 = pos;
+      let acc2 = "";
+      while (i2 < str.length) {
+        const c = str.charAt(i2++);
+        if (escaping || c === "\\") {
+          escaping = !escaping;
+          acc2 += c;
+          continue;
+        }
+        if (inBrace) {
+          if (i2 === braceStart + 1) {
+            if (c === "^" || c === "!") {
+              braceNeg = true;
+            }
+          } else if (c === "]" && !(i2 === braceStart + 2 && braceNeg)) {
+            inBrace = false;
+          }
+          acc2 += c;
+          continue;
+        } else if (c === "[") {
+          inBrace = true;
+          braceStart = i2;
+          braceNeg = false;
+          acc2 += c;
+          continue;
+        }
+        const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i2) === "(" && extDepth <= maxDepth;
+        if (doRecurse) {
+          ast.push(acc2);
+          acc2 = "";
+          const ext = new _a2(c, ast);
+          i2 = _a2.#parseAST(str, ext, i2, opt, extDepth + 1);
+          ast.push(ext);
+          continue;
+        }
+        acc2 += c;
+      }
+      ast.push(acc2);
+      return i2;
+    }
+    let i = pos + 1;
+    let part = new _a2(null, ast);
+    const parts = [];
+    let acc = "";
+    while (i < str.length) {
+      const c = str.charAt(i++);
+      if (escaping || c === "\\") {
+        escaping = !escaping;
+        acc += c;
+        continue;
+      }
+      if (inBrace) {
+        if (i === braceStart + 1) {
+          if (c === "^" || c === "!") {
+            braceNeg = true;
+          }
+        } else if (c === "]" && !(i === braceStart + 2 && braceNeg)) {
+          inBrace = false;
+        }
+        acc += c;
+        continue;
+      } else if (c === "[") {
+        inBrace = true;
+        braceStart = i;
+        braceNeg = false;
+        acc += c;
+        continue;
+      }
+      const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i) === "(" && (extDepth <= maxDepth || ast && ast.#canAdoptType(c));
+      if (doRecurse) {
+        const depthAdd = ast && ast.#canAdoptType(c) ? 0 : 1;
+        part.push(acc);
+        acc = "";
+        const ext = new _a2(c, part);
+        part.push(ext);
+        i = _a2.#parseAST(str, ext, i, opt, extDepth + depthAdd);
+        continue;
+      }
+      if (c === "|") {
+        part.push(acc);
+        acc = "";
+        parts.push(part);
+        part = new _a2(null, ast);
+        continue;
+      }
+      if (c === ")") {
+        if (acc === "" && ast.#parts.length === 0) {
+          ast.#emptyExt = true;
+        }
+        part.push(acc);
+        acc = "";
+        ast.push(...parts, part);
+        return i;
+      }
+      acc += c;
+    }
+    ast.type = null;
+    ast.#hasMagic = undefined;
+    ast.#parts = [str.substring(pos - 1)];
+    return i;
+  }
+  #canAdoptWithSpace(child) {
+    return this.#canAdopt(child, adoptionWithSpaceMap);
+  }
+  #canAdopt(child, map3 = adoptionMap) {
+    if (!child || typeof child !== "object" || child.type !== null || child.#parts.length !== 1 || this.type === null) {
+      return false;
+    }
+    const gc = child.#parts[0];
+    if (!gc || typeof gc !== "object" || gc.type === null) {
+      return false;
+    }
+    return this.#canAdoptType(gc.type, map3);
+  }
+  #canAdoptType(c, map3 = adoptionAnyMap) {
+    return !!map3.get(this.type)?.includes(c);
+  }
+  #adoptWithSpace(child, index) {
+    const gc = child.#parts[0];
+    const blank = new _a2(null, gc, this.options);
+    blank.#parts.push("");
+    gc.push(blank);
+    this.#adopt(child, index);
+  }
+  #adopt(child, index) {
+    const gc = child.#parts[0];
+    this.#parts.splice(index, 1, ...gc.#parts);
+    for (const p of gc.#parts) {
+      if (typeof p === "object")
+        p.#parent = this;
+    }
+    this.#toString = undefined;
+  }
+  #canUsurpType(c) {
+    const m = usurpMap.get(this.type);
+    return !!m?.has(c);
+  }
+  #canUsurp(child) {
+    if (!child || typeof child !== "object" || child.type !== null || child.#parts.length !== 1 || this.type === null || this.#parts.length !== 1) {
+      return false;
+    }
+    const gc = child.#parts[0];
+    if (!gc || typeof gc !== "object" || gc.type === null) {
+      return false;
+    }
+    return this.#canUsurpType(gc.type);
+  }
+  #usurp(child) {
+    const m = usurpMap.get(this.type);
+    const gc = child.#parts[0];
+    const nt = m?.get(gc.type);
+    if (!nt)
+      return false;
+    this.#parts = gc.#parts;
+    for (const p of this.#parts) {
+      if (typeof p === "object") {
+        p.#parent = this;
+      }
+    }
+    this.type = nt;
+    this.#toString = undefined;
+    this.#emptyExt = false;
+  }
+  static fromGlob(pattern, options = {}) {
+    const ast = new _a2(null, undefined, options);
+    _a2.#parseAST(pattern, ast, 0, options, 0);
+    return ast;
+  }
+  toMMPattern() {
+    if (this !== this.#root)
+      return this.#root.toMMPattern();
+    const glob = this.toString();
+    const [re, body, hasMagic, uflag] = this.toRegExpSource();
+    const anyMagic = hasMagic || this.#hasMagic || this.#options.nocase && !this.#options.nocaseMagicOnly && glob.toUpperCase() !== glob.toLowerCase();
+    if (!anyMagic) {
+      return body;
+    }
+    const flags = (this.#options.nocase ? "i" : "") + (uflag ? "u" : "");
+    return Object.assign(new RegExp(`^${re}$`, flags), {
+      _src: re,
+      _glob: glob
+    });
+  }
+  get options() {
+    return this.#options;
+  }
+  toRegExpSource(allowDot) {
+    const dot = allowDot ?? !!this.#options.dot;
+    if (this.#root === this) {
+      this.#flatten();
+      this.#fillNegs();
+    }
+    if (!isExtglobAST(this)) {
+      const noEmpty = this.isStart() && this.isEnd() && !this.#parts.some((s) => typeof s !== "string");
+      const src = this.#parts.map((p) => {
+        const [re, _, hasMagic, uflag] = typeof p === "string" ? _a2.#parseGlob(p, this.#hasMagic, noEmpty) : p.toRegExpSource(allowDot);
+        this.#hasMagic = this.#hasMagic || hasMagic;
+        this.#uflag = this.#uflag || uflag;
+        return re;
+      }).join("");
+      let start2 = "";
+      if (this.isStart()) {
+        if (typeof this.#parts[0] === "string") {
+          const dotTravAllowed = this.#parts.length === 1 && justDots.has(this.#parts[0]);
+          if (!dotTravAllowed) {
+            const aps = addPatternStart;
+            const needNoTrav = dot && aps.has(src.charAt(0)) || src.startsWith("\\.") && aps.has(src.charAt(2)) || src.startsWith("\\.\\.") && aps.has(src.charAt(4));
+            const needNoDot = !dot && !allowDot && aps.has(src.charAt(0));
+            start2 = needNoTrav ? startNoTraversal : needNoDot ? startNoDot : "";
+          }
+        }
+      }
+      let end = "";
+      if (this.isEnd() && this.#root.#filledNegs && this.#parent?.type === "!") {
+        end = "(?:$|\\/)";
+      }
+      const final2 = start2 + src + end;
+      return [
+        final2,
+        unescape2(src),
+        this.#hasMagic = !!this.#hasMagic,
+        this.#uflag
+      ];
+    }
+    const repeated = this.type === "*" || this.type === "+";
+    const start = this.type === "!" ? "(?:(?!(?:" : "(?:";
+    let body = this.#partsToRegExp(dot);
+    if (this.isStart() && this.isEnd() && !body && this.type !== "!") {
+      const s = this.toString();
+      const me = this;
+      me.#parts = [s];
+      me.type = null;
+      me.#hasMagic = undefined;
+      return [s, unescape2(this.toString()), false, false];
+    }
+    let bodyDotAllowed = !repeated || allowDot || dot || !startNoDot ? "" : this.#partsToRegExp(true);
+    if (bodyDotAllowed === body) {
+      bodyDotAllowed = "";
+    }
+    if (bodyDotAllowed) {
+      body = `(?:${body})(?:${bodyDotAllowed})*?`;
+    }
+    let final = "";
+    if (this.type === "!" && this.#emptyExt) {
+      final = (this.isStart() && !dot ? startNoDot : "") + starNoEmpty;
+    } else {
+      const close = this.type === "!" ? "))" + (this.isStart() && !dot && !allowDot ? startNoDot : "") + star + ")" : this.type === "@" ? ")" : this.type === "?" ? ")?" : this.type === "+" && bodyDotAllowed ? ")" : this.type === "*" && bodyDotAllowed ? `)?` : `)${this.type}`;
+      final = start + body + close;
+    }
+    return [
+      final,
+      unescape2(body),
+      this.#hasMagic = !!this.#hasMagic,
+      this.#uflag
+    ];
+  }
+  #flatten() {
+    if (!isExtglobAST(this)) {
+      for (const p of this.#parts) {
+        if (typeof p === "object") {
+          p.#flatten();
+        }
+      }
+    } else {
+      let iterations = 0;
+      let done = false;
+      do {
+        done = true;
+        for (let i = 0;i < this.#parts.length; i++) {
+          const c = this.#parts[i];
+          if (typeof c === "object") {
+            c.#flatten();
+            if (this.#canAdopt(c)) {
+              done = false;
+              this.#adopt(c, i);
+            } else if (this.#canAdoptWithSpace(c)) {
+              done = false;
+              this.#adoptWithSpace(c, i);
+            } else if (this.#canUsurp(c)) {
+              done = false;
+              this.#usurp(c);
+            }
+          }
+        }
+      } while (!done && ++iterations < 10);
+    }
+    this.#toString = undefined;
+  }
+  #partsToRegExp(dot) {
+    return this.#parts.map((p) => {
+      if (typeof p === "string") {
+        throw new Error("string type in extglob ast??");
+      }
+      const [re, _, _hasMagic, uflag] = p.toRegExpSource(dot);
+      this.#uflag = this.#uflag || uflag;
+      return re;
+    }).filter((p) => !(this.isStart() && this.isEnd()) || !!p).join("|");
+  }
+  static #parseGlob(glob, hasMagic, noEmpty = false) {
+    let escaping = false;
+    let re = "";
+    let uflag = false;
+    let inStar = false;
+    for (let i = 0;i < glob.length; i++) {
+      const c = glob.charAt(i);
+      if (escaping) {
+        escaping = false;
+        re += (reSpecials.has(c) ? "\\" : "") + c;
+        continue;
+      }
+      if (c === "*") {
+        if (inStar)
+          continue;
+        inStar = true;
+        re += noEmpty && /^[*]+$/.test(glob) ? starNoEmpty : star;
+        hasMagic = true;
+        continue;
+      } else {
+        inStar = false;
+      }
+      if (c === "\\") {
+        if (i === glob.length - 1) {
+          re += "\\\\";
+        } else {
+          escaping = true;
+        }
+        continue;
+      }
+      if (c === "[") {
+        const [src, needUflag, consumed, magic] = parseClass(glob, i);
+        if (consumed) {
+          re += src;
+          uflag = uflag || needUflag;
+          i += consumed - 1;
+          hasMagic = hasMagic || magic;
+          continue;
+        }
+      }
+      if (c === "?") {
+        re += qmark;
+        hasMagic = true;
+        continue;
+      }
+      re += regExpEscape(c);
+    }
+    return [re, unescape2(glob), !!hasMagic, uflag];
+  }
+}
+_a2 = AST;
+
+// node_modules/minimatch/dist/esm/escape.js
+var escape2 = (s, { windowsPathsNoEscape = false, magicalBraces = false } = {}) => {
+  if (magicalBraces) {
+    return windowsPathsNoEscape ? s.replace(/[?*()[\]{}]/g, "[$&]") : s.replace(/[?*()[\]\\{}]/g, "\\$&");
+  }
+  return windowsPathsNoEscape ? s.replace(/[?*()[\]]/g, "[$&]") : s.replace(/[?*()[\]\\]/g, "\\$&");
+};
+
+// node_modules/minimatch/dist/esm/index.js
+var minimatch = (p, pattern, options = {}) => {
+  assertValidPattern(pattern);
+  if (!options.nocomment && pattern.charAt(0) === "#") {
+    return false;
+  }
+  return new Minimatch(pattern, options).match(p);
+};
+var starDotExtRE = /^\*+([^+@!?*[(]*)$/;
+var starDotExtTest = (ext) => (f) => !f.startsWith(".") && f.endsWith(ext);
+var starDotExtTestDot = (ext) => (f) => f.endsWith(ext);
+var starDotExtTestNocase = (ext) => {
+  ext = ext.toLowerCase();
+  return (f) => !f.startsWith(".") && f.toLowerCase().endsWith(ext);
+};
+var starDotExtTestNocaseDot = (ext) => {
+  ext = ext.toLowerCase();
+  return (f) => f.toLowerCase().endsWith(ext);
+};
+var starDotStarRE = /^\*+\.\*+$/;
+var starDotStarTest = (f) => !f.startsWith(".") && f.includes(".");
+var starDotStarTestDot = (f) => f !== "." && f !== ".." && f.includes(".");
+var dotStarRE = /^\.\*+$/;
+var dotStarTest = (f) => f !== "." && f !== ".." && f.startsWith(".");
+var starRE = /^\*+$/;
+var starTest = (f) => f.length !== 0 && !f.startsWith(".");
+var starTestDot = (f) => f.length !== 0 && f !== "." && f !== "..";
+var qmarksRE = /^\?+([^+@!?*[(]*)?$/;
+var qmarksTestNocase = ([$0, ext = ""]) => {
+  const noext = qmarksTestNoExt([$0]);
+  if (!ext)
+    return noext;
+  ext = ext.toLowerCase();
+  return (f) => noext(f) && f.toLowerCase().endsWith(ext);
+};
+var qmarksTestNocaseDot = ([$0, ext = ""]) => {
+  const noext = qmarksTestNoExtDot([$0]);
+  if (!ext)
+    return noext;
+  ext = ext.toLowerCase();
+  return (f) => noext(f) && f.toLowerCase().endsWith(ext);
+};
+var qmarksTestDot = ([$0, ext = ""]) => {
+  const noext = qmarksTestNoExtDot([$0]);
+  return !ext ? noext : (f) => noext(f) && f.endsWith(ext);
+};
+var qmarksTest = ([$0, ext = ""]) => {
+  const noext = qmarksTestNoExt([$0]);
+  return !ext ? noext : (f) => noext(f) && f.endsWith(ext);
+};
+var qmarksTestNoExt = ([$0]) => {
+  const len = $0.length;
+  return (f) => f.length === len && !f.startsWith(".");
+};
+var qmarksTestNoExtDot = ([$0]) => {
+  const len = $0.length;
+  return (f) => f.length === len && f !== "." && f !== "..";
+};
+var defaultPlatform = typeof process === "object" && process ? typeof process.env === "object" && process.env && process.env.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
+var path2 = {
+  win32: { sep: "\\" },
+  posix: { sep: "/" }
+};
+var sep2 = defaultPlatform === "win32" ? path2.win32.sep : path2.posix.sep;
+minimatch.sep = sep2;
+var GLOBSTAR = Symbol("globstar **");
+minimatch.GLOBSTAR = GLOBSTAR;
+var qmark2 = "[^/]";
+var star2 = qmark2 + "*?";
+var twoStarDot = "(?:(?!(?:\\/|^)(?:\\.{1,2})($|\\/)).)*?";
+var twoStarNoDot = "(?:(?!(?:\\/|^)\\.).)*?";
+var filter = (pattern, options = {}) => (p) => minimatch(p, pattern, options);
+minimatch.filter = filter;
+var ext = (a, b = {}) => Object.assign({}, a, b);
+var defaults2 = (def) => {
+  if (!def || typeof def !== "object" || !Object.keys(def).length) {
+    return minimatch;
+  }
+  const orig = minimatch;
+  const m = (p, pattern, options = {}) => orig(p, pattern, ext(def, options));
+  return Object.assign(m, {
+    Minimatch: class Minimatch extends orig.Minimatch {
+      constructor(pattern, options = {}) {
+        super(pattern, ext(def, options));
+      }
+      static defaults(options) {
+        return orig.defaults(ext(def, options)).Minimatch;
+      }
+    },
+    AST: class AST2 extends orig.AST {
+      constructor(type, parent, options = {}) {
+        super(type, parent, ext(def, options));
+      }
+      static fromGlob(pattern, options = {}) {
+        return orig.AST.fromGlob(pattern, ext(def, options));
+      }
+    },
+    unescape: (s, options = {}) => orig.unescape(s, ext(def, options)),
+    escape: (s, options = {}) => orig.escape(s, ext(def, options)),
+    filter: (pattern, options = {}) => orig.filter(pattern, ext(def, options)),
+    defaults: (options) => orig.defaults(ext(def, options)),
+    makeRe: (pattern, options = {}) => orig.makeRe(pattern, ext(def, options)),
+    braceExpand: (pattern, options = {}) => orig.braceExpand(pattern, ext(def, options)),
+    match: (list, pattern, options = {}) => orig.match(list, pattern, ext(def, options)),
+    sep: orig.sep,
+    GLOBSTAR
+  });
+};
+minimatch.defaults = defaults2;
+var braceExpand = (pattern, options = {}) => {
+  assertValidPattern(pattern);
+  if (options.nobrace || !/\{(?:(?!\{).)*\}/.test(pattern)) {
+    return [pattern];
+  }
+  return expand2(pattern, { max: options.braceExpandMax });
+};
+minimatch.braceExpand = braceExpand;
+var makeRe = (pattern, options = {}) => new Minimatch(pattern, options).makeRe();
+minimatch.makeRe = makeRe;
+var match = (list, pattern, options = {}) => {
+  const mm = new Minimatch(pattern, options);
+  list = list.filter((f) => mm.match(f));
+  if (mm.options.nonull && !list.length) {
+    list.push(pattern);
+  }
+  return list;
+};
+minimatch.match = match;
+var globMagic = /[?*]|[+@!]\(.*?\)|\[|\]/;
+var regExpEscape2 = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+
+class Minimatch {
+  options;
+  set;
+  pattern;
+  windowsPathsNoEscape;
+  nonegate;
+  negate;
+  comment;
+  empty;
+  preserveMultipleSlashes;
+  partial;
+  globSet;
+  globParts;
+  nocase;
+  isWindows;
+  platform;
+  windowsNoMagicRoot;
+  maxGlobstarRecursion;
+  regexp;
+  constructor(pattern, options = {}) {
+    assertValidPattern(pattern);
+    options = options || {};
+    this.options = options;
+    this.maxGlobstarRecursion = options.maxGlobstarRecursion ?? 200;
+    this.pattern = pattern;
+    this.platform = options.platform || defaultPlatform;
+    this.isWindows = this.platform === "win32";
+    const awe = "allowWindow" + "sEscape";
+    this.windowsPathsNoEscape = !!options.windowsPathsNoEscape || options[awe] === false;
+    if (this.windowsPathsNoEscape) {
+      this.pattern = this.pattern.replace(/\\/g, "/");
+    }
+    this.preserveMultipleSlashes = !!options.preserveMultipleSlashes;
+    this.regexp = null;
+    this.negate = false;
+    this.nonegate = !!options.nonegate;
+    this.comment = false;
+    this.empty = false;
+    this.partial = !!options.partial;
+    this.nocase = !!this.options.nocase;
+    this.windowsNoMagicRoot = options.windowsNoMagicRoot !== undefined ? options.windowsNoMagicRoot : !!(this.isWindows && this.nocase);
+    this.globSet = [];
+    this.globParts = [];
+    this.set = [];
+    this.make();
+  }
+  hasMagic() {
+    if (this.options.magicalBraces && this.set.length > 1) {
+      return true;
+    }
+    for (const pattern of this.set) {
+      for (const part of pattern) {
+        if (typeof part !== "string")
+          return true;
+      }
+    }
+    return false;
+  }
+  debug(..._) {}
+  make() {
+    const pattern = this.pattern;
+    const options = this.options;
+    if (!options.nocomment && pattern.charAt(0) === "#") {
+      this.comment = true;
+      return;
+    }
+    if (!pattern) {
+      this.empty = true;
+      return;
+    }
+    this.parseNegate();
+    this.globSet = [...new Set(this.braceExpand())];
+    if (options.debug) {
+      this.debug = (...args) => console.error(...args);
+    }
+    this.debug(this.pattern, this.globSet);
+    const rawGlobParts = this.globSet.map((s) => this.slashSplit(s));
+    this.globParts = this.preprocess(rawGlobParts);
+    this.debug(this.pattern, this.globParts);
+    let set3 = this.globParts.map((s, _, __) => {
+      if (this.isWindows && this.windowsNoMagicRoot) {
+        const isUNC = s[0] === "" && s[1] === "" && (s[2] === "?" || !globMagic.test(s[2])) && !globMagic.test(s[3]);
+        const isDrive = /^[a-z]:/i.test(s[0]);
+        if (isUNC) {
+          return [
+            ...s.slice(0, 4),
+            ...s.slice(4).map((ss) => this.parse(ss))
+          ];
+        } else if (isDrive) {
+          return [s[0], ...s.slice(1).map((ss) => this.parse(ss))];
+        }
+      }
+      return s.map((ss) => this.parse(ss));
+    });
+    this.debug(this.pattern, set3);
+    this.set = set3.filter((s) => s.indexOf(false) === -1);
+    if (this.isWindows) {
+      for (let i = 0;i < this.set.length; i++) {
+        const p = this.set[i];
+        if (p[0] === "" && p[1] === "" && this.globParts[i][2] === "?" && typeof p[3] === "string" && /^[a-z]:$/i.test(p[3])) {
+          p[2] = "?";
+        }
+      }
+    }
+    this.debug(this.pattern, this.set);
+  }
+  preprocess(globParts) {
+    if (this.options.noglobstar) {
+      for (const partset of globParts) {
+        for (let j = 0;j < partset.length; j++) {
+          if (partset[j] === "**") {
+            partset[j] = "*";
+          }
+        }
+      }
+    }
+    const { optimizationLevel = 1 } = this.options;
+    if (optimizationLevel >= 2) {
+      globParts = this.firstPhasePreProcess(globParts);
+      globParts = this.secondPhasePreProcess(globParts);
+    } else if (optimizationLevel >= 1) {
+      globParts = this.levelOneOptimize(globParts);
+    } else {
+      globParts = this.adjascentGlobstarOptimize(globParts);
+    }
+    return globParts;
+  }
+  adjascentGlobstarOptimize(globParts) {
+    return globParts.map((parts) => {
+      let gs = -1;
+      while ((gs = parts.indexOf("**", gs + 1)) !== -1) {
+        let i = gs;
+        while (parts[i + 1] === "**") {
+          i++;
+        }
+        if (i !== gs) {
+          parts.splice(gs, i - gs);
+        }
+      }
+      return parts;
+    });
+  }
+  levelOneOptimize(globParts) {
+    return globParts.map((parts) => {
+      parts = parts.reduce((set3, part) => {
+        const prev = set3[set3.length - 1];
+        if (part === "**" && prev === "**") {
+          return set3;
+        }
+        if (part === "..") {
+          if (prev && prev !== ".." && prev !== "." && prev !== "**") {
+            set3.pop();
+            return set3;
+          }
+        }
+        set3.push(part);
+        return set3;
+      }, []);
+      return parts.length === 0 ? [""] : parts;
+    });
+  }
+  levelTwoFileOptimize(parts) {
+    if (!Array.isArray(parts)) {
+      parts = this.slashSplit(parts);
+    }
+    let didSomething = false;
+    do {
+      didSomething = false;
+      if (!this.preserveMultipleSlashes) {
+        for (let i = 1;i < parts.length - 1; i++) {
+          const p = parts[i];
+          if (i === 1 && p === "" && parts[0] === "")
+            continue;
+          if (p === "." || p === "") {
+            didSomething = true;
+            parts.splice(i, 1);
+            i--;
+          }
+        }
+        if (parts[0] === "." && parts.length === 2 && (parts[1] === "." || parts[1] === "")) {
+          didSomething = true;
+          parts.pop();
+        }
+      }
+      let dd = 0;
+      while ((dd = parts.indexOf("..", dd + 1)) !== -1) {
+        const p = parts[dd - 1];
+        if (p && p !== "." && p !== ".." && p !== "**" && !(this.isWindows && /^[a-z]:$/i.test(p))) {
+          didSomething = true;
+          parts.splice(dd - 1, 2);
+          dd -= 2;
+        }
+      }
+    } while (didSomething);
+    return parts.length === 0 ? [""] : parts;
+  }
+  firstPhasePreProcess(globParts) {
+    let didSomething = false;
+    do {
+      didSomething = false;
+      for (let parts of globParts) {
+        let gs = -1;
+        while ((gs = parts.indexOf("**", gs + 1)) !== -1) {
+          let gss = gs;
+          while (parts[gss + 1] === "**") {
+            gss++;
+          }
+          if (gss > gs) {
+            parts.splice(gs + 1, gss - gs);
+          }
+          let next = parts[gs + 1];
+          const p = parts[gs + 2];
+          const p2 = parts[gs + 3];
+          if (next !== "..")
+            continue;
+          if (!p || p === "." || p === ".." || !p2 || p2 === "." || p2 === "..") {
+            continue;
+          }
+          didSomething = true;
+          parts.splice(gs, 1);
+          const other = parts.slice(0);
+          other[gs] = "**";
+          globParts.push(other);
+          gs--;
+        }
+        if (!this.preserveMultipleSlashes) {
+          for (let i = 1;i < parts.length - 1; i++) {
+            const p = parts[i];
+            if (i === 1 && p === "" && parts[0] === "")
+              continue;
+            if (p === "." || p === "") {
+              didSomething = true;
+              parts.splice(i, 1);
+              i--;
+            }
+          }
+          if (parts[0] === "." && parts.length === 2 && (parts[1] === "." || parts[1] === "")) {
+            didSomething = true;
+            parts.pop();
+          }
+        }
+        let dd = 0;
+        while ((dd = parts.indexOf("..", dd + 1)) !== -1) {
+          const p = parts[dd - 1];
+          if (p && p !== "." && p !== ".." && p !== "**") {
+            didSomething = true;
+            const needDot = dd === 1 && parts[dd + 1] === "**";
+            const splin = needDot ? ["."] : [];
+            parts.splice(dd - 1, 2, ...splin);
+            if (parts.length === 0)
+              parts.push("");
+            dd -= 2;
+          }
+        }
+      }
+    } while (didSomething);
+    return globParts;
+  }
+  secondPhasePreProcess(globParts) {
+    for (let i = 0;i < globParts.length - 1; i++) {
+      for (let j = i + 1;j < globParts.length; j++) {
+        const matched = this.partsMatch(globParts[i], globParts[j], !this.preserveMultipleSlashes);
+        if (matched) {
+          globParts[i] = [];
+          globParts[j] = matched;
+          break;
+        }
+      }
+    }
+    return globParts.filter((gs) => gs.length);
+  }
+  partsMatch(a, b, emptyGSMatch = false) {
+    let ai = 0;
+    let bi = 0;
+    let result = [];
+    let which2 = "";
+    while (ai < a.length && bi < b.length) {
+      if (a[ai] === b[bi]) {
+        result.push(which2 === "b" ? b[bi] : a[ai]);
+        ai++;
+        bi++;
+      } else if (emptyGSMatch && a[ai] === "**" && b[bi] === a[ai + 1]) {
+        result.push(a[ai]);
+        ai++;
+      } else if (emptyGSMatch && b[bi] === "**" && a[ai] === b[bi + 1]) {
+        result.push(b[bi]);
+        bi++;
+      } else if (a[ai] === "*" && b[bi] && (this.options.dot || !b[bi].startsWith(".")) && b[bi] !== "**") {
+        if (which2 === "b")
+          return false;
+        which2 = "a";
+        result.push(a[ai]);
+        ai++;
+        bi++;
+      } else if (b[bi] === "*" && a[ai] && (this.options.dot || !a[ai].startsWith(".")) && a[ai] !== "**") {
+        if (which2 === "a")
+          return false;
+        which2 = "b";
+        result.push(b[bi]);
+        ai++;
+        bi++;
+      } else {
+        return false;
+      }
+    }
+    return a.length === b.length && result;
+  }
+  parseNegate() {
+    if (this.nonegate)
+      return;
+    const pattern = this.pattern;
+    let negate = false;
+    let negateOffset = 0;
+    for (let i = 0;i < pattern.length && pattern.charAt(i) === "!"; i++) {
+      negate = !negate;
+      negateOffset++;
+    }
+    if (negateOffset)
+      this.pattern = pattern.slice(negateOffset);
+    this.negate = negate;
+  }
+  matchOne(file2, pattern, partial2 = false) {
+    let fileStartIndex = 0;
+    let patternStartIndex = 0;
+    if (this.isWindows) {
+      const fileDrive = typeof file2[0] === "string" && /^[a-z]:$/i.test(file2[0]);
+      const fileUNC = !fileDrive && file2[0] === "" && file2[1] === "" && file2[2] === "?" && /^[a-z]:$/i.test(file2[3]);
+      const patternDrive = typeof pattern[0] === "string" && /^[a-z]:$/i.test(pattern[0]);
+      const patternUNC = !patternDrive && pattern[0] === "" && pattern[1] === "" && pattern[2] === "?" && typeof pattern[3] === "string" && /^[a-z]:$/i.test(pattern[3]);
+      const fdi = fileUNC ? 3 : fileDrive ? 0 : undefined;
+      const pdi = patternUNC ? 3 : patternDrive ? 0 : undefined;
+      if (typeof fdi === "number" && typeof pdi === "number") {
+        const [fd, pd] = [
+          file2[fdi],
+          pattern[pdi]
+        ];
+        if (fd.toLowerCase() === pd.toLowerCase()) {
+          pattern[pdi] = fd;
+          patternStartIndex = pdi;
+          fileStartIndex = fdi;
+        }
+      }
+    }
+    const { optimizationLevel = 1 } = this.options;
+    if (optimizationLevel >= 2) {
+      file2 = this.levelTwoFileOptimize(file2);
+    }
+    if (pattern.includes(GLOBSTAR)) {
+      return this.#matchGlobstar(file2, pattern, partial2, fileStartIndex, patternStartIndex);
+    }
+    return this.#matchOne(file2, pattern, partial2, fileStartIndex, patternStartIndex);
+  }
+  #matchGlobstar(file2, pattern, partial2, fileIndex, patternIndex) {
+    const firstgs = pattern.indexOf(GLOBSTAR, patternIndex);
+    const lastgs = pattern.lastIndexOf(GLOBSTAR);
+    const [head, body, tail] = partial2 ? [
+      pattern.slice(patternIndex, firstgs),
+      pattern.slice(firstgs + 1),
+      []
+    ] : [
+      pattern.slice(patternIndex, firstgs),
+      pattern.slice(firstgs + 1, lastgs),
+      pattern.slice(lastgs + 1)
+    ];
+    if (head.length) {
+      const fileHead = file2.slice(fileIndex, fileIndex + head.length);
+      if (!this.#matchOne(fileHead, head, partial2, 0, 0)) {
+        return false;
+      }
+      fileIndex += head.length;
+      patternIndex += head.length;
+    }
+    let fileTailMatch = 0;
+    if (tail.length) {
+      if (tail.length + fileIndex > file2.length)
+        return false;
+      let tailStart = file2.length - tail.length;
+      if (this.#matchOne(file2, tail, partial2, tailStart, 0)) {
+        fileTailMatch = tail.length;
+      } else {
+        if (file2[file2.length - 1] !== "" || fileIndex + tail.length === file2.length) {
+          return false;
+        }
+        tailStart--;
+        if (!this.#matchOne(file2, tail, partial2, tailStart, 0)) {
+          return false;
+        }
+        fileTailMatch = tail.length + 1;
+      }
+    }
+    if (!body.length) {
+      let sawSome = !!fileTailMatch;
+      for (let i2 = fileIndex;i2 < file2.length - fileTailMatch; i2++) {
+        const f = String(file2[i2]);
+        sawSome = true;
+        if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
+          return false;
+        }
+      }
+      return partial2 || sawSome;
+    }
+    const bodySegments = [[[], 0]];
+    let currentBody = bodySegments[0];
+    let nonGsParts = 0;
+    const nonGsPartsSums = [0];
+    for (const b of body) {
+      if (b === GLOBSTAR) {
+        nonGsPartsSums.push(nonGsParts);
+        currentBody = [[], 0];
+        bodySegments.push(currentBody);
+      } else {
+        currentBody[0].push(b);
+        nonGsParts++;
+      }
+    }
+    let i = bodySegments.length - 1;
+    const fileLength = file2.length - fileTailMatch;
+    for (const b of bodySegments) {
+      b[1] = fileLength - (nonGsPartsSums[i--] + b[0].length);
+    }
+    return !!this.#matchGlobStarBodySections(file2, bodySegments, fileIndex, 0, partial2, 0, !!fileTailMatch);
+  }
+  #matchGlobStarBodySections(file2, bodySegments, fileIndex, bodyIndex, partial2, globStarDepth, sawTail) {
+    const bs = bodySegments[bodyIndex];
+    if (!bs) {
+      for (let i = fileIndex;i < file2.length; i++) {
+        sawTail = true;
+        const f = file2[i];
+        if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
+          return false;
+        }
+      }
+      return sawTail;
+    }
+    const [body, after] = bs;
+    while (fileIndex <= after) {
+      const m = this.#matchOne(file2.slice(0, fileIndex + body.length), body, partial2, fileIndex, 0);
+      if (m && globStarDepth < this.maxGlobstarRecursion) {
+        const sub = this.#matchGlobStarBodySections(file2, bodySegments, fileIndex + body.length, bodyIndex + 1, partial2, globStarDepth + 1, sawTail);
+        if (sub !== false) {
+          return sub;
+        }
+      }
+      const f = file2[fileIndex];
+      if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
+        return false;
+      }
+      fileIndex++;
+    }
+    return partial2 || null;
+  }
+  #matchOne(file2, pattern, partial2, fileIndex, patternIndex) {
+    let fi;
+    let pi;
+    let pl;
+    let fl;
+    for (fi = fileIndex, pi = patternIndex, fl = file2.length, pl = pattern.length;fi < fl && pi < pl; fi++, pi++) {
+      this.debug("matchOne loop");
+      let p = pattern[pi];
+      let f = file2[fi];
+      this.debug(pattern, p, f);
+      if (p === false || p === GLOBSTAR) {
+        return false;
+      }
+      let hit;
+      if (typeof p === "string") {
+        hit = f === p;
+        this.debug("string match", p, f, hit);
+      } else {
+        hit = p.test(f);
+        this.debug("pattern match", p, f, hit);
+      }
+      if (!hit)
+        return false;
+    }
+    if (fi === fl && pi === pl) {
+      return true;
+    } else if (fi === fl) {
+      return partial2;
+    } else if (pi === pl) {
+      return fi === fl - 1 && file2[fi] === "";
+    } else {
+      throw new Error("wtf?");
+    }
+  }
+  braceExpand() {
+    return braceExpand(this.pattern, this.options);
+  }
+  parse(pattern) {
+    assertValidPattern(pattern);
+    const options = this.options;
+    if (pattern === "**")
+      return GLOBSTAR;
+    if (pattern === "")
+      return "";
+    let m;
+    let fastTest = null;
+    if (m = pattern.match(starRE)) {
+      fastTest = options.dot ? starTestDot : starTest;
+    } else if (m = pattern.match(starDotExtRE)) {
+      fastTest = (options.nocase ? options.dot ? starDotExtTestNocaseDot : starDotExtTestNocase : options.dot ? starDotExtTestDot : starDotExtTest)(m[1]);
+    } else if (m = pattern.match(qmarksRE)) {
+      fastTest = (options.nocase ? options.dot ? qmarksTestNocaseDot : qmarksTestNocase : options.dot ? qmarksTestDot : qmarksTest)(m);
+    } else if (m = pattern.match(starDotStarRE)) {
+      fastTest = options.dot ? starDotStarTestDot : starDotStarTest;
+    } else if (m = pattern.match(dotStarRE)) {
+      fastTest = dotStarTest;
+    }
+    const re = AST.fromGlob(pattern, this.options).toMMPattern();
+    if (fastTest && typeof re === "object") {
+      Reflect.defineProperty(re, "test", { value: fastTest });
+    }
+    return re;
+  }
+  makeRe() {
+    if (this.regexp || this.regexp === false)
+      return this.regexp;
+    const set3 = this.set;
+    if (!set3.length) {
+      this.regexp = false;
+      return this.regexp;
+    }
+    const options = this.options;
+    const twoStar = options.noglobstar ? star2 : options.dot ? twoStarDot : twoStarNoDot;
+    const flags = new Set(options.nocase ? ["i"] : []);
+    let re = set3.map((pattern) => {
+      const pp = pattern.map((p) => {
+        if (p instanceof RegExp) {
+          for (const f of p.flags.split(""))
+            flags.add(f);
+        }
+        return typeof p === "string" ? regExpEscape2(p) : p === GLOBSTAR ? GLOBSTAR : p._src;
+      });
+      pp.forEach((p, i) => {
+        const next = pp[i + 1];
+        const prev = pp[i - 1];
+        if (p !== GLOBSTAR || prev === GLOBSTAR) {
+          return;
+        }
+        if (prev === undefined) {
+          if (next !== undefined && next !== GLOBSTAR) {
+            pp[i + 1] = "(?:\\/|" + twoStar + "\\/)?" + next;
+          } else {
+            pp[i] = twoStar;
+          }
+        } else if (next === undefined) {
+          pp[i - 1] = prev + "(?:\\/|\\/" + twoStar + ")?";
+        } else if (next !== GLOBSTAR) {
+          pp[i - 1] = prev + "(?:\\/|\\/" + twoStar + "\\/)" + next;
+          pp[i + 1] = GLOBSTAR;
+        }
+      });
+      const filtered = pp.filter((p) => p !== GLOBSTAR);
+      if (this.partial && filtered.length >= 1) {
+        const prefixes = [];
+        for (let i = 1;i <= filtered.length; i++) {
+          prefixes.push(filtered.slice(0, i).join("/"));
+        }
+        return "(?:" + prefixes.join("|") + ")";
+      }
+      return filtered.join("/");
+    }).join("|");
+    const [open, close] = set3.length > 1 ? ["(?:", ")"] : ["", ""];
+    re = "^" + open + re + close + "$";
+    if (this.partial) {
+      re = "^(?:\\/|" + open + re.slice(1, -1) + close + ")$";
+    }
+    if (this.negate)
+      re = "^(?!" + re + ").+$";
+    try {
+      this.regexp = new RegExp(re, [...flags].join(""));
+    } catch {
+      this.regexp = false;
+    }
+    return this.regexp;
+  }
+  slashSplit(p) {
+    if (this.preserveMultipleSlashes) {
+      return p.split("/");
+    } else if (this.isWindows && /^\/\/[^/]+/.test(p)) {
+      return ["", ...p.split(/\/+/)];
+    } else {
+      return p.split(/\/+/);
+    }
+  }
+  match(f, partial2 = this.partial) {
+    this.debug("match", f, this.pattern);
+    if (this.comment) {
+      return false;
+    }
+    if (this.empty) {
+      return f === "";
+    }
+    if (f === "/" && partial2) {
+      return true;
+    }
+    const options = this.options;
+    if (this.isWindows) {
+      f = f.split("\\").join("/");
+    }
+    const ff = this.slashSplit(f);
+    this.debug(this.pattern, "split", ff);
+    const set3 = this.set;
+    this.debug(this.pattern, "set", set3);
+    let filename = ff[ff.length - 1];
+    if (!filename) {
+      for (let i = ff.length - 2;!filename && i >= 0; i--) {
+        filename = ff[i];
+      }
+    }
+    for (const pattern of set3) {
+      let file2 = ff;
+      if (options.matchBase && pattern.length === 1) {
+        file2 = [filename];
+      }
+      const hit = this.matchOne(file2, pattern, partial2);
+      if (hit) {
+        if (options.flipNegate) {
+          return true;
+        }
+        return !this.negate;
+      }
+    }
+    if (options.flipNegate) {
+      return false;
+    }
+    return this.negate;
+  }
+  static defaults(def) {
+    return minimatch.defaults(def).Minimatch;
+  }
+}
+minimatch.AST = AST;
+minimatch.Minimatch = Minimatch;
+minimatch.escape = escape2;
+minimatch.unescape = unescape2;
+
+// src/shared/git-diff/ignore.ts
+var DEFAULT_IGNORED_PATTERNS = [
+  "*.png",
+  "*.jpg",
+  "*.jpeg",
+  "*.gif",
+  "*.svg",
+  "*.ico",
+  "*.pdf",
+  "*.mp3",
+  "*.mp4",
+  "*.map",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "bun.lockb",
+  "go.sum",
+  "Cargo.lock",
+  "Gemfile.lock",
+  "composer.lock"
+];
+function isIgnoredFile(fileName) {
+  const config2 = getConfig();
+  const ignoredPatterns = [
+    ...DEFAULT_IGNORED_PATTERNS,
+    ...config2.review?.files?.exclude || []
+  ];
+  return ignoredPatterns.some((p) => minimatch(fileName, p, { matchBase: true }));
+}
+function matchesScanPatterns(fileName) {
+  const config2 = getConfig();
+  const scanPatterns = config2.review?.files?.include || [];
+  if (scanPatterns.length === 0) {
+    return true;
+  }
+  return scanPatterns.some((p) => minimatch(fileName, p));
 }
 // node_modules/js-tiktoken/dist/chunk-VL2OQCWN.js
 var import_base64_js = __toESM(require_base64_js(), 1);
@@ -55724,8 +50442,8 @@ function bytePairEncode(piece, ranks) {
     return [ranks.get(piece.join(","))];
   return bytePairMerge(piece, ranks).map((p) => ranks.get(piece.slice(p.start, p.end).join(","))).filter((x) => x != null);
 }
-function escapeRegex2(str2) {
-  return str2.replace(/[\\^$*+?.()|[\]{}]/g, "\\$&");
+function escapeRegex2(str) {
+  return str.replace(/[\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 var _Tiktoken = class {
   specialTokens;
@@ -55823,8 +50541,8 @@ var Tiktoken = _Tiktoken;
 __publicField(Tiktoken, "specialTokenRegex", (tokens) => {
   return new RegExp(tokens.map((i) => escapeRegex2(i)).join("|"), "g");
 });
-function getEncodingNameForModel(model2) {
-  switch (model2) {
+function getEncodingNameForModel(model) {
+  switch (model) {
     case "gpt2": {
       return "gpt2";
     }
@@ -55974,149 +50692,5556 @@ function getEncoding(encoding, extendSpecialTokens) {
       throw new Error("Unknown encoding");
   }
 }
-function encodingForModel(model2, extendSpecialTokens) {
-  return getEncoding(getEncodingNameForModel(model2), extendSpecialTokens);
+function encodingForModel(model, extendSpecialTokens) {
+  return getEncoding(getEncodingNameForModel(model), extendSpecialTokens);
 }
 
-// src/features/pr/llm-call/chunking.ts
-var MAX_TOKENS_PER_CHUNK = 1e4;
-function countFileTokens(file2) {
-  const lines = [
-    `FILE ${file2.file}`,
-    ...file2.changes.map((line) => `${line.prefix}${line.lineNumber} ${line.content}`)
-  ];
-  const encoder = encodingForModel("gpt-5-mini");
-  return encoder.encode(lines.join(`
-`)).length;
+// node_modules/openai/internal/tslib.mjs
+function __classPrivateFieldSet(receiver, state, value, kind, f) {
+  if (kind === "m")
+    throw new TypeError("Private method is not writable");
+  if (kind === "a" && !f)
+    throw new TypeError("Private accessor was defined without a setter");
+  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
+    throw new TypeError("Cannot write private member to an object whose class did not declare it");
+  return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
 }
-function chunkDiffs(diffs) {
-  const chunks = [];
-  let currentChunk = [];
-  let currentTokens = 0;
-  diffs.forEach((file2) => {
-    const fileTokens = countFileTokens(file2);
-    if (currentTokens + fileTokens > MAX_TOKENS_PER_CHUNK && currentChunk.length > 0) {
-      chunks.push(currentChunk);
-      currentChunk = [];
-      currentTokens = 0;
-    }
-    currentChunk.push(file2);
-    currentTokens += fileTokens;
-  });
-  if (currentChunk.length > 0) {
-    chunks.push(currentChunk);
+function __classPrivateFieldGet(receiver, state, kind, f) {
+  if (kind === "a" && !f)
+    throw new TypeError("Private accessor was defined without a getter");
+  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
+    throw new TypeError("Cannot read private member from an object whose class did not declare it");
+  return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+}
+
+// node_modules/openai/internal/utils/uuid.mjs
+var uuid42 = function() {
+  const { crypto: crypto2 } = globalThis;
+  if (crypto2?.randomUUID) {
+    uuid42 = crypto2.randomUUID.bind(crypto2);
+    return crypto2.randomUUID();
   }
-  return chunks.map((diffs2, index) => ({
-    chunkIndex: index,
-    diffs: diffs2,
-    totalChunks: chunks.length
+  const u8 = new Uint8Array(1);
+  const randomByte = crypto2 ? () => crypto2.getRandomValues(u8)[0] : () => Math.random() * 255 & 255;
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (+c ^ randomByte() & 15 >> +c / 4).toString(16));
+};
+
+// node_modules/openai/internal/utils/values.mjs
+var startsWithSchemeRegexp = /^[a-z][a-z0-9+.-]*:/i;
+var isAbsoluteURL = (url2) => {
+  return startsWithSchemeRegexp.test(url2);
+};
+var isArray = (val) => (isArray = Array.isArray, isArray(val));
+var isReadonlyArray = isArray;
+function maybeObj(x) {
+  if (typeof x !== "object") {
+    return {};
+  }
+  return x ?? {};
+}
+function isEmptyObj2(obj) {
+  if (!obj)
+    return true;
+  for (const _k in obj)
+    return false;
+  return true;
+}
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+function isObj(obj) {
+  return obj != null && typeof obj === "object" && !Array.isArray(obj);
+}
+var validatePositiveInteger = (name, n) => {
+  if (typeof n !== "number" || !Number.isInteger(n)) {
+    throw new OpenAIError(`${name} must be an integer`);
+  }
+  if (n < 0) {
+    throw new OpenAIError(`${name} must be a positive integer`);
+  }
+  return n;
+};
+var safeJSON = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return;
+  }
+};
+
+// node_modules/openai/internal/utils/sleep.mjs
+var sleep2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// node_modules/openai/version.mjs
+var VERSION7 = "6.18.0";
+
+// node_modules/openai/internal/detect-platform.mjs
+var isRunningInBrowser = () => {
+  return typeof window !== "undefined" && typeof window.document !== "undefined" && typeof navigator !== "undefined";
+};
+function getDetectedPlatform() {
+  if (typeof Deno !== "undefined" && Deno.build != null) {
+    return "deno";
+  }
+  if (typeof EdgeRuntime !== "undefined") {
+    return "edge";
+  }
+  if (Object.prototype.toString.call(typeof globalThis.process !== "undefined" ? globalThis.process : 0) === "[object process]") {
+    return "node";
+  }
+  return "unknown";
+}
+var getPlatformProperties = () => {
+  const detectedPlatform = getDetectedPlatform();
+  if (detectedPlatform === "deno") {
+    return {
+      "X-Stainless-Lang": "js",
+      "X-Stainless-Package-Version": VERSION7,
+      "X-Stainless-OS": normalizePlatform(Deno.build.os),
+      "X-Stainless-Arch": normalizeArch(Deno.build.arch),
+      "X-Stainless-Runtime": "deno",
+      "X-Stainless-Runtime-Version": typeof Deno.version === "string" ? Deno.version : Deno.version?.deno ?? "unknown"
+    };
+  }
+  if (typeof EdgeRuntime !== "undefined") {
+    return {
+      "X-Stainless-Lang": "js",
+      "X-Stainless-Package-Version": VERSION7,
+      "X-Stainless-OS": "Unknown",
+      "X-Stainless-Arch": `other:${EdgeRuntime}`,
+      "X-Stainless-Runtime": "edge",
+      "X-Stainless-Runtime-Version": globalThis.process.version
+    };
+  }
+  if (detectedPlatform === "node") {
+    return {
+      "X-Stainless-Lang": "js",
+      "X-Stainless-Package-Version": VERSION7,
+      "X-Stainless-OS": normalizePlatform(globalThis.process.platform ?? "unknown"),
+      "X-Stainless-Arch": normalizeArch(globalThis.process.arch ?? "unknown"),
+      "X-Stainless-Runtime": "node",
+      "X-Stainless-Runtime-Version": globalThis.process.version ?? "unknown"
+    };
+  }
+  const browserInfo = getBrowserInfo();
+  if (browserInfo) {
+    return {
+      "X-Stainless-Lang": "js",
+      "X-Stainless-Package-Version": VERSION7,
+      "X-Stainless-OS": "Unknown",
+      "X-Stainless-Arch": "unknown",
+      "X-Stainless-Runtime": `browser:${browserInfo.browser}`,
+      "X-Stainless-Runtime-Version": browserInfo.version
+    };
+  }
+  return {
+    "X-Stainless-Lang": "js",
+    "X-Stainless-Package-Version": VERSION7,
+    "X-Stainless-OS": "Unknown",
+    "X-Stainless-Arch": "unknown",
+    "X-Stainless-Runtime": "unknown",
+    "X-Stainless-Runtime-Version": "unknown"
+  };
+};
+function getBrowserInfo() {
+  if (typeof navigator === "undefined" || !navigator) {
+    return null;
+  }
+  const browserPatterns = [
+    { key: "edge", pattern: /Edge(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+    { key: "ie", pattern: /MSIE(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+    { key: "ie", pattern: /Trident(?:.*rv\:(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+    { key: "chrome", pattern: /Chrome(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+    { key: "firefox", pattern: /Firefox(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+    { key: "safari", pattern: /(?:Version\W+(\d+)\.(\d+)(?:\.(\d+))?)?(?:\W+Mobile\S*)?\W+Safari/ }
+  ];
+  for (const { key, pattern } of browserPatterns) {
+    const match2 = pattern.exec(navigator.userAgent);
+    if (match2) {
+      const major = match2[1] || 0;
+      const minor = match2[2] || 0;
+      const patch = match2[3] || 0;
+      return { browser: key, version: `${major}.${minor}.${patch}` };
+    }
+  }
+  return null;
+}
+var normalizeArch = (arch2) => {
+  if (arch2 === "x32")
+    return "x32";
+  if (arch2 === "x86_64" || arch2 === "x64")
+    return "x64";
+  if (arch2 === "arm")
+    return "arm";
+  if (arch2 === "aarch64" || arch2 === "arm64")
+    return "arm64";
+  if (arch2)
+    return `other:${arch2}`;
+  return "unknown";
+};
+var normalizePlatform = (platform2) => {
+  platform2 = platform2.toLowerCase();
+  if (platform2.includes("ios"))
+    return "iOS";
+  if (platform2 === "android")
+    return "Android";
+  if (platform2 === "darwin")
+    return "MacOS";
+  if (platform2 === "win32")
+    return "Windows";
+  if (platform2 === "freebsd")
+    return "FreeBSD";
+  if (platform2 === "openbsd")
+    return "OpenBSD";
+  if (platform2 === "linux")
+    return "Linux";
+  if (platform2)
+    return `Other:${platform2}`;
+  return "Unknown";
+};
+var _platformHeaders;
+var getPlatformHeaders = () => {
+  return _platformHeaders ?? (_platformHeaders = getPlatformProperties());
+};
+
+// node_modules/openai/internal/shims.mjs
+function getDefaultFetch() {
+  if (typeof fetch !== "undefined") {
+    return fetch;
+  }
+  throw new Error("`fetch` is not defined as a global; Either pass `fetch` to the client, `new OpenAI({ fetch })` or polyfill the global, `globalThis.fetch = fetch`");
+}
+function makeReadableStream(...args) {
+  const ReadableStream2 = globalThis.ReadableStream;
+  if (typeof ReadableStream2 === "undefined") {
+    throw new Error("`ReadableStream` is not defined as a global; You will need to polyfill it, `globalThis.ReadableStream = ReadableStream`");
+  }
+  return new ReadableStream2(...args);
+}
+function ReadableStreamFrom(iterable) {
+  let iter = Symbol.asyncIterator in iterable ? iterable[Symbol.asyncIterator]() : iterable[Symbol.iterator]();
+  return makeReadableStream({
+    start() {},
+    async pull(controller) {
+      const { done, value } = await iter.next();
+      if (done) {
+        controller.close();
+      } else {
+        controller.enqueue(value);
+      }
+    },
+    async cancel() {
+      await iter.return?.();
+    }
+  });
+}
+function ReadableStreamToAsyncIterable(stream) {
+  if (stream[Symbol.asyncIterator])
+    return stream;
+  const reader = stream.getReader();
+  return {
+    async next() {
+      try {
+        const result = await reader.read();
+        if (result?.done)
+          reader.releaseLock();
+        return result;
+      } catch (e) {
+        reader.releaseLock();
+        throw e;
+      }
+    },
+    async return() {
+      const cancelPromise = reader.cancel();
+      reader.releaseLock();
+      await cancelPromise;
+      return { done: true, value: undefined };
+    },
+    [Symbol.asyncIterator]() {
+      return this;
+    }
+  };
+}
+async function CancelReadableStream(stream) {
+  if (stream === null || typeof stream !== "object")
+    return;
+  if (stream[Symbol.asyncIterator]) {
+    await stream[Symbol.asyncIterator]().return?.();
+    return;
+  }
+  const reader = stream.getReader();
+  const cancelPromise = reader.cancel();
+  reader.releaseLock();
+  await cancelPromise;
+}
+
+// node_modules/openai/internal/request-options.mjs
+var FallbackEncoder = ({ headers, body }) => {
+  return {
+    bodyHeaders: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(body)
+  };
+};
+
+// node_modules/openai/internal/qs/formats.mjs
+var default_format = "RFC3986";
+var default_formatter = (v) => String(v);
+var formatters = {
+  RFC1738: (v) => String(v).replace(/%20/g, "+"),
+  RFC3986: default_formatter
+};
+var RFC1738 = "RFC1738";
+
+// node_modules/openai/internal/qs/utils.mjs
+var has = (obj, key) => (has = Object.hasOwn ?? Function.prototype.call.bind(Object.prototype.hasOwnProperty), has(obj, key));
+var hex_table = /* @__PURE__ */ (() => {
+  const array3 = [];
+  for (let i = 0;i < 256; ++i) {
+    array3.push("%" + ((i < 16 ? "0" : "") + i.toString(16)).toUpperCase());
+  }
+  return array3;
+})();
+var limit = 1024;
+var encode3 = (str, _defaultEncoder, charset, _kind, format) => {
+  if (str.length === 0) {
+    return str;
+  }
+  let string5 = str;
+  if (typeof str === "symbol") {
+    string5 = Symbol.prototype.toString.call(str);
+  } else if (typeof str !== "string") {
+    string5 = String(str);
+  }
+  if (charset === "iso-8859-1") {
+    return escape(string5).replace(/%u[0-9a-f]{4}/gi, function($0) {
+      return "%26%23" + parseInt($0.slice(2), 16) + "%3B";
+    });
+  }
+  let out = "";
+  for (let j = 0;j < string5.length; j += limit) {
+    const segment = string5.length >= limit ? string5.slice(j, j + limit) : string5;
+    const arr = [];
+    for (let i = 0;i < segment.length; ++i) {
+      let c = segment.charCodeAt(i);
+      if (c === 45 || c === 46 || c === 95 || c === 126 || c >= 48 && c <= 57 || c >= 65 && c <= 90 || c >= 97 && c <= 122 || format === RFC1738 && (c === 40 || c === 41)) {
+        arr[arr.length] = segment.charAt(i);
+        continue;
+      }
+      if (c < 128) {
+        arr[arr.length] = hex_table[c];
+        continue;
+      }
+      if (c < 2048) {
+        arr[arr.length] = hex_table[192 | c >> 6] + hex_table[128 | c & 63];
+        continue;
+      }
+      if (c < 55296 || c >= 57344) {
+        arr[arr.length] = hex_table[224 | c >> 12] + hex_table[128 | c >> 6 & 63] + hex_table[128 | c & 63];
+        continue;
+      }
+      i += 1;
+      c = 65536 + ((c & 1023) << 10 | segment.charCodeAt(i) & 1023);
+      arr[arr.length] = hex_table[240 | c >> 18] + hex_table[128 | c >> 12 & 63] + hex_table[128 | c >> 6 & 63] + hex_table[128 | c & 63];
+    }
+    out += arr.join("");
+  }
+  return out;
+};
+function is_buffer(obj) {
+  if (!obj || typeof obj !== "object") {
+    return false;
+  }
+  return !!(obj.constructor && obj.constructor.isBuffer && obj.constructor.isBuffer(obj));
+}
+function maybe_map(val, fn) {
+  if (isArray(val)) {
+    const mapped = [];
+    for (let i = 0;i < val.length; i += 1) {
+      mapped.push(fn(val[i]));
+    }
+    return mapped;
+  }
+  return fn(val);
+}
+
+// node_modules/openai/internal/qs/stringify.mjs
+var array_prefix_generators = {
+  brackets(prefix) {
+    return String(prefix) + "[]";
+  },
+  comma: "comma",
+  indices(prefix, key) {
+    return String(prefix) + "[" + key + "]";
+  },
+  repeat(prefix) {
+    return String(prefix);
+  }
+};
+var push_to_array = function(arr, value_or_array) {
+  Array.prototype.push.apply(arr, isArray(value_or_array) ? value_or_array : [value_or_array]);
+};
+var toISOString;
+var defaults3 = {
+  addQueryPrefix: false,
+  allowDots: false,
+  allowEmptyArrays: false,
+  arrayFormat: "indices",
+  charset: "utf-8",
+  charsetSentinel: false,
+  delimiter: "&",
+  encode: true,
+  encodeDotInKeys: false,
+  encoder: encode3,
+  encodeValuesOnly: false,
+  format: default_format,
+  formatter: default_formatter,
+  indices: false,
+  serializeDate(date6) {
+    return (toISOString ?? (toISOString = Function.prototype.call.bind(Date.prototype.toISOString)))(date6);
+  },
+  skipNulls: false,
+  strictNullHandling: false
+};
+function is_non_nullish_primitive(v) {
+  return typeof v === "string" || typeof v === "number" || typeof v === "boolean" || typeof v === "symbol" || typeof v === "bigint";
+}
+var sentinel = {};
+function inner_stringify(object3, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter2, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
+  let obj = object3;
+  let tmp_sc = sideChannel;
+  let step = 0;
+  let find_flag = false;
+  while ((tmp_sc = tmp_sc.get(sentinel)) !== undefined && !find_flag) {
+    const pos = tmp_sc.get(object3);
+    step += 1;
+    if (typeof pos !== "undefined") {
+      if (pos === step) {
+        throw new RangeError("Cyclic object value");
+      } else {
+        find_flag = true;
+      }
+    }
+    if (typeof tmp_sc.get(sentinel) === "undefined") {
+      step = 0;
+    }
+  }
+  if (typeof filter2 === "function") {
+    obj = filter2(prefix, obj);
+  } else if (obj instanceof Date) {
+    obj = serializeDate?.(obj);
+  } else if (generateArrayPrefix === "comma" && isArray(obj)) {
+    obj = maybe_map(obj, function(value) {
+      if (value instanceof Date) {
+        return serializeDate?.(value);
+      }
+      return value;
+    });
+  }
+  if (obj === null) {
+    if (strictNullHandling) {
+      return encoder && !encodeValuesOnly ? encoder(prefix, defaults3.encoder, charset, "key", format) : prefix;
+    }
+    obj = "";
+  }
+  if (is_non_nullish_primitive(obj) || is_buffer(obj)) {
+    if (encoder) {
+      const key_value = encodeValuesOnly ? prefix : encoder(prefix, defaults3.encoder, charset, "key", format);
+      return [
+        formatter?.(key_value) + "=" + formatter?.(encoder(obj, defaults3.encoder, charset, "value", format))
+      ];
+    }
+    return [formatter?.(prefix) + "=" + formatter?.(String(obj))];
+  }
+  const values = [];
+  if (typeof obj === "undefined") {
+    return values;
+  }
+  let obj_keys;
+  if (generateArrayPrefix === "comma" && isArray(obj)) {
+    if (encodeValuesOnly && encoder) {
+      obj = maybe_map(obj, encoder);
+    }
+    obj_keys = [{ value: obj.length > 0 ? obj.join(",") || null : undefined }];
+  } else if (isArray(filter2)) {
+    obj_keys = filter2;
+  } else {
+    const keys = Object.keys(obj);
+    obj_keys = sort ? keys.sort(sort) : keys;
+  }
+  const encoded_prefix = encodeDotInKeys ? String(prefix).replace(/\./g, "%2E") : String(prefix);
+  const adjusted_prefix = commaRoundTrip && isArray(obj) && obj.length === 1 ? encoded_prefix + "[]" : encoded_prefix;
+  if (allowEmptyArrays && isArray(obj) && obj.length === 0) {
+    return adjusted_prefix + "[]";
+  }
+  for (let j = 0;j < obj_keys.length; ++j) {
+    const key = obj_keys[j];
+    const value = typeof key === "object" && typeof key.value !== "undefined" ? key.value : obj[key];
+    if (skipNulls && value === null) {
+      continue;
+    }
+    const encoded_key = allowDots && encodeDotInKeys ? key.replace(/\./g, "%2E") : key;
+    const key_prefix = isArray(obj) ? typeof generateArrayPrefix === "function" ? generateArrayPrefix(adjusted_prefix, encoded_key) : adjusted_prefix : adjusted_prefix + (allowDots ? "." + encoded_key : "[" + encoded_key + "]");
+    sideChannel.set(object3, step);
+    const valueSideChannel = new WeakMap;
+    valueSideChannel.set(sentinel, sideChannel);
+    push_to_array(values, inner_stringify(value, key_prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, generateArrayPrefix === "comma" && encodeValuesOnly && isArray(obj) ? null : encoder, filter2, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, valueSideChannel));
+  }
+  return values;
+}
+function normalize_stringify_options(opts = defaults3) {
+  if (typeof opts.allowEmptyArrays !== "undefined" && typeof opts.allowEmptyArrays !== "boolean") {
+    throw new TypeError("`allowEmptyArrays` option can only be `true` or `false`, when provided");
+  }
+  if (typeof opts.encodeDotInKeys !== "undefined" && typeof opts.encodeDotInKeys !== "boolean") {
+    throw new TypeError("`encodeDotInKeys` option can only be `true` or `false`, when provided");
+  }
+  if (opts.encoder !== null && typeof opts.encoder !== "undefined" && typeof opts.encoder !== "function") {
+    throw new TypeError("Encoder has to be a function.");
+  }
+  const charset = opts.charset || defaults3.charset;
+  if (typeof opts.charset !== "undefined" && opts.charset !== "utf-8" && opts.charset !== "iso-8859-1") {
+    throw new TypeError("The charset option must be either utf-8, iso-8859-1, or undefined");
+  }
+  let format = default_format;
+  if (typeof opts.format !== "undefined") {
+    if (!has(formatters, opts.format)) {
+      throw new TypeError("Unknown format option provided.");
+    }
+    format = opts.format;
+  }
+  const formatter = formatters[format];
+  let filter2 = defaults3.filter;
+  if (typeof opts.filter === "function" || isArray(opts.filter)) {
+    filter2 = opts.filter;
+  }
+  let arrayFormat;
+  if (opts.arrayFormat && opts.arrayFormat in array_prefix_generators) {
+    arrayFormat = opts.arrayFormat;
+  } else if ("indices" in opts) {
+    arrayFormat = opts.indices ? "indices" : "repeat";
+  } else {
+    arrayFormat = defaults3.arrayFormat;
+  }
+  if ("commaRoundTrip" in opts && typeof opts.commaRoundTrip !== "boolean") {
+    throw new TypeError("`commaRoundTrip` must be a boolean, or absent");
+  }
+  const allowDots = typeof opts.allowDots === "undefined" ? !!opts.encodeDotInKeys === true ? true : defaults3.allowDots : !!opts.allowDots;
+  return {
+    addQueryPrefix: typeof opts.addQueryPrefix === "boolean" ? opts.addQueryPrefix : defaults3.addQueryPrefix,
+    allowDots,
+    allowEmptyArrays: typeof opts.allowEmptyArrays === "boolean" ? !!opts.allowEmptyArrays : defaults3.allowEmptyArrays,
+    arrayFormat,
+    charset,
+    charsetSentinel: typeof opts.charsetSentinel === "boolean" ? opts.charsetSentinel : defaults3.charsetSentinel,
+    commaRoundTrip: !!opts.commaRoundTrip,
+    delimiter: typeof opts.delimiter === "undefined" ? defaults3.delimiter : opts.delimiter,
+    encode: typeof opts.encode === "boolean" ? opts.encode : defaults3.encode,
+    encodeDotInKeys: typeof opts.encodeDotInKeys === "boolean" ? opts.encodeDotInKeys : defaults3.encodeDotInKeys,
+    encoder: typeof opts.encoder === "function" ? opts.encoder : defaults3.encoder,
+    encodeValuesOnly: typeof opts.encodeValuesOnly === "boolean" ? opts.encodeValuesOnly : defaults3.encodeValuesOnly,
+    filter: filter2,
+    format,
+    formatter,
+    serializeDate: typeof opts.serializeDate === "function" ? opts.serializeDate : defaults3.serializeDate,
+    skipNulls: typeof opts.skipNulls === "boolean" ? opts.skipNulls : defaults3.skipNulls,
+    sort: typeof opts.sort === "function" ? opts.sort : null,
+    strictNullHandling: typeof opts.strictNullHandling === "boolean" ? opts.strictNullHandling : defaults3.strictNullHandling
+  };
+}
+function stringify(object3, opts = {}) {
+  let obj = object3;
+  const options = normalize_stringify_options(opts);
+  let obj_keys;
+  let filter2;
+  if (typeof options.filter === "function") {
+    filter2 = options.filter;
+    obj = filter2("", obj);
+  } else if (isArray(options.filter)) {
+    filter2 = options.filter;
+    obj_keys = filter2;
+  }
+  const keys = [];
+  if (typeof obj !== "object" || obj === null) {
+    return "";
+  }
+  const generateArrayPrefix = array_prefix_generators[options.arrayFormat];
+  const commaRoundTrip = generateArrayPrefix === "comma" && options.commaRoundTrip;
+  if (!obj_keys) {
+    obj_keys = Object.keys(obj);
+  }
+  if (options.sort) {
+    obj_keys.sort(options.sort);
+  }
+  const sideChannel = new WeakMap;
+  for (let i = 0;i < obj_keys.length; ++i) {
+    const key = obj_keys[i];
+    if (options.skipNulls && obj[key] === null) {
+      continue;
+    }
+    push_to_array(keys, inner_stringify(obj[key], key, generateArrayPrefix, commaRoundTrip, options.allowEmptyArrays, options.strictNullHandling, options.skipNulls, options.encodeDotInKeys, options.encode ? options.encoder : null, options.filter, options.sort, options.allowDots, options.serializeDate, options.format, options.formatter, options.encodeValuesOnly, options.charset, sideChannel));
+  }
+  const joined = keys.join(options.delimiter);
+  let prefix = options.addQueryPrefix === true ? "?" : "";
+  if (options.charsetSentinel) {
+    if (options.charset === "iso-8859-1") {
+      prefix += "utf8=%26%2310003%3B&";
+    } else {
+      prefix += "utf8=%E2%9C%93&";
+    }
+  }
+  return joined.length > 0 ? prefix + joined : "";
+}
+// node_modules/openai/internal/utils/bytes.mjs
+function concatBytes(buffers) {
+  let length = 0;
+  for (const buffer of buffers) {
+    length += buffer.length;
+  }
+  const output = new Uint8Array(length);
+  let index = 0;
+  for (const buffer of buffers) {
+    output.set(buffer, index);
+    index += buffer.length;
+  }
+  return output;
+}
+var encodeUTF8_;
+function encodeUTF8(str) {
+  let encoder;
+  return (encodeUTF8_ ?? (encoder = new globalThis.TextEncoder, encodeUTF8_ = encoder.encode.bind(encoder)))(str);
+}
+var decodeUTF8_;
+function decodeUTF8(bytes) {
+  let decoder;
+  return (decodeUTF8_ ?? (decoder = new globalThis.TextDecoder, decodeUTF8_ = decoder.decode.bind(decoder)))(bytes);
+}
+
+// node_modules/openai/internal/decoders/line.mjs
+var _LineDecoder_buffer;
+var _LineDecoder_carriageReturnIndex;
+
+class LineDecoder {
+  constructor() {
+    _LineDecoder_buffer.set(this, undefined);
+    _LineDecoder_carriageReturnIndex.set(this, undefined);
+    __classPrivateFieldSet(this, _LineDecoder_buffer, new Uint8Array, "f");
+    __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, null, "f");
+  }
+  decode(chunk) {
+    if (chunk == null) {
+      return [];
+    }
+    const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk) : typeof chunk === "string" ? encodeUTF8(chunk) : chunk;
+    __classPrivateFieldSet(this, _LineDecoder_buffer, concatBytes([__classPrivateFieldGet(this, _LineDecoder_buffer, "f"), binaryChunk]), "f");
+    const lines = [];
+    let patternIndex;
+    while ((patternIndex = findNewlineIndex(__classPrivateFieldGet(this, _LineDecoder_buffer, "f"), __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f"))) != null) {
+      if (patternIndex.carriage && __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") == null) {
+        __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, patternIndex.index, "f");
+        continue;
+      }
+      if (__classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") != null && (patternIndex.index !== __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") + 1 || patternIndex.carriage)) {
+        lines.push(decodeUTF8(__classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(0, __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") - 1)));
+        __classPrivateFieldSet(this, _LineDecoder_buffer, __classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(__classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f")), "f");
+        __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, null, "f");
+        continue;
+      }
+      const endIndex = __classPrivateFieldGet(this, _LineDecoder_carriageReturnIndex, "f") !== null ? patternIndex.preceding - 1 : patternIndex.preceding;
+      const line = decodeUTF8(__classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(0, endIndex));
+      lines.push(line);
+      __classPrivateFieldSet(this, _LineDecoder_buffer, __classPrivateFieldGet(this, _LineDecoder_buffer, "f").subarray(patternIndex.index), "f");
+      __classPrivateFieldSet(this, _LineDecoder_carriageReturnIndex, null, "f");
+    }
+    return lines;
+  }
+  flush() {
+    if (!__classPrivateFieldGet(this, _LineDecoder_buffer, "f").length) {
+      return [];
+    }
+    return this.decode(`
+`);
+  }
+}
+_LineDecoder_buffer = new WeakMap, _LineDecoder_carriageReturnIndex = new WeakMap;
+LineDecoder.NEWLINE_CHARS = new Set([`
+`, "\r"]);
+LineDecoder.NEWLINE_REGEXP = /\r\n|[\n\r]/g;
+function findNewlineIndex(buffer, startIndex) {
+  const newline = 10;
+  const carriage = 13;
+  for (let i = startIndex ?? 0;i < buffer.length; i++) {
+    if (buffer[i] === newline) {
+      return { preceding: i, index: i + 1, carriage: false };
+    }
+    if (buffer[i] === carriage) {
+      return { preceding: i, index: i + 1, carriage: true };
+    }
+  }
+  return null;
+}
+function findDoubleNewlineIndex(buffer) {
+  const newline = 10;
+  const carriage = 13;
+  for (let i = 0;i < buffer.length - 1; i++) {
+    if (buffer[i] === newline && buffer[i + 1] === newline) {
+      return i + 2;
+    }
+    if (buffer[i] === carriage && buffer[i + 1] === carriage) {
+      return i + 2;
+    }
+    if (buffer[i] === carriage && buffer[i + 1] === newline && i + 3 < buffer.length && buffer[i + 2] === carriage && buffer[i + 3] === newline) {
+      return i + 4;
+    }
+  }
+  return -1;
+}
+
+// node_modules/openai/internal/utils/log.mjs
+var levelNumbers = {
+  off: 0,
+  error: 200,
+  warn: 300,
+  info: 400,
+  debug: 500
+};
+var parseLogLevel = (maybeLevel, sourceName, client) => {
+  if (!maybeLevel) {
+    return;
+  }
+  if (hasOwn(levelNumbers, maybeLevel)) {
+    return maybeLevel;
+  }
+  loggerFor(client).warn(`${sourceName} was set to ${JSON.stringify(maybeLevel)}, expected one of ${JSON.stringify(Object.keys(levelNumbers))}`);
+  return;
+};
+function noop3() {}
+function makeLogFn(fnLevel, logger, logLevel) {
+  if (!logger || levelNumbers[fnLevel] > levelNumbers[logLevel]) {
+    return noop3;
+  } else {
+    return logger[fnLevel].bind(logger);
+  }
+}
+var noopLogger = {
+  error: noop3,
+  warn: noop3,
+  info: noop3,
+  debug: noop3
+};
+var cachedLoggers = /* @__PURE__ */ new WeakMap;
+function loggerFor(client) {
+  const logger = client.logger;
+  const logLevel = client.logLevel ?? "off";
+  if (!logger) {
+    return noopLogger;
+  }
+  const cachedLogger = cachedLoggers.get(logger);
+  if (cachedLogger && cachedLogger[0] === logLevel) {
+    return cachedLogger[1];
+  }
+  const levelLogger = {
+    error: makeLogFn("error", logger, logLevel),
+    warn: makeLogFn("warn", logger, logLevel),
+    info: makeLogFn("info", logger, logLevel),
+    debug: makeLogFn("debug", logger, logLevel)
+  };
+  cachedLoggers.set(logger, [logLevel, levelLogger]);
+  return levelLogger;
+}
+var formatRequestDetails = (details) => {
+  if (details.options) {
+    details.options = { ...details.options };
+    delete details.options["headers"];
+  }
+  if (details.headers) {
+    details.headers = Object.fromEntries((details.headers instanceof Headers ? [...details.headers] : Object.entries(details.headers)).map(([name, value]) => [
+      name,
+      name.toLowerCase() === "authorization" || name.toLowerCase() === "cookie" || name.toLowerCase() === "set-cookie" ? "***" : value
+    ]));
+  }
+  if ("retryOfRequestLogID" in details) {
+    if (details.retryOfRequestLogID) {
+      details.retryOf = details.retryOfRequestLogID;
+    }
+    delete details.retryOfRequestLogID;
+  }
+  return details;
+};
+
+// node_modules/openai/core/streaming.mjs
+var _Stream_client;
+
+class Stream {
+  constructor(iterator2, controller, client) {
+    this.iterator = iterator2;
+    _Stream_client.set(this, undefined);
+    this.controller = controller;
+    __classPrivateFieldSet(this, _Stream_client, client, "f");
+  }
+  static fromSSEResponse(response, controller, client) {
+    let consumed = false;
+    const logger = client ? loggerFor(client) : console;
+    async function* iterator2() {
+      if (consumed) {
+        throw new OpenAIError("Cannot iterate over a consumed stream, use `.tee()` to split the stream.");
+      }
+      consumed = true;
+      let done = false;
+      try {
+        for await (const sse of _iterSSEMessages(response, controller)) {
+          if (done)
+            continue;
+          if (sse.data.startsWith("[DONE]")) {
+            done = true;
+            continue;
+          }
+          if (sse.event === null || !sse.event.startsWith("thread.")) {
+            let data;
+            try {
+              data = JSON.parse(sse.data);
+            } catch (e) {
+              logger.error(`Could not parse message into JSON:`, sse.data);
+              logger.error(`From chunk:`, sse.raw);
+              throw e;
+            }
+            if (data && data.error) {
+              throw new APIError(undefined, data.error, undefined, response.headers);
+            }
+            yield data;
+          } else {
+            let data;
+            try {
+              data = JSON.parse(sse.data);
+            } catch (e) {
+              console.error(`Could not parse message into JSON:`, sse.data);
+              console.error(`From chunk:`, sse.raw);
+              throw e;
+            }
+            if (sse.event == "error") {
+              throw new APIError(undefined, data.error, data.message, undefined);
+            }
+            yield { event: sse.event, data };
+          }
+        }
+        done = true;
+      } catch (e) {
+        if (isAbortError(e))
+          return;
+        throw e;
+      } finally {
+        if (!done)
+          controller.abort();
+      }
+    }
+    return new Stream(iterator2, controller, client);
+  }
+  static fromReadableStream(readableStream, controller, client) {
+    let consumed = false;
+    async function* iterLines() {
+      const lineDecoder = new LineDecoder;
+      const iter = ReadableStreamToAsyncIterable(readableStream);
+      for await (const chunk of iter) {
+        for (const line of lineDecoder.decode(chunk)) {
+          yield line;
+        }
+      }
+      for (const line of lineDecoder.flush()) {
+        yield line;
+      }
+    }
+    async function* iterator2() {
+      if (consumed) {
+        throw new OpenAIError("Cannot iterate over a consumed stream, use `.tee()` to split the stream.");
+      }
+      consumed = true;
+      let done = false;
+      try {
+        for await (const line of iterLines()) {
+          if (done)
+            continue;
+          if (line)
+            yield JSON.parse(line);
+        }
+        done = true;
+      } catch (e) {
+        if (isAbortError(e))
+          return;
+        throw e;
+      } finally {
+        if (!done)
+          controller.abort();
+      }
+    }
+    return new Stream(iterator2, controller, client);
+  }
+  [(_Stream_client = new WeakMap, Symbol.asyncIterator)]() {
+    return this.iterator();
+  }
+  tee() {
+    const left = [];
+    const right = [];
+    const iterator2 = this.iterator();
+    const teeIterator = (queue) => {
+      return {
+        next: () => {
+          if (queue.length === 0) {
+            const result = iterator2.next();
+            left.push(result);
+            right.push(result);
+          }
+          return queue.shift();
+        }
+      };
+    };
+    return [
+      new Stream(() => teeIterator(left), this.controller, __classPrivateFieldGet(this, _Stream_client, "f")),
+      new Stream(() => teeIterator(right), this.controller, __classPrivateFieldGet(this, _Stream_client, "f"))
+    ];
+  }
+  toReadableStream() {
+    const self = this;
+    let iter;
+    return makeReadableStream({
+      async start() {
+        iter = self[Symbol.asyncIterator]();
+      },
+      async pull(ctrl) {
+        try {
+          const { value, done } = await iter.next();
+          if (done)
+            return ctrl.close();
+          const bytes = encodeUTF8(JSON.stringify(value) + `
+`);
+          ctrl.enqueue(bytes);
+        } catch (err) {
+          ctrl.error(err);
+        }
+      },
+      async cancel() {
+        await iter.return?.();
+      }
+    });
+  }
+}
+async function* _iterSSEMessages(response, controller) {
+  if (!response.body) {
+    controller.abort();
+    if (typeof globalThis.navigator !== "undefined" && globalThis.navigator.product === "ReactNative") {
+      throw new OpenAIError(`The default react-native fetch implementation does not support streaming. Please use expo/fetch: https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api`);
+    }
+    throw new OpenAIError(`Attempted to iterate over a response with no body`);
+  }
+  const sseDecoder = new SSEDecoder;
+  const lineDecoder = new LineDecoder;
+  const iter = ReadableStreamToAsyncIterable(response.body);
+  for await (const sseChunk of iterSSEChunks(iter)) {
+    for (const line of lineDecoder.decode(sseChunk)) {
+      const sse = sseDecoder.decode(line);
+      if (sse)
+        yield sse;
+    }
+  }
+  for (const line of lineDecoder.flush()) {
+    const sse = sseDecoder.decode(line);
+    if (sse)
+      yield sse;
+  }
+}
+async function* iterSSEChunks(iterator2) {
+  let data = new Uint8Array;
+  for await (const chunk of iterator2) {
+    if (chunk == null) {
+      continue;
+    }
+    const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk) : typeof chunk === "string" ? encodeUTF8(chunk) : chunk;
+    let newData = new Uint8Array(data.length + binaryChunk.length);
+    newData.set(data);
+    newData.set(binaryChunk, data.length);
+    data = newData;
+    let patternIndex;
+    while ((patternIndex = findDoubleNewlineIndex(data)) !== -1) {
+      yield data.slice(0, patternIndex);
+      data = data.slice(patternIndex);
+    }
+  }
+  if (data.length > 0) {
+    yield data;
+  }
+}
+
+class SSEDecoder {
+  constructor() {
+    this.event = null;
+    this.data = [];
+    this.chunks = [];
+  }
+  decode(line) {
+    if (line.endsWith("\r")) {
+      line = line.substring(0, line.length - 1);
+    }
+    if (!line) {
+      if (!this.event && !this.data.length)
+        return null;
+      const sse = {
+        event: this.event,
+        data: this.data.join(`
+`),
+        raw: this.chunks
+      };
+      this.event = null;
+      this.data = [];
+      this.chunks = [];
+      return sse;
+    }
+    this.chunks.push(line);
+    if (line.startsWith(":")) {
+      return null;
+    }
+    let [fieldname, _, value] = partition(line, ":");
+    if (value.startsWith(" ")) {
+      value = value.substring(1);
+    }
+    if (fieldname === "event") {
+      this.event = value;
+    } else if (fieldname === "data") {
+      this.data.push(value);
+    }
+    return null;
+  }
+}
+function partition(str, delimiter) {
+  const index = str.indexOf(delimiter);
+  if (index !== -1) {
+    return [str.substring(0, index), delimiter, str.substring(index + delimiter.length)];
+  }
+  return [str, "", ""];
+}
+
+// node_modules/openai/internal/parse.mjs
+async function defaultParseResponse(client, props) {
+  const { response, requestLogID, retryOfRequestLogID, startTime } = props;
+  const body = await (async () => {
+    if (props.options.stream) {
+      loggerFor(client).debug("response", response.status, response.url, response.headers, response.body);
+      if (props.options.__streamClass) {
+        return props.options.__streamClass.fromSSEResponse(response, props.controller, client);
+      }
+      return Stream.fromSSEResponse(response, props.controller, client);
+    }
+    if (response.status === 204) {
+      return null;
+    }
+    if (props.options.__binaryResponse) {
+      return response;
+    }
+    const contentType = response.headers.get("content-type");
+    const mediaType = contentType?.split(";")[0]?.trim();
+    const isJSON = mediaType?.includes("application/json") || mediaType?.endsWith("+json");
+    if (isJSON) {
+      const contentLength = response.headers.get("content-length");
+      if (contentLength === "0") {
+        return;
+      }
+      const json2 = await response.json();
+      return addRequestID(json2, response);
+    }
+    const text = await response.text();
+    return text;
+  })();
+  loggerFor(client).debug(`[${requestLogID}] response parsed`, formatRequestDetails({
+    retryOfRequestLogID,
+    url: response.url,
+    status: response.status,
+    body,
+    durationMs: Date.now() - startTime
   }));
+  return body;
 }
-function createFindingsTable(findings) {
-  const index = new Map;
-  findings.forEach((finding) => {
-    const existing = index.get(finding.file);
-    if (existing) {
-      existing.push(finding);
+function addRequestID(value, response) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  return Object.defineProperty(value, "_request_id", {
+    value: response.headers.get("x-request-id"),
+    enumerable: false
+  });
+}
+
+// node_modules/openai/core/api-promise.mjs
+var _APIPromise_client;
+
+class APIPromise extends Promise {
+  constructor(client, responsePromise, parseResponse2 = defaultParseResponse) {
+    super((resolve) => {
+      resolve(null);
+    });
+    this.responsePromise = responsePromise;
+    this.parseResponse = parseResponse2;
+    _APIPromise_client.set(this, undefined);
+    __classPrivateFieldSet(this, _APIPromise_client, client, "f");
+  }
+  _thenUnwrap(transform2) {
+    return new APIPromise(__classPrivateFieldGet(this, _APIPromise_client, "f"), this.responsePromise, async (client, props) => addRequestID(transform2(await this.parseResponse(client, props), props), props.response));
+  }
+  asResponse() {
+    return this.responsePromise.then((p) => p.response);
+  }
+  async withResponse() {
+    const [data, response] = await Promise.all([this.parse(), this.asResponse()]);
+    return { data, response, request_id: response.headers.get("x-request-id") };
+  }
+  parse() {
+    if (!this.parsedPromise) {
+      this.parsedPromise = this.responsePromise.then((data) => this.parseResponse(__classPrivateFieldGet(this, _APIPromise_client, "f"), data));
+    }
+    return this.parsedPromise;
+  }
+  then(onfulfilled, onrejected) {
+    return this.parse().then(onfulfilled, onrejected);
+  }
+  catch(onrejected) {
+    return this.parse().catch(onrejected);
+  }
+  finally(onfinally) {
+    return this.parse().finally(onfinally);
+  }
+}
+_APIPromise_client = new WeakMap;
+
+// node_modules/openai/core/pagination.mjs
+var _AbstractPage_client;
+
+class AbstractPage {
+  constructor(client, response, body, options) {
+    _AbstractPage_client.set(this, undefined);
+    __classPrivateFieldSet(this, _AbstractPage_client, client, "f");
+    this.options = options;
+    this.response = response;
+    this.body = body;
+  }
+  hasNextPage() {
+    const items = this.getPaginatedItems();
+    if (!items.length)
+      return false;
+    return this.nextPageRequestOptions() != null;
+  }
+  async getNextPage() {
+    const nextOptions = this.nextPageRequestOptions();
+    if (!nextOptions) {
+      throw new OpenAIError("No next page expected; please check `.hasNextPage()` before calling `.getNextPage()`.");
+    }
+    return await __classPrivateFieldGet(this, _AbstractPage_client, "f").requestAPIList(this.constructor, nextOptions);
+  }
+  async* iterPages() {
+    let page = this;
+    yield page;
+    while (page.hasNextPage()) {
+      page = await page.getNextPage();
+      yield page;
+    }
+  }
+  async* [(_AbstractPage_client = new WeakMap, Symbol.asyncIterator)]() {
+    for await (const page of this.iterPages()) {
+      for (const item of page.getPaginatedItems()) {
+        yield item;
+      }
+    }
+  }
+}
+
+class PagePromise extends APIPromise {
+  constructor(client, request2, Page) {
+    super(client, request2, async (client2, props) => new Page(client2, props.response, await defaultParseResponse(client2, props), props.options));
+  }
+  async* [Symbol.asyncIterator]() {
+    const page = await this;
+    for await (const item of page) {
+      yield item;
+    }
+  }
+}
+
+class Page extends AbstractPage {
+  constructor(client, response, body, options) {
+    super(client, response, body, options);
+    this.data = body.data || [];
+    this.object = body.object;
+  }
+  getPaginatedItems() {
+    return this.data ?? [];
+  }
+  nextPageRequestOptions() {
+    return null;
+  }
+}
+
+class CursorPage extends AbstractPage {
+  constructor(client, response, body, options) {
+    super(client, response, body, options);
+    this.data = body.data || [];
+    this.has_more = body.has_more || false;
+  }
+  getPaginatedItems() {
+    return this.data ?? [];
+  }
+  hasNextPage() {
+    if (this.has_more === false) {
+      return false;
+    }
+    return super.hasNextPage();
+  }
+  nextPageRequestOptions() {
+    const data = this.getPaginatedItems();
+    const id = data[data.length - 1]?.id;
+    if (!id) {
+      return null;
+    }
+    return {
+      ...this.options,
+      query: {
+        ...maybeObj(this.options.query),
+        after: id
+      }
+    };
+  }
+}
+
+class ConversationCursorPage extends AbstractPage {
+  constructor(client, response, body, options) {
+    super(client, response, body, options);
+    this.data = body.data || [];
+    this.has_more = body.has_more || false;
+    this.last_id = body.last_id || "";
+  }
+  getPaginatedItems() {
+    return this.data ?? [];
+  }
+  hasNextPage() {
+    if (this.has_more === false) {
+      return false;
+    }
+    return super.hasNextPage();
+  }
+  nextPageRequestOptions() {
+    const cursor = this.last_id;
+    if (!cursor) {
+      return null;
+    }
+    return {
+      ...this.options,
+      query: {
+        ...maybeObj(this.options.query),
+        after: cursor
+      }
+    };
+  }
+}
+
+// node_modules/openai/internal/uploads.mjs
+var checkFileSupport = () => {
+  if (typeof File === "undefined") {
+    const { process: process3 } = globalThis;
+    const isOldNode = typeof process3?.versions?.node === "string" && parseInt(process3.versions.node.split(".")) < 20;
+    throw new Error("`File` is not defined as a global, which is required for file uploads." + (isOldNode ? " Update to Node 20 LTS or newer, or set `globalThis.File` to `import('node:buffer').File`." : ""));
+  }
+};
+function makeFile(fileBits, fileName, options) {
+  checkFileSupport();
+  return new File(fileBits, fileName ?? "unknown_file", options);
+}
+function getName(value) {
+  return (typeof value === "object" && value !== null && (("name" in value) && value.name && String(value.name) || ("url" in value) && value.url && String(value.url) || ("filename" in value) && value.filename && String(value.filename) || ("path" in value) && value.path && String(value.path)) || "").split(/[\\/]/).pop() || undefined;
+}
+var isAsyncIterable = (value) => value != null && typeof value === "object" && typeof value[Symbol.asyncIterator] === "function";
+var maybeMultipartFormRequestOptions = async (opts, fetch3) => {
+  if (!hasUploadableValue(opts.body))
+    return opts;
+  return { ...opts, body: await createForm(opts.body, fetch3) };
+};
+var multipartFormRequestOptions = async (opts, fetch3) => {
+  return { ...opts, body: await createForm(opts.body, fetch3) };
+};
+var supportsFormDataMap = /* @__PURE__ */ new WeakMap;
+function supportsFormData(fetchObject) {
+  const fetch3 = typeof fetchObject === "function" ? fetchObject : fetchObject.fetch;
+  const cached2 = supportsFormDataMap.get(fetch3);
+  if (cached2)
+    return cached2;
+  const promise3 = (async () => {
+    try {
+      const FetchResponse = "Response" in fetch3 ? fetch3.Response : (await fetch3("data:,")).constructor;
+      const data = new FormData;
+      if (data.toString() === await new FetchResponse(data).text()) {
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  })();
+  supportsFormDataMap.set(fetch3, promise3);
+  return promise3;
+}
+var createForm = async (body, fetch3) => {
+  if (!await supportsFormData(fetch3)) {
+    throw new TypeError("The provided fetch function does not support file uploads with the current global FormData class.");
+  }
+  const form = new FormData;
+  await Promise.all(Object.entries(body || {}).map(([key, value]) => addFormValue(form, key, value)));
+  return form;
+};
+var isNamedBlob = (value) => value instanceof Blob && ("name" in value);
+var isUploadable = (value) => typeof value === "object" && value !== null && (value instanceof Response || isAsyncIterable(value) || isNamedBlob(value));
+var hasUploadableValue = (value) => {
+  if (isUploadable(value))
+    return true;
+  if (Array.isArray(value))
+    return value.some(hasUploadableValue);
+  if (value && typeof value === "object") {
+    for (const k in value) {
+      if (hasUploadableValue(value[k]))
+        return true;
+    }
+  }
+  return false;
+};
+var addFormValue = async (form, key, value) => {
+  if (value === undefined)
+    return;
+  if (value == null) {
+    throw new TypeError(`Received null for "${key}"; to pass null in FormData, you must use the string 'null'`);
+  }
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    form.append(key, String(value));
+  } else if (value instanceof Response) {
+    form.append(key, makeFile([await value.blob()], getName(value)));
+  } else if (isAsyncIterable(value)) {
+    form.append(key, makeFile([await new Response(ReadableStreamFrom(value)).blob()], getName(value)));
+  } else if (isNamedBlob(value)) {
+    form.append(key, value, getName(value));
+  } else if (Array.isArray(value)) {
+    await Promise.all(value.map((entry) => addFormValue(form, key + "[]", entry)));
+  } else if (typeof value === "object") {
+    await Promise.all(Object.entries(value).map(([name, prop]) => addFormValue(form, `${key}[${name}]`, prop)));
+  } else {
+    throw new TypeError(`Invalid value given to form, expected a string, number, boolean, object, Array, File or Blob but got ${value} instead`);
+  }
+};
+
+// node_modules/openai/internal/to-file.mjs
+var isBlobLike = (value) => value != null && typeof value === "object" && typeof value.size === "number" && typeof value.type === "string" && typeof value.text === "function" && typeof value.slice === "function" && typeof value.arrayBuffer === "function";
+var isFileLike = (value) => value != null && typeof value === "object" && typeof value.name === "string" && typeof value.lastModified === "number" && isBlobLike(value);
+var isResponseLike = (value) => value != null && typeof value === "object" && typeof value.url === "string" && typeof value.blob === "function";
+async function toFile(value, name, options) {
+  checkFileSupport();
+  value = await value;
+  if (isFileLike(value)) {
+    if (value instanceof File) {
+      return value;
+    }
+    return makeFile([await value.arrayBuffer()], value.name);
+  }
+  if (isResponseLike(value)) {
+    const blob = await value.blob();
+    name || (name = new URL(value.url).pathname.split(/[\\/]/).pop());
+    return makeFile(await getBytes(blob), name, options);
+  }
+  const parts = await getBytes(value);
+  name || (name = getName(value));
+  if (!options?.type) {
+    const type = parts.find((part) => typeof part === "object" && ("type" in part) && part.type);
+    if (typeof type === "string") {
+      options = { ...options, type };
+    }
+  }
+  return makeFile(parts, name, options);
+}
+async function getBytes(value) {
+  let parts = [];
+  if (typeof value === "string" || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
+    parts.push(value);
+  } else if (isBlobLike(value)) {
+    parts.push(value instanceof Blob ? value : await value.arrayBuffer());
+  } else if (isAsyncIterable(value)) {
+    for await (const chunk of value) {
+      parts.push(...await getBytes(chunk));
+    }
+  } else {
+    const constructor = value?.constructor?.name;
+    throw new Error(`Unexpected data type: ${typeof value}${constructor ? `; constructor: ${constructor}` : ""}${propsForError(value)}`);
+  }
+  return parts;
+}
+function propsForError(value) {
+  if (typeof value !== "object" || value === null)
+    return "";
+  const props = Object.getOwnPropertyNames(value);
+  return `; props: [${props.map((p) => `"${p}"`).join(", ")}]`;
+}
+// node_modules/openai/core/resource.mjs
+class APIResource {
+  constructor(client) {
+    this._client = client;
+  }
+}
+
+// node_modules/openai/internal/utils/path.mjs
+function encodeURIPath(str) {
+  return str.replace(/[^A-Za-z0-9\-._~!$&'()*+,;=:@]+/g, encodeURIComponent);
+}
+var EMPTY = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.create(null));
+var createPathTagFunction = (pathEncoder = encodeURIPath) => function path3(statics, ...params) {
+  if (statics.length === 1)
+    return statics[0];
+  let postPath = false;
+  const invalidSegments = [];
+  const path4 = statics.reduce((previousValue, currentValue, index) => {
+    if (/[?#]/.test(currentValue)) {
+      postPath = true;
+    }
+    const value = params[index];
+    let encoded = (postPath ? encodeURIComponent : pathEncoder)("" + value);
+    if (index !== params.length && (value == null || typeof value === "object" && value.toString === Object.getPrototypeOf(Object.getPrototypeOf(value.hasOwnProperty ?? EMPTY) ?? EMPTY)?.toString)) {
+      encoded = value + "";
+      invalidSegments.push({
+        start: previousValue.length + currentValue.length,
+        length: encoded.length,
+        error: `Value of type ${Object.prototype.toString.call(value).slice(8, -1)} is not a valid path parameter`
+      });
+    }
+    return previousValue + currentValue + (index === params.length ? "" : encoded);
+  }, "");
+  const pathOnly = path4.split(/[?#]/, 1)[0];
+  const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
+  let match2;
+  while ((match2 = invalidSegmentPattern.exec(pathOnly)) !== null) {
+    invalidSegments.push({
+      start: match2.index,
+      length: match2[0].length,
+      error: `Value "${match2[0]}" can't be safely passed as a path parameter`
+    });
+  }
+  invalidSegments.sort((a, b) => a.start - b.start);
+  if (invalidSegments.length > 0) {
+    let lastEnd = 0;
+    const underline = invalidSegments.reduce((acc, segment) => {
+      const spaces = " ".repeat(segment.start - lastEnd);
+      const arrows = "^".repeat(segment.length);
+      lastEnd = segment.start + segment.length;
+      return acc + spaces + arrows;
+    }, "");
+    throw new OpenAIError(`Path parameters result in path with invalid segments:
+${invalidSegments.map((e) => e.error).join(`
+`)}
+${path4}
+${underline}`);
+  }
+  return path4;
+};
+var path3 = /* @__PURE__ */ createPathTagFunction(encodeURIPath);
+
+// node_modules/openai/resources/chat/completions/messages.mjs
+class Messages extends APIResource {
+  list(completionID, query = {}, options) {
+    return this._client.getAPIList(path3`/chat/completions/${completionID}/messages`, CursorPage, { query, ...options });
+  }
+}
+
+// node_modules/openai/lib/chatCompletionUtils.mjs
+var isAssistantMessage = (message) => {
+  return message?.role === "assistant";
+};
+var isToolMessage = (message) => {
+  return message?.role === "tool";
+};
+
+// node_modules/openai/lib/EventStream.mjs
+var _EventStream_instances;
+var _EventStream_connectedPromise;
+var _EventStream_resolveConnectedPromise;
+var _EventStream_rejectConnectedPromise;
+var _EventStream_endPromise;
+var _EventStream_resolveEndPromise;
+var _EventStream_rejectEndPromise;
+var _EventStream_listeners;
+var _EventStream_ended;
+var _EventStream_errored;
+var _EventStream_aborted;
+var _EventStream_catchingPromiseCreated;
+var _EventStream_handleError;
+
+class EventStream {
+  constructor() {
+    _EventStream_instances.add(this);
+    this.controller = new AbortController;
+    _EventStream_connectedPromise.set(this, undefined);
+    _EventStream_resolveConnectedPromise.set(this, () => {});
+    _EventStream_rejectConnectedPromise.set(this, () => {});
+    _EventStream_endPromise.set(this, undefined);
+    _EventStream_resolveEndPromise.set(this, () => {});
+    _EventStream_rejectEndPromise.set(this, () => {});
+    _EventStream_listeners.set(this, {});
+    _EventStream_ended.set(this, false);
+    _EventStream_errored.set(this, false);
+    _EventStream_aborted.set(this, false);
+    _EventStream_catchingPromiseCreated.set(this, false);
+    __classPrivateFieldSet(this, _EventStream_connectedPromise, new Promise((resolve, reject) => {
+      __classPrivateFieldSet(this, _EventStream_resolveConnectedPromise, resolve, "f");
+      __classPrivateFieldSet(this, _EventStream_rejectConnectedPromise, reject, "f");
+    }), "f");
+    __classPrivateFieldSet(this, _EventStream_endPromise, new Promise((resolve, reject) => {
+      __classPrivateFieldSet(this, _EventStream_resolveEndPromise, resolve, "f");
+      __classPrivateFieldSet(this, _EventStream_rejectEndPromise, reject, "f");
+    }), "f");
+    __classPrivateFieldGet(this, _EventStream_connectedPromise, "f").catch(() => {});
+    __classPrivateFieldGet(this, _EventStream_endPromise, "f").catch(() => {});
+  }
+  _run(executor) {
+    setTimeout(() => {
+      executor().then(() => {
+        this._emitFinal();
+        this._emit("end");
+      }, __classPrivateFieldGet(this, _EventStream_instances, "m", _EventStream_handleError).bind(this));
+    }, 0);
+  }
+  _connected() {
+    if (this.ended)
+      return;
+    __classPrivateFieldGet(this, _EventStream_resolveConnectedPromise, "f").call(this);
+    this._emit("connect");
+  }
+  get ended() {
+    return __classPrivateFieldGet(this, _EventStream_ended, "f");
+  }
+  get errored() {
+    return __classPrivateFieldGet(this, _EventStream_errored, "f");
+  }
+  get aborted() {
+    return __classPrivateFieldGet(this, _EventStream_aborted, "f");
+  }
+  abort() {
+    this.controller.abort();
+  }
+  on(event, listener) {
+    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event] || (__classPrivateFieldGet(this, _EventStream_listeners, "f")[event] = []);
+    listeners.push({ listener });
+    return this;
+  }
+  off(event, listener) {
+    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event];
+    if (!listeners)
+      return this;
+    const index = listeners.findIndex((l) => l.listener === listener);
+    if (index >= 0)
+      listeners.splice(index, 1);
+    return this;
+  }
+  once(event, listener) {
+    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event] || (__classPrivateFieldGet(this, _EventStream_listeners, "f")[event] = []);
+    listeners.push({ listener, once: true });
+    return this;
+  }
+  emitted(event) {
+    return new Promise((resolve, reject) => {
+      __classPrivateFieldSet(this, _EventStream_catchingPromiseCreated, true, "f");
+      if (event !== "error")
+        this.once("error", reject);
+      this.once(event, resolve);
+    });
+  }
+  async done() {
+    __classPrivateFieldSet(this, _EventStream_catchingPromiseCreated, true, "f");
+    await __classPrivateFieldGet(this, _EventStream_endPromise, "f");
+  }
+  _emit(event, ...args) {
+    if (__classPrivateFieldGet(this, _EventStream_ended, "f")) {
       return;
     }
-    index.set(finding.file, [finding]);
-  });
-  return index;
+    if (event === "end") {
+      __classPrivateFieldSet(this, _EventStream_ended, true, "f");
+      __classPrivateFieldGet(this, _EventStream_resolveEndPromise, "f").call(this);
+    }
+    const listeners = __classPrivateFieldGet(this, _EventStream_listeners, "f")[event];
+    if (listeners) {
+      __classPrivateFieldGet(this, _EventStream_listeners, "f")[event] = listeners.filter((l) => !l.once);
+      listeners.forEach(({ listener }) => listener(...args));
+    }
+    if (event === "abort") {
+      const error50 = args[0];
+      if (!__classPrivateFieldGet(this, _EventStream_catchingPromiseCreated, "f") && !listeners?.length) {
+        Promise.reject(error50);
+      }
+      __classPrivateFieldGet(this, _EventStream_rejectConnectedPromise, "f").call(this, error50);
+      __classPrivateFieldGet(this, _EventStream_rejectEndPromise, "f").call(this, error50);
+      this._emit("end");
+      return;
+    }
+    if (event === "error") {
+      const error50 = args[0];
+      if (!__classPrivateFieldGet(this, _EventStream_catchingPromiseCreated, "f") && !listeners?.length) {
+        Promise.reject(error50);
+      }
+      __classPrivateFieldGet(this, _EventStream_rejectConnectedPromise, "f").call(this, error50);
+      __classPrivateFieldGet(this, _EventStream_rejectEndPromise, "f").call(this, error50);
+      this._emit("end");
+    }
+  }
+  _emitFinal() {}
 }
-function getRelevantChunkFindings(chunk, findingsIndex) {
+_EventStream_connectedPromise = new WeakMap, _EventStream_resolveConnectedPromise = new WeakMap, _EventStream_rejectConnectedPromise = new WeakMap, _EventStream_endPromise = new WeakMap, _EventStream_resolveEndPromise = new WeakMap, _EventStream_rejectEndPromise = new WeakMap, _EventStream_listeners = new WeakMap, _EventStream_ended = new WeakMap, _EventStream_errored = new WeakMap, _EventStream_aborted = new WeakMap, _EventStream_catchingPromiseCreated = new WeakMap, _EventStream_instances = new WeakSet, _EventStream_handleError = function _EventStream_handleError2(error50) {
+  __classPrivateFieldSet(this, _EventStream_errored, true, "f");
+  if (error50 instanceof Error && error50.name === "AbortError") {
+    error50 = new APIUserAbortError;
+  }
+  if (error50 instanceof APIUserAbortError) {
+    __classPrivateFieldSet(this, _EventStream_aborted, true, "f");
+    return this._emit("abort", error50);
+  }
+  if (error50 instanceof OpenAIError) {
+    return this._emit("error", error50);
+  }
+  if (error50 instanceof Error) {
+    const openAIError = new OpenAIError(error50.message);
+    openAIError.cause = error50;
+    return this._emit("error", openAIError);
+  }
+  return this._emit("error", new OpenAIError(String(error50)));
+};
+
+// node_modules/openai/lib/RunnableFunction.mjs
+function isRunnableFunctionWithParse(fn) {
+  return typeof fn.parse === "function";
+}
+
+// node_modules/openai/lib/AbstractChatCompletionRunner.mjs
+var _AbstractChatCompletionRunner_instances;
+var _AbstractChatCompletionRunner_getFinalContent;
+var _AbstractChatCompletionRunner_getFinalMessage;
+var _AbstractChatCompletionRunner_getFinalFunctionToolCall;
+var _AbstractChatCompletionRunner_getFinalFunctionToolCallResult;
+var _AbstractChatCompletionRunner_calculateTotalUsage;
+var _AbstractChatCompletionRunner_validateParams;
+var _AbstractChatCompletionRunner_stringifyFunctionCallResult;
+var DEFAULT_MAX_CHAT_COMPLETIONS = 10;
+
+class AbstractChatCompletionRunner extends EventStream {
+  constructor() {
+    super(...arguments);
+    _AbstractChatCompletionRunner_instances.add(this);
+    this._chatCompletions = [];
+    this.messages = [];
+  }
+  _addChatCompletion(chatCompletion) {
+    this._chatCompletions.push(chatCompletion);
+    this._emit("chatCompletion", chatCompletion);
+    const message = chatCompletion.choices[0]?.message;
+    if (message)
+      this._addMessage(message);
+    return chatCompletion;
+  }
+  _addMessage(message, emit = true) {
+    if (!("content" in message))
+      message.content = null;
+    this.messages.push(message);
+    if (emit) {
+      this._emit("message", message);
+      if (isToolMessage(message) && message.content) {
+        this._emit("functionToolCallResult", message.content);
+      } else if (isAssistantMessage(message) && message.tool_calls) {
+        for (const tool_call of message.tool_calls) {
+          if (tool_call.type === "function") {
+            this._emit("functionToolCall", tool_call.function);
+          }
+        }
+      }
+    }
+  }
+  async finalChatCompletion() {
+    await this.done();
+    const completion = this._chatCompletions[this._chatCompletions.length - 1];
+    if (!completion)
+      throw new OpenAIError("stream ended without producing a ChatCompletion");
+    return completion;
+  }
+  async finalContent() {
+    await this.done();
+    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalContent).call(this);
+  }
+  async finalMessage() {
+    await this.done();
+    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalMessage).call(this);
+  }
+  async finalFunctionToolCall() {
+    await this.done();
+    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCall).call(this);
+  }
+  async finalFunctionToolCallResult() {
+    await this.done();
+    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCallResult).call(this);
+  }
+  async totalUsage() {
+    await this.done();
+    return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_calculateTotalUsage).call(this);
+  }
+  allChatCompletions() {
+    return [...this._chatCompletions];
+  }
+  _emitFinal() {
+    const completion = this._chatCompletions[this._chatCompletions.length - 1];
+    if (completion)
+      this._emit("finalChatCompletion", completion);
+    const finalMessage = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalMessage).call(this);
+    if (finalMessage)
+      this._emit("finalMessage", finalMessage);
+    const finalContent = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalContent).call(this);
+    if (finalContent)
+      this._emit("finalContent", finalContent);
+    const finalFunctionCall = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCall).call(this);
+    if (finalFunctionCall)
+      this._emit("finalFunctionToolCall", finalFunctionCall);
+    const finalFunctionCallResult = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalFunctionToolCallResult).call(this);
+    if (finalFunctionCallResult != null)
+      this._emit("finalFunctionToolCallResult", finalFunctionCallResult);
+    if (this._chatCompletions.some((c) => c.usage)) {
+      this._emit("totalUsage", __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_calculateTotalUsage).call(this));
+    }
+  }
+  async _createChatCompletion(client, params, options) {
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_validateParams).call(this, params);
+    const chatCompletion = await client.chat.completions.create({ ...params, stream: false }, { ...options, signal: this.controller.signal });
+    this._connected();
+    return this._addChatCompletion(parseChatCompletion(chatCompletion, params));
+  }
+  async _runChatCompletion(client, params, options) {
+    for (const message of params.messages) {
+      this._addMessage(message, false);
+    }
+    return await this._createChatCompletion(client, params, options);
+  }
+  async _runTools(client, params, options) {
+    const role = "tool";
+    const { tool_choice = "auto", stream, ...restParams } = params;
+    const singleFunctionToCall = typeof tool_choice !== "string" && tool_choice.type === "function" && tool_choice?.function?.name;
+    const { maxChatCompletions = DEFAULT_MAX_CHAT_COMPLETIONS } = options || {};
+    const inputTools = params.tools.map((tool) => {
+      if (isAutoParsableTool(tool)) {
+        if (!tool.$callback) {
+          throw new OpenAIError("Tool given to `.runTools()` that does not have an associated function");
+        }
+        return {
+          type: "function",
+          function: {
+            function: tool.$callback,
+            name: tool.function.name,
+            description: tool.function.description || "",
+            parameters: tool.function.parameters,
+            parse: tool.$parseRaw,
+            strict: true
+          }
+        };
+      }
+      return tool;
+    });
+    const functionsByName = {};
+    for (const f of inputTools) {
+      if (f.type === "function") {
+        functionsByName[f.function.name || f.function.function.name] = f.function;
+      }
+    }
+    const tools = "tools" in params ? inputTools.map((t) => t.type === "function" ? {
+      type: "function",
+      function: {
+        name: t.function.name || t.function.function.name,
+        parameters: t.function.parameters,
+        description: t.function.description,
+        strict: t.function.strict
+      }
+    } : t) : undefined;
+    for (const message of params.messages) {
+      this._addMessage(message, false);
+    }
+    for (let i = 0;i < maxChatCompletions; ++i) {
+      const chatCompletion = await this._createChatCompletion(client, {
+        ...restParams,
+        tool_choice,
+        tools,
+        messages: [...this.messages]
+      }, options);
+      const message = chatCompletion.choices[0]?.message;
+      if (!message) {
+        throw new OpenAIError(`missing message in ChatCompletion response`);
+      }
+      if (!message.tool_calls?.length) {
+        return;
+      }
+      for (const tool_call of message.tool_calls) {
+        if (tool_call.type !== "function")
+          continue;
+        const tool_call_id = tool_call.id;
+        const { name, arguments: args } = tool_call.function;
+        const fn = functionsByName[name];
+        if (!fn) {
+          const content2 = `Invalid tool_call: ${JSON.stringify(name)}. Available options are: ${Object.keys(functionsByName).map((name2) => JSON.stringify(name2)).join(", ")}. Please try again`;
+          this._addMessage({ role, tool_call_id, content: content2 });
+          continue;
+        } else if (singleFunctionToCall && singleFunctionToCall !== name) {
+          const content2 = `Invalid tool_call: ${JSON.stringify(name)}. ${JSON.stringify(singleFunctionToCall)} requested. Please try again`;
+          this._addMessage({ role, tool_call_id, content: content2 });
+          continue;
+        }
+        let parsed;
+        try {
+          parsed = isRunnableFunctionWithParse(fn) ? await fn.parse(args) : args;
+        } catch (error50) {
+          const content2 = error50 instanceof Error ? error50.message : String(error50);
+          this._addMessage({ role, tool_call_id, content: content2 });
+          continue;
+        }
+        const rawContent = await fn.function(parsed, this);
+        const content = __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_stringifyFunctionCallResult).call(this, rawContent);
+        this._addMessage({ role, tool_call_id, content });
+        if (singleFunctionToCall) {
+          return;
+        }
+      }
+    }
+    return;
+  }
+}
+_AbstractChatCompletionRunner_instances = new WeakSet, _AbstractChatCompletionRunner_getFinalContent = function _AbstractChatCompletionRunner_getFinalContent2() {
+  return __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_getFinalMessage).call(this).content ?? null;
+}, _AbstractChatCompletionRunner_getFinalMessage = function _AbstractChatCompletionRunner_getFinalMessage2() {
+  let i = this.messages.length;
+  while (i-- > 0) {
+    const message = this.messages[i];
+    if (isAssistantMessage(message)) {
+      const ret = {
+        ...message,
+        content: message.content ?? null,
+        refusal: message.refusal ?? null
+      };
+      return ret;
+    }
+  }
+  throw new OpenAIError("stream ended without producing a ChatCompletionMessage with role=assistant");
+}, _AbstractChatCompletionRunner_getFinalFunctionToolCall = function _AbstractChatCompletionRunner_getFinalFunctionToolCall2() {
+  for (let i = this.messages.length - 1;i >= 0; i--) {
+    const message = this.messages[i];
+    if (isAssistantMessage(message) && message?.tool_calls?.length) {
+      return message.tool_calls.filter((x) => x.type === "function").at(-1)?.function;
+    }
+  }
+  return;
+}, _AbstractChatCompletionRunner_getFinalFunctionToolCallResult = function _AbstractChatCompletionRunner_getFinalFunctionToolCallResult2() {
+  for (let i = this.messages.length - 1;i >= 0; i--) {
+    const message = this.messages[i];
+    if (isToolMessage(message) && message.content != null && typeof message.content === "string" && this.messages.some((x) => x.role === "assistant" && x.tool_calls?.some((y) => y.type === "function" && y.id === message.tool_call_id))) {
+      return message.content;
+    }
+  }
+  return;
+}, _AbstractChatCompletionRunner_calculateTotalUsage = function _AbstractChatCompletionRunner_calculateTotalUsage2() {
+  const total = {
+    completion_tokens: 0,
+    prompt_tokens: 0,
+    total_tokens: 0
+  };
+  for (const { usage } of this._chatCompletions) {
+    if (usage) {
+      total.completion_tokens += usage.completion_tokens;
+      total.prompt_tokens += usage.prompt_tokens;
+      total.total_tokens += usage.total_tokens;
+    }
+  }
+  return total;
+}, _AbstractChatCompletionRunner_validateParams = function _AbstractChatCompletionRunner_validateParams2(params) {
+  if (params.n != null && params.n > 1) {
+    throw new OpenAIError("ChatCompletion convenience helpers only support n=1 at this time. To use n>1, please use chat.completions.create() directly.");
+  }
+}, _AbstractChatCompletionRunner_stringifyFunctionCallResult = function _AbstractChatCompletionRunner_stringifyFunctionCallResult2(rawContent) {
+  return typeof rawContent === "string" ? rawContent : rawContent === undefined ? "undefined" : JSON.stringify(rawContent);
+};
+
+// node_modules/openai/lib/ChatCompletionRunner.mjs
+class ChatCompletionRunner extends AbstractChatCompletionRunner {
+  static runTools(client, params, options) {
+    const runner = new ChatCompletionRunner;
+    const opts = {
+      ...options,
+      headers: { ...options?.headers, "X-Stainless-Helper-Method": "runTools" }
+    };
+    runner._run(() => runner._runTools(client, params, opts));
+    return runner;
+  }
+  _addMessage(message, emit = true) {
+    super._addMessage(message, emit);
+    if (isAssistantMessage(message) && message.content) {
+      this._emit("content", message.content);
+    }
+  }
+}
+
+// node_modules/openai/_vendor/partial-json-parser/parser.mjs
+var STR = 1;
+var NUM = 2;
+var ARR = 4;
+var OBJ = 8;
+var NULL = 16;
+var BOOL = 32;
+var NAN = 64;
+var INFINITY = 128;
+var MINUS_INFINITY = 256;
+var INF = INFINITY | MINUS_INFINITY;
+var SPECIAL = NULL | BOOL | INF | NAN;
+var ATOM = STR | NUM | SPECIAL;
+var COLLECTION = ARR | OBJ;
+var ALL = ATOM | COLLECTION;
+var Allow = {
+  STR,
+  NUM,
+  ARR,
+  OBJ,
+  NULL,
+  BOOL,
+  NAN,
+  INFINITY,
+  MINUS_INFINITY,
+  INF,
+  SPECIAL,
+  ATOM,
+  COLLECTION,
+  ALL
+};
+
+class PartialJSON extends Error {
+}
+
+class MalformedJSON extends Error {
+}
+function parseJSON(jsonString, allowPartial = Allow.ALL) {
+  if (typeof jsonString !== "string") {
+    throw new TypeError(`expecting str, got ${typeof jsonString}`);
+  }
+  if (!jsonString.trim()) {
+    throw new Error(`${jsonString} is empty`);
+  }
+  return _parseJSON(jsonString.trim(), allowPartial);
+}
+var _parseJSON = (jsonString, allow) => {
+  const length = jsonString.length;
+  let index = 0;
+  const markPartialJSON = (msg) => {
+    throw new PartialJSON(`${msg} at position ${index}`);
+  };
+  const throwMalformedError = (msg) => {
+    throw new MalformedJSON(`${msg} at position ${index}`);
+  };
+  const parseAny = () => {
+    skipBlank();
+    if (index >= length)
+      markPartialJSON("Unexpected end of input");
+    if (jsonString[index] === '"')
+      return parseStr();
+    if (jsonString[index] === "{")
+      return parseObj();
+    if (jsonString[index] === "[")
+      return parseArr();
+    if (jsonString.substring(index, index + 4) === "null" || Allow.NULL & allow && length - index < 4 && "null".startsWith(jsonString.substring(index))) {
+      index += 4;
+      return null;
+    }
+    if (jsonString.substring(index, index + 4) === "true" || Allow.BOOL & allow && length - index < 4 && "true".startsWith(jsonString.substring(index))) {
+      index += 4;
+      return true;
+    }
+    if (jsonString.substring(index, index + 5) === "false" || Allow.BOOL & allow && length - index < 5 && "false".startsWith(jsonString.substring(index))) {
+      index += 5;
+      return false;
+    }
+    if (jsonString.substring(index, index + 8) === "Infinity" || Allow.INFINITY & allow && length - index < 8 && "Infinity".startsWith(jsonString.substring(index))) {
+      index += 8;
+      return Infinity;
+    }
+    if (jsonString.substring(index, index + 9) === "-Infinity" || Allow.MINUS_INFINITY & allow && 1 < length - index && length - index < 9 && "-Infinity".startsWith(jsonString.substring(index))) {
+      index += 9;
+      return -Infinity;
+    }
+    if (jsonString.substring(index, index + 3) === "NaN" || Allow.NAN & allow && length - index < 3 && "NaN".startsWith(jsonString.substring(index))) {
+      index += 3;
+      return NaN;
+    }
+    return parseNum();
+  };
+  const parseStr = () => {
+    const start = index;
+    let escape3 = false;
+    index++;
+    while (index < length && (jsonString[index] !== '"' || escape3 && jsonString[index - 1] === "\\")) {
+      escape3 = jsonString[index] === "\\" ? !escape3 : false;
+      index++;
+    }
+    if (jsonString.charAt(index) == '"') {
+      try {
+        return JSON.parse(jsonString.substring(start, ++index - Number(escape3)));
+      } catch (e) {
+        throwMalformedError(String(e));
+      }
+    } else if (Allow.STR & allow) {
+      try {
+        return JSON.parse(jsonString.substring(start, index - Number(escape3)) + '"');
+      } catch (e) {
+        return JSON.parse(jsonString.substring(start, jsonString.lastIndexOf("\\")) + '"');
+      }
+    }
+    markPartialJSON("Unterminated string literal");
+  };
+  const parseObj = () => {
+    index++;
+    skipBlank();
+    const obj = {};
+    try {
+      while (jsonString[index] !== "}") {
+        skipBlank();
+        if (index >= length && Allow.OBJ & allow)
+          return obj;
+        const key = parseStr();
+        skipBlank();
+        index++;
+        try {
+          const value = parseAny();
+          Object.defineProperty(obj, key, { value, writable: true, enumerable: true, configurable: true });
+        } catch (e) {
+          if (Allow.OBJ & allow)
+            return obj;
+          else
+            throw e;
+        }
+        skipBlank();
+        if (jsonString[index] === ",")
+          index++;
+      }
+    } catch (e) {
+      if (Allow.OBJ & allow)
+        return obj;
+      else
+        markPartialJSON("Expected '}' at end of object");
+    }
+    index++;
+    return obj;
+  };
+  const parseArr = () => {
+    index++;
+    const arr = [];
+    try {
+      while (jsonString[index] !== "]") {
+        arr.push(parseAny());
+        skipBlank();
+        if (jsonString[index] === ",") {
+          index++;
+        }
+      }
+    } catch (e) {
+      if (Allow.ARR & allow) {
+        return arr;
+      }
+      markPartialJSON("Expected ']' at end of array");
+    }
+    index++;
+    return arr;
+  };
+  const parseNum = () => {
+    if (index === 0) {
+      if (jsonString === "-" && Allow.NUM & allow)
+        markPartialJSON("Not sure what '-' is");
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        if (Allow.NUM & allow) {
+          try {
+            if (jsonString[jsonString.length - 1] === ".")
+              return JSON.parse(jsonString.substring(0, jsonString.lastIndexOf(".")));
+            return JSON.parse(jsonString.substring(0, jsonString.lastIndexOf("e")));
+          } catch (e2) {}
+        }
+        throwMalformedError(String(e));
+      }
+    }
+    const start = index;
+    if (jsonString[index] === "-")
+      index++;
+    while (jsonString[index] && !",]}".includes(jsonString[index]))
+      index++;
+    if (index == length && !(Allow.NUM & allow))
+      markPartialJSON("Unterminated number literal");
+    try {
+      return JSON.parse(jsonString.substring(start, index));
+    } catch (e) {
+      if (jsonString.substring(start, index) === "-" && Allow.NUM & allow)
+        markPartialJSON("Not sure what '-' is");
+      try {
+        return JSON.parse(jsonString.substring(start, jsonString.lastIndexOf("e")));
+      } catch (e2) {
+        throwMalformedError(String(e2));
+      }
+    }
+  };
+  const skipBlank = () => {
+    while (index < length && ` 
+\r	`.includes(jsonString[index])) {
+      index++;
+    }
+  };
+  return parseAny();
+};
+var partialParse = (input) => parseJSON(input, Allow.ALL ^ Allow.NUM);
+// node_modules/openai/lib/ChatCompletionStream.mjs
+var _ChatCompletionStream_instances;
+var _ChatCompletionStream_params;
+var _ChatCompletionStream_choiceEventStates;
+var _ChatCompletionStream_currentChatCompletionSnapshot;
+var _ChatCompletionStream_beginRequest;
+var _ChatCompletionStream_getChoiceEventState;
+var _ChatCompletionStream_addChunk;
+var _ChatCompletionStream_emitToolCallDoneEvent;
+var _ChatCompletionStream_emitContentDoneEvents;
+var _ChatCompletionStream_endRequest;
+var _ChatCompletionStream_getAutoParseableResponseFormat;
+var _ChatCompletionStream_accumulateChatCompletion;
+
+class ChatCompletionStream extends AbstractChatCompletionRunner {
+  constructor(params) {
+    super();
+    _ChatCompletionStream_instances.add(this);
+    _ChatCompletionStream_params.set(this, undefined);
+    _ChatCompletionStream_choiceEventStates.set(this, undefined);
+    _ChatCompletionStream_currentChatCompletionSnapshot.set(this, undefined);
+    __classPrivateFieldSet(this, _ChatCompletionStream_params, params, "f");
+    __classPrivateFieldSet(this, _ChatCompletionStream_choiceEventStates, [], "f");
+  }
+  get currentChatCompletionSnapshot() {
+    return __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
+  }
+  static fromReadableStream(stream) {
+    const runner = new ChatCompletionStream(null);
+    runner._run(() => runner._fromReadableStream(stream));
+    return runner;
+  }
+  static createChatCompletion(client, params, options) {
+    const runner = new ChatCompletionStream(params);
+    runner._run(() => runner._runChatCompletion(client, { ...params, stream: true }, { ...options, headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" } }));
+    return runner;
+  }
+  async _createChatCompletion(client, params, options) {
+    super._createChatCompletion;
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_beginRequest).call(this);
+    const stream = await client.chat.completions.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
+    this._connected();
+    for await (const chunk of stream) {
+      __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_addChunk).call(this, chunk);
+    }
+    if (stream.controller.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    return this._addChatCompletion(__classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
+  }
+  async _fromReadableStream(readableStream, options) {
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_beginRequest).call(this);
+    this._connected();
+    const stream = Stream.fromReadableStream(readableStream, this.controller);
+    let chatId;
+    for await (const chunk of stream) {
+      if (chatId && chatId !== chunk.id) {
+        this._addChatCompletion(__classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
+      }
+      __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_addChunk).call(this, chunk);
+      chatId = chunk.id;
+    }
+    if (stream.controller.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    return this._addChatCompletion(__classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
+  }
+  [(_ChatCompletionStream_params = new WeakMap, _ChatCompletionStream_choiceEventStates = new WeakMap, _ChatCompletionStream_currentChatCompletionSnapshot = new WeakMap, _ChatCompletionStream_instances = new WeakSet, _ChatCompletionStream_beginRequest = function _ChatCompletionStream_beginRequest2() {
+    if (this.ended)
+      return;
+    __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, undefined, "f");
+  }, _ChatCompletionStream_getChoiceEventState = function _ChatCompletionStream_getChoiceEventState2(choice) {
+    let state = __classPrivateFieldGet(this, _ChatCompletionStream_choiceEventStates, "f")[choice.index];
+    if (state) {
+      return state;
+    }
+    state = {
+      content_done: false,
+      refusal_done: false,
+      logprobs_content_done: false,
+      logprobs_refusal_done: false,
+      done_tool_calls: new Set,
+      current_tool_call_index: null
+    };
+    __classPrivateFieldGet(this, _ChatCompletionStream_choiceEventStates, "f")[choice.index] = state;
+    return state;
+  }, _ChatCompletionStream_addChunk = function _ChatCompletionStream_addChunk2(chunk) {
+    if (this.ended)
+      return;
+    const completion = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_accumulateChatCompletion).call(this, chunk);
+    this._emit("chunk", chunk, completion);
+    for (const choice of chunk.choices) {
+      const choiceSnapshot = completion.choices[choice.index];
+      if (choice.delta.content != null && choiceSnapshot.message?.role === "assistant" && choiceSnapshot.message?.content) {
+        this._emit("content", choice.delta.content, choiceSnapshot.message.content);
+        this._emit("content.delta", {
+          delta: choice.delta.content,
+          snapshot: choiceSnapshot.message.content,
+          parsed: choiceSnapshot.message.parsed
+        });
+      }
+      if (choice.delta.refusal != null && choiceSnapshot.message?.role === "assistant" && choiceSnapshot.message?.refusal) {
+        this._emit("refusal.delta", {
+          delta: choice.delta.refusal,
+          snapshot: choiceSnapshot.message.refusal
+        });
+      }
+      if (choice.logprobs?.content != null && choiceSnapshot.message?.role === "assistant") {
+        this._emit("logprobs.content.delta", {
+          content: choice.logprobs?.content,
+          snapshot: choiceSnapshot.logprobs?.content ?? []
+        });
+      }
+      if (choice.logprobs?.refusal != null && choiceSnapshot.message?.role === "assistant") {
+        this._emit("logprobs.refusal.delta", {
+          refusal: choice.logprobs?.refusal,
+          snapshot: choiceSnapshot.logprobs?.refusal ?? []
+        });
+      }
+      const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
+      if (choiceSnapshot.finish_reason) {
+        __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitContentDoneEvents).call(this, choiceSnapshot);
+        if (state.current_tool_call_index != null) {
+          __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitToolCallDoneEvent).call(this, choiceSnapshot, state.current_tool_call_index);
+        }
+      }
+      for (const toolCall of choice.delta.tool_calls ?? []) {
+        if (state.current_tool_call_index !== toolCall.index) {
+          __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitContentDoneEvents).call(this, choiceSnapshot);
+          if (state.current_tool_call_index != null) {
+            __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitToolCallDoneEvent).call(this, choiceSnapshot, state.current_tool_call_index);
+          }
+        }
+        state.current_tool_call_index = toolCall.index;
+      }
+      for (const toolCallDelta of choice.delta.tool_calls ?? []) {
+        const toolCallSnapshot = choiceSnapshot.message.tool_calls?.[toolCallDelta.index];
+        if (!toolCallSnapshot?.type) {
+          continue;
+        }
+        if (toolCallSnapshot?.type === "function") {
+          this._emit("tool_calls.function.arguments.delta", {
+            name: toolCallSnapshot.function?.name,
+            index: toolCallDelta.index,
+            arguments: toolCallSnapshot.function.arguments,
+            parsed_arguments: toolCallSnapshot.function.parsed_arguments,
+            arguments_delta: toolCallDelta.function?.arguments ?? ""
+          });
+        } else {
+          assertNever2(toolCallSnapshot?.type);
+        }
+      }
+    }
+  }, _ChatCompletionStream_emitToolCallDoneEvent = function _ChatCompletionStream_emitToolCallDoneEvent2(choiceSnapshot, toolCallIndex) {
+    const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
+    if (state.done_tool_calls.has(toolCallIndex)) {
+      return;
+    }
+    const toolCallSnapshot = choiceSnapshot.message.tool_calls?.[toolCallIndex];
+    if (!toolCallSnapshot) {
+      throw new Error("no tool call snapshot");
+    }
+    if (!toolCallSnapshot.type) {
+      throw new Error("tool call snapshot missing `type`");
+    }
+    if (toolCallSnapshot.type === "function") {
+      const inputTool = __classPrivateFieldGet(this, _ChatCompletionStream_params, "f")?.tools?.find((tool) => isChatCompletionFunctionTool(tool) && tool.function.name === toolCallSnapshot.function.name);
+      this._emit("tool_calls.function.arguments.done", {
+        name: toolCallSnapshot.function.name,
+        index: toolCallIndex,
+        arguments: toolCallSnapshot.function.arguments,
+        parsed_arguments: isAutoParsableTool(inputTool) ? inputTool.$parseRaw(toolCallSnapshot.function.arguments) : inputTool?.function.strict ? JSON.parse(toolCallSnapshot.function.arguments) : null
+      });
+    } else {
+      assertNever2(toolCallSnapshot.type);
+    }
+  }, _ChatCompletionStream_emitContentDoneEvents = function _ChatCompletionStream_emitContentDoneEvents2(choiceSnapshot) {
+    const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
+    if (choiceSnapshot.message.content && !state.content_done) {
+      state.content_done = true;
+      const responseFormat = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getAutoParseableResponseFormat).call(this);
+      this._emit("content.done", {
+        content: choiceSnapshot.message.content,
+        parsed: responseFormat ? responseFormat.$parseRaw(choiceSnapshot.message.content) : null
+      });
+    }
+    if (choiceSnapshot.message.refusal && !state.refusal_done) {
+      state.refusal_done = true;
+      this._emit("refusal.done", { refusal: choiceSnapshot.message.refusal });
+    }
+    if (choiceSnapshot.logprobs?.content && !state.logprobs_content_done) {
+      state.logprobs_content_done = true;
+      this._emit("logprobs.content.done", { content: choiceSnapshot.logprobs.content });
+    }
+    if (choiceSnapshot.logprobs?.refusal && !state.logprobs_refusal_done) {
+      state.logprobs_refusal_done = true;
+      this._emit("logprobs.refusal.done", { refusal: choiceSnapshot.logprobs.refusal });
+    }
+  }, _ChatCompletionStream_endRequest = function _ChatCompletionStream_endRequest2() {
+    if (this.ended) {
+      throw new OpenAIError(`stream has ended, this shouldn't happen`);
+    }
+    const snapshot = __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
+    if (!snapshot) {
+      throw new OpenAIError(`request ended without sending any chunks`);
+    }
+    __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, undefined, "f");
+    __classPrivateFieldSet(this, _ChatCompletionStream_choiceEventStates, [], "f");
+    return finalizeChatCompletion(snapshot, __classPrivateFieldGet(this, _ChatCompletionStream_params, "f"));
+  }, _ChatCompletionStream_getAutoParseableResponseFormat = function _ChatCompletionStream_getAutoParseableResponseFormat2() {
+    const responseFormat = __classPrivateFieldGet(this, _ChatCompletionStream_params, "f")?.response_format;
+    if (isAutoParsableResponseFormat(responseFormat)) {
+      return responseFormat;
+    }
+    return null;
+  }, _ChatCompletionStream_accumulateChatCompletion = function _ChatCompletionStream_accumulateChatCompletion2(chunk) {
+    var _a3, _b, _c, _d;
+    let snapshot = __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
+    const { choices, ...rest } = chunk;
+    if (!snapshot) {
+      snapshot = __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, {
+        ...rest,
+        choices: []
+      }, "f");
+    } else {
+      Object.assign(snapshot, rest);
+    }
+    for (const { delta, finish_reason, index, logprobs = null, ...other } of chunk.choices) {
+      let choice = snapshot.choices[index];
+      if (!choice) {
+        choice = snapshot.choices[index] = { finish_reason, index, message: {}, logprobs, ...other };
+      }
+      if (logprobs) {
+        if (!choice.logprobs) {
+          choice.logprobs = Object.assign({}, logprobs);
+        } else {
+          const { content: content2, refusal: refusal2, ...rest3 } = logprobs;
+          assertIsEmpty(rest3);
+          Object.assign(choice.logprobs, rest3);
+          if (content2) {
+            (_a3 = choice.logprobs).content ?? (_a3.content = []);
+            choice.logprobs.content.push(...content2);
+          }
+          if (refusal2) {
+            (_b = choice.logprobs).refusal ?? (_b.refusal = []);
+            choice.logprobs.refusal.push(...refusal2);
+          }
+        }
+      }
+      if (finish_reason) {
+        choice.finish_reason = finish_reason;
+        if (__classPrivateFieldGet(this, _ChatCompletionStream_params, "f") && hasAutoParseableInput(__classPrivateFieldGet(this, _ChatCompletionStream_params, "f"))) {
+          if (finish_reason === "length") {
+            throw new LengthFinishReasonError;
+          }
+          if (finish_reason === "content_filter") {
+            throw new ContentFilterFinishReasonError;
+          }
+        }
+      }
+      Object.assign(choice, other);
+      if (!delta)
+        continue;
+      const { content, refusal, function_call, role, tool_calls, ...rest2 } = delta;
+      assertIsEmpty(rest2);
+      Object.assign(choice.message, rest2);
+      if (refusal) {
+        choice.message.refusal = (choice.message.refusal || "") + refusal;
+      }
+      if (role)
+        choice.message.role = role;
+      if (function_call) {
+        if (!choice.message.function_call) {
+          choice.message.function_call = function_call;
+        } else {
+          if (function_call.name)
+            choice.message.function_call.name = function_call.name;
+          if (function_call.arguments) {
+            (_c = choice.message.function_call).arguments ?? (_c.arguments = "");
+            choice.message.function_call.arguments += function_call.arguments;
+          }
+        }
+      }
+      if (content) {
+        choice.message.content = (choice.message.content || "") + content;
+        if (!choice.message.refusal && __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getAutoParseableResponseFormat).call(this)) {
+          choice.message.parsed = partialParse(choice.message.content);
+        }
+      }
+      if (tool_calls) {
+        if (!choice.message.tool_calls)
+          choice.message.tool_calls = [];
+        for (const { index: index2, id, type, function: fn, ...rest3 } of tool_calls) {
+          const tool_call = (_d = choice.message.tool_calls)[index2] ?? (_d[index2] = {});
+          Object.assign(tool_call, rest3);
+          if (id)
+            tool_call.id = id;
+          if (type)
+            tool_call.type = type;
+          if (fn)
+            tool_call.function ?? (tool_call.function = { name: fn.name ?? "", arguments: "" });
+          if (fn?.name)
+            tool_call.function.name = fn.name;
+          if (fn?.arguments) {
+            tool_call.function.arguments += fn.arguments;
+            if (shouldParseToolCall(__classPrivateFieldGet(this, _ChatCompletionStream_params, "f"), tool_call)) {
+              tool_call.function.parsed_arguments = partialParse(tool_call.function.arguments);
+            }
+          }
+        }
+      }
+    }
+    return snapshot;
+  }, Symbol.asyncIterator)]() {
+    const pushQueue = [];
+    const readQueue = [];
+    let done = false;
+    this.on("chunk", (chunk) => {
+      const reader = readQueue.shift();
+      if (reader) {
+        reader.resolve(chunk);
+      } else {
+        pushQueue.push(chunk);
+      }
+    });
+    this.on("end", () => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.resolve(undefined);
+      }
+      readQueue.length = 0;
+    });
+    this.on("abort", (err) => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.reject(err);
+      }
+      readQueue.length = 0;
+    });
+    this.on("error", (err) => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.reject(err);
+      }
+      readQueue.length = 0;
+    });
+    return {
+      next: async () => {
+        if (!pushQueue.length) {
+          if (done) {
+            return { value: undefined, done: true };
+          }
+          return new Promise((resolve, reject) => readQueue.push({ resolve, reject })).then((chunk2) => chunk2 ? { value: chunk2, done: false } : { value: undefined, done: true });
+        }
+        const chunk = pushQueue.shift();
+        return { value: chunk, done: false };
+      },
+      return: async () => {
+        this.abort();
+        return { value: undefined, done: true };
+      }
+    };
+  }
+  toReadableStream() {
+    const stream = new Stream(this[Symbol.asyncIterator].bind(this), this.controller);
+    return stream.toReadableStream();
+  }
+}
+function finalizeChatCompletion(snapshot, params) {
+  const { id, choices, created, model, system_fingerprint, ...rest } = snapshot;
+  const completion = {
+    ...rest,
+    id,
+    choices: choices.map(({ message, finish_reason, index, logprobs, ...choiceRest }) => {
+      if (!finish_reason) {
+        throw new OpenAIError(`missing finish_reason for choice ${index}`);
+      }
+      const { content = null, function_call, tool_calls, ...messageRest } = message;
+      const role = message.role;
+      if (!role) {
+        throw new OpenAIError(`missing role for choice ${index}`);
+      }
+      if (function_call) {
+        const { arguments: args, name } = function_call;
+        if (args == null) {
+          throw new OpenAIError(`missing function_call.arguments for choice ${index}`);
+        }
+        if (!name) {
+          throw new OpenAIError(`missing function_call.name for choice ${index}`);
+        }
+        return {
+          ...choiceRest,
+          message: {
+            content,
+            function_call: { arguments: args, name },
+            role,
+            refusal: message.refusal ?? null
+          },
+          finish_reason,
+          index,
+          logprobs
+        };
+      }
+      if (tool_calls) {
+        return {
+          ...choiceRest,
+          index,
+          finish_reason,
+          logprobs,
+          message: {
+            ...messageRest,
+            role,
+            content,
+            refusal: message.refusal ?? null,
+            tool_calls: tool_calls.map((tool_call, i) => {
+              const { function: fn, type, id: id2, ...toolRest } = tool_call;
+              const { arguments: args, name, ...fnRest } = fn || {};
+              if (id2 == null) {
+                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].id
+${str(snapshot)}`);
+              }
+              if (type == null) {
+                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].type
+${str(snapshot)}`);
+              }
+              if (name == null) {
+                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].function.name
+${str(snapshot)}`);
+              }
+              if (args == null) {
+                throw new OpenAIError(`missing choices[${index}].tool_calls[${i}].function.arguments
+${str(snapshot)}`);
+              }
+              return { ...toolRest, id: id2, type, function: { ...fnRest, name, arguments: args } };
+            })
+          }
+        };
+      }
+      return {
+        ...choiceRest,
+        message: { ...messageRest, content, role, refusal: message.refusal ?? null },
+        finish_reason,
+        index,
+        logprobs
+      };
+    }),
+    created,
+    model,
+    object: "chat.completion",
+    ...system_fingerprint ? { system_fingerprint } : {}
+  };
+  return maybeParseChatCompletion(completion, params);
+}
+function str(x) {
+  return JSON.stringify(x);
+}
+function assertIsEmpty(obj) {
+  return;
+}
+function assertNever2(_x) {}
+
+// node_modules/openai/lib/ChatCompletionStreamingRunner.mjs
+class ChatCompletionStreamingRunner extends ChatCompletionStream {
+  static fromReadableStream(stream) {
+    const runner = new ChatCompletionStreamingRunner(null);
+    runner._run(() => runner._fromReadableStream(stream));
+    return runner;
+  }
+  static runTools(client, params, options) {
+    const runner = new ChatCompletionStreamingRunner(params);
+    const opts = {
+      ...options,
+      headers: { ...options?.headers, "X-Stainless-Helper-Method": "runTools" }
+    };
+    runner._run(() => runner._runTools(client, params, opts));
+    return runner;
+  }
+}
+
+// node_modules/openai/resources/chat/completions/completions.mjs
+class Completions extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.messages = new Messages(this._client);
+  }
+  create(body, options) {
+    return this._client.post("/chat/completions", { body, ...options, stream: body.stream ?? false });
+  }
+  retrieve(completionID, options) {
+    return this._client.get(path3`/chat/completions/${completionID}`, options);
+  }
+  update(completionID, body, options) {
+    return this._client.post(path3`/chat/completions/${completionID}`, { body, ...options });
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/chat/completions", CursorPage, { query, ...options });
+  }
+  delete(completionID, options) {
+    return this._client.delete(path3`/chat/completions/${completionID}`, options);
+  }
+  parse(body, options) {
+    validateInputTools(body.tools);
+    return this._client.chat.completions.create(body, {
+      ...options,
+      headers: {
+        ...options?.headers,
+        "X-Stainless-Helper-Method": "chat.completions.parse"
+      }
+    })._thenUnwrap((completion) => parseChatCompletion(completion, body));
+  }
+  runTools(body, options) {
+    if (body.stream) {
+      return ChatCompletionStreamingRunner.runTools(this._client, body, options);
+    }
+    return ChatCompletionRunner.runTools(this._client, body, options);
+  }
+  stream(body, options) {
+    return ChatCompletionStream.createChatCompletion(this._client, body, options);
+  }
+}
+Completions.Messages = Messages;
+
+// node_modules/openai/resources/chat/chat.mjs
+class Chat extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.completions = new Completions(this._client);
+  }
+}
+Chat.Completions = Completions;
+// node_modules/openai/internal/headers.mjs
+var brand_privateNullableHeaders = /* @__PURE__ */ Symbol("brand.privateNullableHeaders");
+function* iterateHeaders(headers) {
+  if (!headers)
+    return;
+  if (brand_privateNullableHeaders in headers) {
+    const { values, nulls } = headers;
+    yield* values.entries();
+    for (const name of nulls) {
+      yield [name, null];
+    }
+    return;
+  }
+  let shouldClear = false;
+  let iter;
+  if (headers instanceof Headers) {
+    iter = headers.entries();
+  } else if (isReadonlyArray(headers)) {
+    iter = headers;
+  } else {
+    shouldClear = true;
+    iter = Object.entries(headers ?? {});
+  }
+  for (let row of iter) {
+    const name = row[0];
+    if (typeof name !== "string")
+      throw new TypeError("expected header name to be a string");
+    const values = isReadonlyArray(row[1]) ? row[1] : [row[1]];
+    let didClear = false;
+    for (const value of values) {
+      if (value === undefined)
+        continue;
+      if (shouldClear && !didClear) {
+        didClear = true;
+        yield [name, null];
+      }
+      yield [name, value];
+    }
+  }
+}
+var buildHeaders = (newHeaders) => {
+  const targetHeaders = new Headers;
+  const nullHeaders = new Set;
+  for (const headers of newHeaders) {
+    const seenHeaders = new Set;
+    for (const [name, value] of iterateHeaders(headers)) {
+      const lowerName = name.toLowerCase();
+      if (!seenHeaders.has(lowerName)) {
+        targetHeaders.delete(name);
+        seenHeaders.add(lowerName);
+      }
+      if (value === null) {
+        targetHeaders.delete(name);
+        nullHeaders.add(lowerName);
+      } else {
+        targetHeaders.append(name, value);
+        nullHeaders.delete(lowerName);
+      }
+    }
+  }
+  return { [brand_privateNullableHeaders]: true, values: targetHeaders, nulls: nullHeaders };
+};
+
+// node_modules/openai/resources/audio/speech.mjs
+class Speech extends APIResource {
+  create(body, options) {
+    return this._client.post("/audio/speech", {
+      body,
+      ...options,
+      headers: buildHeaders([{ Accept: "application/octet-stream" }, options?.headers]),
+      __binaryResponse: true
+    });
+  }
+}
+
+// node_modules/openai/resources/audio/transcriptions.mjs
+class Transcriptions extends APIResource {
+  create(body, options) {
+    return this._client.post("/audio/transcriptions", multipartFormRequestOptions({
+      body,
+      ...options,
+      stream: body.stream ?? false,
+      __metadata: { model: body.model }
+    }, this._client));
+  }
+}
+
+// node_modules/openai/resources/audio/translations.mjs
+class Translations extends APIResource {
+  create(body, options) {
+    return this._client.post("/audio/translations", multipartFormRequestOptions({ body, ...options, __metadata: { model: body.model } }, this._client));
+  }
+}
+
+// node_modules/openai/resources/audio/audio.mjs
+class Audio extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.transcriptions = new Transcriptions(this._client);
+    this.translations = new Translations(this._client);
+    this.speech = new Speech(this._client);
+  }
+}
+Audio.Transcriptions = Transcriptions;
+Audio.Translations = Translations;
+Audio.Speech = Speech;
+// node_modules/openai/resources/batches.mjs
+class Batches extends APIResource {
+  create(body, options) {
+    return this._client.post("/batches", { body, ...options });
+  }
+  retrieve(batchID, options) {
+    return this._client.get(path3`/batches/${batchID}`, options);
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/batches", CursorPage, { query, ...options });
+  }
+  cancel(batchID, options) {
+    return this._client.post(path3`/batches/${batchID}/cancel`, options);
+  }
+}
+// node_modules/openai/resources/beta/assistants.mjs
+class Assistants extends APIResource {
+  create(body, options) {
+    return this._client.post("/assistants", {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  retrieve(assistantID, options) {
+    return this._client.get(path3`/assistants/${assistantID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  update(assistantID, body, options) {
+    return this._client.post(path3`/assistants/${assistantID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/assistants", CursorPage, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  delete(assistantID, options) {
+    return this._client.delete(path3`/assistants/${assistantID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+}
+
+// node_modules/openai/resources/beta/realtime/sessions.mjs
+class Sessions extends APIResource {
+  create(body, options) {
+    return this._client.post("/realtime/sessions", {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+}
+
+// node_modules/openai/resources/beta/realtime/transcription-sessions.mjs
+class TranscriptionSessions extends APIResource {
+  create(body, options) {
+    return this._client.post("/realtime/transcription_sessions", {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+}
+
+// node_modules/openai/resources/beta/realtime/realtime.mjs
+class Realtime extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.sessions = new Sessions(this._client);
+    this.transcriptionSessions = new TranscriptionSessions(this._client);
+  }
+}
+Realtime.Sessions = Sessions;
+Realtime.TranscriptionSessions = TranscriptionSessions;
+
+// node_modules/openai/resources/beta/chatkit/sessions.mjs
+class Sessions2 extends APIResource {
+  create(body, options) {
+    return this._client.post("/chatkit/sessions", {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
+    });
+  }
+  cancel(sessionID, options) {
+    return this._client.post(path3`/chatkit/sessions/${sessionID}/cancel`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
+    });
+  }
+}
+
+// node_modules/openai/resources/beta/chatkit/threads.mjs
+class Threads extends APIResource {
+  retrieve(threadID, options) {
+    return this._client.get(path3`/chatkit/threads/${threadID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
+    });
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/chatkit/threads", ConversationCursorPage, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
+    });
+  }
+  delete(threadID, options) {
+    return this._client.delete(path3`/chatkit/threads/${threadID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
+    });
+  }
+  listItems(threadID, query = {}, options) {
+    return this._client.getAPIList(path3`/chatkit/threads/${threadID}/items`, ConversationCursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers]) });
+  }
+}
+
+// node_modules/openai/resources/beta/chatkit/chatkit.mjs
+class ChatKit extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.sessions = new Sessions2(this._client);
+    this.threads = new Threads(this._client);
+  }
+}
+ChatKit.Sessions = Sessions2;
+ChatKit.Threads = Threads;
+
+// node_modules/openai/resources/beta/threads/messages.mjs
+class Messages2 extends APIResource {
+  create(threadID, body, options) {
+    return this._client.post(path3`/threads/${threadID}/messages`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  retrieve(messageID, params, options) {
+    const { thread_id } = params;
+    return this._client.get(path3`/threads/${thread_id}/messages/${messageID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  update(messageID, params, options) {
+    const { thread_id, ...body } = params;
+    return this._client.post(path3`/threads/${thread_id}/messages/${messageID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  list(threadID, query = {}, options) {
+    return this._client.getAPIList(path3`/threads/${threadID}/messages`, CursorPage, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  delete(messageID, params, options) {
+    const { thread_id } = params;
+    return this._client.delete(path3`/threads/${thread_id}/messages/${messageID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+}
+
+// node_modules/openai/resources/beta/threads/runs/steps.mjs
+class Steps extends APIResource {
+  retrieve(stepID, params, options) {
+    const { thread_id, run_id, ...query } = params;
+    return this._client.get(path3`/threads/${thread_id}/runs/${run_id}/steps/${stepID}`, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  list(runID, params, options) {
+    const { thread_id, ...query } = params;
+    return this._client.getAPIList(path3`/threads/${thread_id}/runs/${runID}/steps`, CursorPage, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+}
+// node_modules/openai/internal/utils/base64.mjs
+var toFloat32Array = (base64Str) => {
+  if (typeof Buffer !== "undefined") {
+    const buf = Buffer.from(base64Str, "base64");
+    return Array.from(new Float32Array(buf.buffer, buf.byteOffset, buf.length / Float32Array.BYTES_PER_ELEMENT));
+  } else {
+    const binaryStr = atob(base64Str);
+    const len = binaryStr.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0;i < len; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+    return Array.from(new Float32Array(bytes.buffer));
+  }
+};
+// node_modules/openai/internal/utils/env.mjs
+var readEnv = (env) => {
+  if (typeof globalThis.process !== "undefined") {
+    return globalThis.process.env?.[env]?.trim() ?? undefined;
+  }
+  if (typeof globalThis.Deno !== "undefined") {
+    return globalThis.Deno.env?.get?.(env)?.trim();
+  }
+  return;
+};
+// node_modules/openai/lib/AssistantStream.mjs
+var _AssistantStream_instances;
+var _a3;
+var _AssistantStream_events;
+var _AssistantStream_runStepSnapshots;
+var _AssistantStream_messageSnapshots;
+var _AssistantStream_messageSnapshot;
+var _AssistantStream_finalRun;
+var _AssistantStream_currentContentIndex;
+var _AssistantStream_currentContent;
+var _AssistantStream_currentToolCallIndex;
+var _AssistantStream_currentToolCall;
+var _AssistantStream_currentEvent;
+var _AssistantStream_currentRunSnapshot;
+var _AssistantStream_currentRunStepSnapshot;
+var _AssistantStream_addEvent;
+var _AssistantStream_endRequest;
+var _AssistantStream_handleMessage;
+var _AssistantStream_handleRunStep;
+var _AssistantStream_handleEvent;
+var _AssistantStream_accumulateRunStep;
+var _AssistantStream_accumulateMessage;
+var _AssistantStream_accumulateContent;
+var _AssistantStream_handleRun;
+
+class AssistantStream extends EventStream {
+  constructor() {
+    super(...arguments);
+    _AssistantStream_instances.add(this);
+    _AssistantStream_events.set(this, []);
+    _AssistantStream_runStepSnapshots.set(this, {});
+    _AssistantStream_messageSnapshots.set(this, {});
+    _AssistantStream_messageSnapshot.set(this, undefined);
+    _AssistantStream_finalRun.set(this, undefined);
+    _AssistantStream_currentContentIndex.set(this, undefined);
+    _AssistantStream_currentContent.set(this, undefined);
+    _AssistantStream_currentToolCallIndex.set(this, undefined);
+    _AssistantStream_currentToolCall.set(this, undefined);
+    _AssistantStream_currentEvent.set(this, undefined);
+    _AssistantStream_currentRunSnapshot.set(this, undefined);
+    _AssistantStream_currentRunStepSnapshot.set(this, undefined);
+  }
+  [(_AssistantStream_events = new WeakMap, _AssistantStream_runStepSnapshots = new WeakMap, _AssistantStream_messageSnapshots = new WeakMap, _AssistantStream_messageSnapshot = new WeakMap, _AssistantStream_finalRun = new WeakMap, _AssistantStream_currentContentIndex = new WeakMap, _AssistantStream_currentContent = new WeakMap, _AssistantStream_currentToolCallIndex = new WeakMap, _AssistantStream_currentToolCall = new WeakMap, _AssistantStream_currentEvent = new WeakMap, _AssistantStream_currentRunSnapshot = new WeakMap, _AssistantStream_currentRunStepSnapshot = new WeakMap, _AssistantStream_instances = new WeakSet, Symbol.asyncIterator)]() {
+    const pushQueue = [];
+    const readQueue = [];
+    let done = false;
+    this.on("event", (event) => {
+      const reader = readQueue.shift();
+      if (reader) {
+        reader.resolve(event);
+      } else {
+        pushQueue.push(event);
+      }
+    });
+    this.on("end", () => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.resolve(undefined);
+      }
+      readQueue.length = 0;
+    });
+    this.on("abort", (err) => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.reject(err);
+      }
+      readQueue.length = 0;
+    });
+    this.on("error", (err) => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.reject(err);
+      }
+      readQueue.length = 0;
+    });
+    return {
+      next: async () => {
+        if (!pushQueue.length) {
+          if (done) {
+            return { value: undefined, done: true };
+          }
+          return new Promise((resolve, reject) => readQueue.push({ resolve, reject })).then((chunk2) => chunk2 ? { value: chunk2, done: false } : { value: undefined, done: true });
+        }
+        const chunk = pushQueue.shift();
+        return { value: chunk, done: false };
+      },
+      return: async () => {
+        this.abort();
+        return { value: undefined, done: true };
+      }
+    };
+  }
+  static fromReadableStream(stream) {
+    const runner = new _a3;
+    runner._run(() => runner._fromReadableStream(stream));
+    return runner;
+  }
+  async _fromReadableStream(readableStream, options) {
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    this._connected();
+    const stream = Stream.fromReadableStream(readableStream, this.controller);
+    for await (const event of stream) {
+      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
+    }
+    if (stream.controller.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
+  }
+  toReadableStream() {
+    const stream = new Stream(this[Symbol.asyncIterator].bind(this), this.controller);
+    return stream.toReadableStream();
+  }
+  static createToolAssistantStream(runId, runs, params, options) {
+    const runner = new _a3;
+    runner._run(() => runner._runToolAssistantStream(runId, runs, params, {
+      ...options,
+      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
+    }));
+    return runner;
+  }
+  async _createToolAssistantStream(run, runId, params, options) {
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    const body = { ...params, stream: true };
+    const stream = await run.submitToolOutputs(runId, body, {
+      ...options,
+      signal: this.controller.signal
+    });
+    this._connected();
+    for await (const event of stream) {
+      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
+    }
+    if (stream.controller.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
+  }
+  static createThreadAssistantStream(params, thread, options) {
+    const runner = new _a3;
+    runner._run(() => runner._threadAssistantStream(params, thread, {
+      ...options,
+      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
+    }));
+    return runner;
+  }
+  static createAssistantStream(threadId, runs, params, options) {
+    const runner = new _a3;
+    runner._run(() => runner._runAssistantStream(threadId, runs, params, {
+      ...options,
+      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
+    }));
+    return runner;
+  }
+  currentEvent() {
+    return __classPrivateFieldGet(this, _AssistantStream_currentEvent, "f");
+  }
+  currentRun() {
+    return __classPrivateFieldGet(this, _AssistantStream_currentRunSnapshot, "f");
+  }
+  currentMessageSnapshot() {
+    return __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f");
+  }
+  currentRunStepSnapshot() {
+    return __classPrivateFieldGet(this, _AssistantStream_currentRunStepSnapshot, "f");
+  }
+  async finalRunSteps() {
+    await this.done();
+    return Object.values(__classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f"));
+  }
+  async finalMessages() {
+    await this.done();
+    return Object.values(__classPrivateFieldGet(this, _AssistantStream_messageSnapshots, "f"));
+  }
+  async finalRun() {
+    await this.done();
+    if (!__classPrivateFieldGet(this, _AssistantStream_finalRun, "f"))
+      throw Error("Final run was not received.");
+    return __classPrivateFieldGet(this, _AssistantStream_finalRun, "f");
+  }
+  async _createThreadAssistantStream(thread, params, options) {
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    const body = { ...params, stream: true };
+    const stream = await thread.createAndRun(body, { ...options, signal: this.controller.signal });
+    this._connected();
+    for await (const event of stream) {
+      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
+    }
+    if (stream.controller.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
+  }
+  async _createAssistantStream(run, threadId, params, options) {
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    const body = { ...params, stream: true };
+    const stream = await run.create(threadId, body, { ...options, signal: this.controller.signal });
+    this._connected();
+    for await (const event of stream) {
+      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
+    }
+    if (stream.controller.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
+  }
+  static accumulateDelta(acc, delta) {
+    for (const [key, deltaValue] of Object.entries(delta)) {
+      if (!acc.hasOwnProperty(key)) {
+        acc[key] = deltaValue;
+        continue;
+      }
+      let accValue = acc[key];
+      if (accValue === null || accValue === undefined) {
+        acc[key] = deltaValue;
+        continue;
+      }
+      if (key === "index" || key === "type") {
+        acc[key] = deltaValue;
+        continue;
+      }
+      if (typeof accValue === "string" && typeof deltaValue === "string") {
+        accValue += deltaValue;
+      } else if (typeof accValue === "number" && typeof deltaValue === "number") {
+        accValue += deltaValue;
+      } else if (isObj(accValue) && isObj(deltaValue)) {
+        accValue = this.accumulateDelta(accValue, deltaValue);
+      } else if (Array.isArray(accValue) && Array.isArray(deltaValue)) {
+        if (accValue.every((x) => typeof x === "string" || typeof x === "number")) {
+          accValue.push(...deltaValue);
+          continue;
+        }
+        for (const deltaEntry of deltaValue) {
+          if (!isObj(deltaEntry)) {
+            throw new Error(`Expected array delta entry to be an object but got: ${deltaEntry}`);
+          }
+          const index = deltaEntry["index"];
+          if (index == null) {
+            console.error(deltaEntry);
+            throw new Error("Expected array delta entry to have an `index` property");
+          }
+          if (typeof index !== "number") {
+            throw new Error(`Expected array delta entry \`index\` property to be a number but got ${index}`);
+          }
+          const accEntry = accValue[index];
+          if (accEntry == null) {
+            accValue.push(deltaEntry);
+          } else {
+            accValue[index] = this.accumulateDelta(accEntry, deltaEntry);
+          }
+        }
+        continue;
+      } else {
+        throw Error(`Unhandled record type: ${key}, deltaValue: ${deltaValue}, accValue: ${accValue}`);
+      }
+      acc[key] = accValue;
+    }
+    return acc;
+  }
+  _addRun(run) {
+    return run;
+  }
+  async _threadAssistantStream(params, thread, options) {
+    return await this._createThreadAssistantStream(thread, params, options);
+  }
+  async _runAssistantStream(threadId, runs, params, options) {
+    return await this._createAssistantStream(runs, threadId, params, options);
+  }
+  async _runToolAssistantStream(runId, runs, params, options) {
+    return await this._createToolAssistantStream(runs, runId, params, options);
+  }
+}
+_a3 = AssistantStream, _AssistantStream_addEvent = function _AssistantStream_addEvent2(event) {
+  if (this.ended)
+    return;
+  __classPrivateFieldSet(this, _AssistantStream_currentEvent, event, "f");
+  __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleEvent).call(this, event);
+  switch (event.event) {
+    case "thread.created":
+      break;
+    case "thread.run.created":
+    case "thread.run.queued":
+    case "thread.run.in_progress":
+    case "thread.run.requires_action":
+    case "thread.run.completed":
+    case "thread.run.incomplete":
+    case "thread.run.failed":
+    case "thread.run.cancelling":
+    case "thread.run.cancelled":
+    case "thread.run.expired":
+      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleRun).call(this, event);
+      break;
+    case "thread.run.step.created":
+    case "thread.run.step.in_progress":
+    case "thread.run.step.delta":
+    case "thread.run.step.completed":
+    case "thread.run.step.failed":
+    case "thread.run.step.cancelled":
+    case "thread.run.step.expired":
+      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleRunStep).call(this, event);
+      break;
+    case "thread.message.created":
+    case "thread.message.in_progress":
+    case "thread.message.delta":
+    case "thread.message.completed":
+    case "thread.message.incomplete":
+      __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_handleMessage).call(this, event);
+      break;
+    case "error":
+      throw new Error("Encountered an error event in event processing - errors should be processed earlier");
+    default:
+      assertNever3(event);
+  }
+}, _AssistantStream_endRequest = function _AssistantStream_endRequest2() {
+  if (this.ended) {
+    throw new OpenAIError(`stream has ended, this shouldn't happen`);
+  }
+  if (!__classPrivateFieldGet(this, _AssistantStream_finalRun, "f"))
+    throw Error("Final run has not been received");
+  return __classPrivateFieldGet(this, _AssistantStream_finalRun, "f");
+}, _AssistantStream_handleMessage = function _AssistantStream_handleMessage2(event) {
+  const [accumulatedMessage, newContent] = __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_accumulateMessage).call(this, event, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
+  __classPrivateFieldSet(this, _AssistantStream_messageSnapshot, accumulatedMessage, "f");
+  __classPrivateFieldGet(this, _AssistantStream_messageSnapshots, "f")[accumulatedMessage.id] = accumulatedMessage;
+  for (const content of newContent) {
+    const snapshotContent = accumulatedMessage.content[content.index];
+    if (snapshotContent?.type == "text") {
+      this._emit("textCreated", snapshotContent.text);
+    }
+  }
+  switch (event.event) {
+    case "thread.message.created":
+      this._emit("messageCreated", event.data);
+      break;
+    case "thread.message.in_progress":
+      break;
+    case "thread.message.delta":
+      this._emit("messageDelta", event.data.delta, accumulatedMessage);
+      if (event.data.delta.content) {
+        for (const content of event.data.delta.content) {
+          if (content.type == "text" && content.text) {
+            let textDelta = content.text;
+            let snapshot = accumulatedMessage.content[content.index];
+            if (snapshot && snapshot.type == "text") {
+              this._emit("textDelta", textDelta, snapshot.text);
+            } else {
+              throw Error("The snapshot associated with this text delta is not text or missing");
+            }
+          }
+          if (content.index != __classPrivateFieldGet(this, _AssistantStream_currentContentIndex, "f")) {
+            if (__classPrivateFieldGet(this, _AssistantStream_currentContent, "f")) {
+              switch (__classPrivateFieldGet(this, _AssistantStream_currentContent, "f").type) {
+                case "text":
+                  this._emit("textDone", __classPrivateFieldGet(this, _AssistantStream_currentContent, "f").text, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
+                  break;
+                case "image_file":
+                  this._emit("imageFileDone", __classPrivateFieldGet(this, _AssistantStream_currentContent, "f").image_file, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
+                  break;
+              }
+            }
+            __classPrivateFieldSet(this, _AssistantStream_currentContentIndex, content.index, "f");
+          }
+          __classPrivateFieldSet(this, _AssistantStream_currentContent, accumulatedMessage.content[content.index], "f");
+        }
+      }
+      break;
+    case "thread.message.completed":
+    case "thread.message.incomplete":
+      if (__classPrivateFieldGet(this, _AssistantStream_currentContentIndex, "f") !== undefined) {
+        const currentContent = event.data.content[__classPrivateFieldGet(this, _AssistantStream_currentContentIndex, "f")];
+        if (currentContent) {
+          switch (currentContent.type) {
+            case "image_file":
+              this._emit("imageFileDone", currentContent.image_file, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
+              break;
+            case "text":
+              this._emit("textDone", currentContent.text, __classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f"));
+              break;
+          }
+        }
+      }
+      if (__classPrivateFieldGet(this, _AssistantStream_messageSnapshot, "f")) {
+        this._emit("messageDone", event.data);
+      }
+      __classPrivateFieldSet(this, _AssistantStream_messageSnapshot, undefined, "f");
+  }
+}, _AssistantStream_handleRunStep = function _AssistantStream_handleRunStep2(event) {
+  const accumulatedRunStep = __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_accumulateRunStep).call(this, event);
+  __classPrivateFieldSet(this, _AssistantStream_currentRunStepSnapshot, accumulatedRunStep, "f");
+  switch (event.event) {
+    case "thread.run.step.created":
+      this._emit("runStepCreated", event.data);
+      break;
+    case "thread.run.step.delta":
+      const delta = event.data.delta;
+      if (delta.step_details && delta.step_details.type == "tool_calls" && delta.step_details.tool_calls && accumulatedRunStep.step_details.type == "tool_calls") {
+        for (const toolCall of delta.step_details.tool_calls) {
+          if (toolCall.index == __classPrivateFieldGet(this, _AssistantStream_currentToolCallIndex, "f")) {
+            this._emit("toolCallDelta", toolCall, accumulatedRunStep.step_details.tool_calls[toolCall.index]);
+          } else {
+            if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f")) {
+              this._emit("toolCallDone", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
+            }
+            __classPrivateFieldSet(this, _AssistantStream_currentToolCallIndex, toolCall.index, "f");
+            __classPrivateFieldSet(this, _AssistantStream_currentToolCall, accumulatedRunStep.step_details.tool_calls[toolCall.index], "f");
+            if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"))
+              this._emit("toolCallCreated", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
+          }
+        }
+      }
+      this._emit("runStepDelta", event.data.delta, accumulatedRunStep);
+      break;
+    case "thread.run.step.completed":
+    case "thread.run.step.failed":
+    case "thread.run.step.cancelled":
+    case "thread.run.step.expired":
+      __classPrivateFieldSet(this, _AssistantStream_currentRunStepSnapshot, undefined, "f");
+      const details = event.data.step_details;
+      if (details.type == "tool_calls") {
+        if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f")) {
+          this._emit("toolCallDone", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
+          __classPrivateFieldSet(this, _AssistantStream_currentToolCall, undefined, "f");
+        }
+      }
+      this._emit("runStepDone", event.data, accumulatedRunStep);
+      break;
+    case "thread.run.step.in_progress":
+      break;
+  }
+}, _AssistantStream_handleEvent = function _AssistantStream_handleEvent2(event) {
+  __classPrivateFieldGet(this, _AssistantStream_events, "f").push(event);
+  this._emit("event", event);
+}, _AssistantStream_accumulateRunStep = function _AssistantStream_accumulateRunStep2(event) {
+  switch (event.event) {
+    case "thread.run.step.created":
+      __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id] = event.data;
+      return event.data;
+    case "thread.run.step.delta":
+      let snapshot = __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id];
+      if (!snapshot) {
+        throw Error("Received a RunStepDelta before creation of a snapshot");
+      }
+      let data = event.data;
+      if (data.delta) {
+        const accumulated = _a3.accumulateDelta(snapshot, data.delta);
+        __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id] = accumulated;
+      }
+      return __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id];
+    case "thread.run.step.completed":
+    case "thread.run.step.failed":
+    case "thread.run.step.cancelled":
+    case "thread.run.step.expired":
+    case "thread.run.step.in_progress":
+      __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id] = event.data;
+      break;
+  }
+  if (__classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id])
+    return __classPrivateFieldGet(this, _AssistantStream_runStepSnapshots, "f")[event.data.id];
+  throw new Error("No snapshot available");
+}, _AssistantStream_accumulateMessage = function _AssistantStream_accumulateMessage2(event, snapshot) {
+  let newContent = [];
+  switch (event.event) {
+    case "thread.message.created":
+      return [event.data, newContent];
+    case "thread.message.delta":
+      if (!snapshot) {
+        throw Error("Received a delta with no existing snapshot (there should be one from message creation)");
+      }
+      let data = event.data;
+      if (data.delta.content) {
+        for (const contentElement of data.delta.content) {
+          if (contentElement.index in snapshot.content) {
+            let currentContent = snapshot.content[contentElement.index];
+            snapshot.content[contentElement.index] = __classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_accumulateContent).call(this, contentElement, currentContent);
+          } else {
+            snapshot.content[contentElement.index] = contentElement;
+            newContent.push(contentElement);
+          }
+        }
+      }
+      return [snapshot, newContent];
+    case "thread.message.in_progress":
+    case "thread.message.completed":
+    case "thread.message.incomplete":
+      if (snapshot) {
+        return [snapshot, newContent];
+      } else {
+        throw Error("Received thread message event with no existing snapshot");
+      }
+  }
+  throw Error("Tried to accumulate a non-message event");
+}, _AssistantStream_accumulateContent = function _AssistantStream_accumulateContent2(contentElement, currentContent) {
+  return _a3.accumulateDelta(currentContent, contentElement);
+}, _AssistantStream_handleRun = function _AssistantStream_handleRun2(event) {
+  __classPrivateFieldSet(this, _AssistantStream_currentRunSnapshot, event.data, "f");
+  switch (event.event) {
+    case "thread.run.created":
+      break;
+    case "thread.run.queued":
+      break;
+    case "thread.run.in_progress":
+      break;
+    case "thread.run.requires_action":
+    case "thread.run.cancelled":
+    case "thread.run.failed":
+    case "thread.run.completed":
+    case "thread.run.expired":
+    case "thread.run.incomplete":
+      __classPrivateFieldSet(this, _AssistantStream_finalRun, event.data, "f");
+      if (__classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f")) {
+        this._emit("toolCallDone", __classPrivateFieldGet(this, _AssistantStream_currentToolCall, "f"));
+        __classPrivateFieldSet(this, _AssistantStream_currentToolCall, undefined, "f");
+      }
+      break;
+    case "thread.run.cancelling":
+      break;
+  }
+};
+function assertNever3(_x) {}
+
+// node_modules/openai/resources/beta/threads/runs/runs.mjs
+class Runs extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.steps = new Steps(this._client);
+  }
+  create(threadID, params, options) {
+    const { include, ...body } = params;
+    return this._client.post(path3`/threads/${threadID}/runs`, {
+      query: { include },
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
+      stream: params.stream ?? false
+    });
+  }
+  retrieve(runID, params, options) {
+    const { thread_id } = params;
+    return this._client.get(path3`/threads/${thread_id}/runs/${runID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  update(runID, params, options) {
+    const { thread_id, ...body } = params;
+    return this._client.post(path3`/threads/${thread_id}/runs/${runID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  list(threadID, query = {}, options) {
+    return this._client.getAPIList(path3`/threads/${threadID}/runs`, CursorPage, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  cancel(runID, params, options) {
+    const { thread_id } = params;
+    return this._client.post(path3`/threads/${thread_id}/runs/${runID}/cancel`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  async createAndPoll(threadId, body, options) {
+    const run = await this.create(threadId, body, options);
+    return await this.poll(run.id, { thread_id: threadId }, options);
+  }
+  createAndStream(threadId, body, options) {
+    return AssistantStream.createAssistantStream(threadId, this._client.beta.threads.runs, body, options);
+  }
+  async poll(runId, params, options) {
+    const headers = buildHeaders([
+      options?.headers,
+      {
+        "X-Stainless-Poll-Helper": "true",
+        "X-Stainless-Custom-Poll-Interval": options?.pollIntervalMs?.toString() ?? undefined
+      }
+    ]);
+    while (true) {
+      const { data: run, response } = await this.retrieve(runId, params, {
+        ...options,
+        headers: { ...options?.headers, ...headers }
+      }).withResponse();
+      switch (run.status) {
+        case "queued":
+        case "in_progress":
+        case "cancelling":
+          let sleepInterval = 5000;
+          if (options?.pollIntervalMs) {
+            sleepInterval = options.pollIntervalMs;
+          } else {
+            const headerInterval = response.headers.get("openai-poll-after-ms");
+            if (headerInterval) {
+              const headerIntervalMs = parseInt(headerInterval);
+              if (!isNaN(headerIntervalMs)) {
+                sleepInterval = headerIntervalMs;
+              }
+            }
+          }
+          await sleep2(sleepInterval);
+          break;
+        case "requires_action":
+        case "incomplete":
+        case "cancelled":
+        case "completed":
+        case "failed":
+        case "expired":
+          return run;
+      }
+    }
+  }
+  stream(threadId, body, options) {
+    return AssistantStream.createAssistantStream(threadId, this._client.beta.threads.runs, body, options);
+  }
+  submitToolOutputs(runID, params, options) {
+    const { thread_id, ...body } = params;
+    return this._client.post(path3`/threads/${thread_id}/runs/${runID}/submit_tool_outputs`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
+      stream: params.stream ?? false
+    });
+  }
+  async submitToolOutputsAndPoll(runId, params, options) {
+    const run = await this.submitToolOutputs(runId, params, options);
+    return await this.poll(run.id, params, options);
+  }
+  submitToolOutputsStream(runId, params, options) {
+    return AssistantStream.createToolAssistantStream(runId, this._client.beta.threads.runs, params, options);
+  }
+}
+Runs.Steps = Steps;
+
+// node_modules/openai/resources/beta/threads/threads.mjs
+class Threads2 extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.runs = new Runs(this._client);
+    this.messages = new Messages2(this._client);
+  }
+  create(body = {}, options) {
+    return this._client.post("/threads", {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  retrieve(threadID, options) {
+    return this._client.get(path3`/threads/${threadID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  update(threadID, body, options) {
+    return this._client.post(path3`/threads/${threadID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  delete(threadID, options) {
+    return this._client.delete(path3`/threads/${threadID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  createAndRun(body, options) {
+    return this._client.post("/threads/runs", {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
+      stream: body.stream ?? false
+    });
+  }
+  async createAndRunPoll(body, options) {
+    const run = await this.createAndRun(body, options);
+    return await this.runs.poll(run.id, { thread_id: run.thread_id }, options);
+  }
+  createAndRunStream(body, options) {
+    return AssistantStream.createThreadAssistantStream(body, this._client.beta.threads, options);
+  }
+}
+Threads2.Runs = Runs;
+Threads2.Messages = Messages2;
+
+// node_modules/openai/resources/beta/beta.mjs
+class Beta extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.realtime = new Realtime(this._client);
+    this.chatkit = new ChatKit(this._client);
+    this.assistants = new Assistants(this._client);
+    this.threads = new Threads2(this._client);
+  }
+}
+Beta.Realtime = Realtime;
+Beta.ChatKit = ChatKit;
+Beta.Assistants = Assistants;
+Beta.Threads = Threads2;
+// node_modules/openai/resources/completions.mjs
+class Completions2 extends APIResource {
+  create(body, options) {
+    return this._client.post("/completions", { body, ...options, stream: body.stream ?? false });
+  }
+}
+// node_modules/openai/resources/containers/files/content.mjs
+class Content extends APIResource {
+  retrieve(fileID, params, options) {
+    const { container_id } = params;
+    return this._client.get(path3`/containers/${container_id}/files/${fileID}/content`, {
+      ...options,
+      headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
+      __binaryResponse: true
+    });
+  }
+}
+
+// node_modules/openai/resources/containers/files/files.mjs
+class Files extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.content = new Content(this._client);
+  }
+  create(containerID, body, options) {
+    return this._client.post(path3`/containers/${containerID}/files`, multipartFormRequestOptions({ body, ...options }, this._client));
+  }
+  retrieve(fileID, params, options) {
+    const { container_id } = params;
+    return this._client.get(path3`/containers/${container_id}/files/${fileID}`, options);
+  }
+  list(containerID, query = {}, options) {
+    return this._client.getAPIList(path3`/containers/${containerID}/files`, CursorPage, {
+      query,
+      ...options
+    });
+  }
+  delete(fileID, params, options) {
+    const { container_id } = params;
+    return this._client.delete(path3`/containers/${container_id}/files/${fileID}`, {
+      ...options,
+      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
+    });
+  }
+}
+Files.Content = Content;
+
+// node_modules/openai/resources/containers/containers.mjs
+class Containers extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.files = new Files(this._client);
+  }
+  create(body, options) {
+    return this._client.post("/containers", { body, ...options });
+  }
+  retrieve(containerID, options) {
+    return this._client.get(path3`/containers/${containerID}`, options);
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/containers", CursorPage, { query, ...options });
+  }
+  delete(containerID, options) {
+    return this._client.delete(path3`/containers/${containerID}`, {
+      ...options,
+      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
+    });
+  }
+}
+Containers.Files = Files;
+// node_modules/openai/resources/conversations/items.mjs
+class Items extends APIResource {
+  create(conversationID, params, options) {
+    const { include, ...body } = params;
+    return this._client.post(path3`/conversations/${conversationID}/items`, {
+      query: { include },
+      body,
+      ...options
+    });
+  }
+  retrieve(itemID, params, options) {
+    const { conversation_id, ...query } = params;
+    return this._client.get(path3`/conversations/${conversation_id}/items/${itemID}`, { query, ...options });
+  }
+  list(conversationID, query = {}, options) {
+    return this._client.getAPIList(path3`/conversations/${conversationID}/items`, ConversationCursorPage, { query, ...options });
+  }
+  delete(itemID, params, options) {
+    const { conversation_id } = params;
+    return this._client.delete(path3`/conversations/${conversation_id}/items/${itemID}`, options);
+  }
+}
+
+// node_modules/openai/resources/conversations/conversations.mjs
+class Conversations extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.items = new Items(this._client);
+  }
+  create(body = {}, options) {
+    return this._client.post("/conversations", { body, ...options });
+  }
+  retrieve(conversationID, options) {
+    return this._client.get(path3`/conversations/${conversationID}`, options);
+  }
+  update(conversationID, body, options) {
+    return this._client.post(path3`/conversations/${conversationID}`, { body, ...options });
+  }
+  delete(conversationID, options) {
+    return this._client.delete(path3`/conversations/${conversationID}`, options);
+  }
+}
+Conversations.Items = Items;
+// node_modules/openai/resources/embeddings.mjs
+class Embeddings extends APIResource {
+  create(body, options) {
+    const hasUserProvidedEncodingFormat = !!body.encoding_format;
+    let encoding_format = hasUserProvidedEncodingFormat ? body.encoding_format : "base64";
+    if (hasUserProvidedEncodingFormat) {
+      loggerFor(this._client).debug("embeddings/user defined encoding_format:", body.encoding_format);
+    }
+    const response = this._client.post("/embeddings", {
+      body: {
+        ...body,
+        encoding_format
+      },
+      ...options
+    });
+    if (hasUserProvidedEncodingFormat) {
+      return response;
+    }
+    loggerFor(this._client).debug("embeddings/decoding base64 embeddings from base64");
+    return response._thenUnwrap((response2) => {
+      if (response2 && response2.data) {
+        response2.data.forEach((embeddingBase64Obj) => {
+          const embeddingBase64Str = embeddingBase64Obj.embedding;
+          embeddingBase64Obj.embedding = toFloat32Array(embeddingBase64Str);
+        });
+      }
+      return response2;
+    });
+  }
+}
+// node_modules/openai/resources/evals/runs/output-items.mjs
+class OutputItems extends APIResource {
+  retrieve(outputItemID, params, options) {
+    const { eval_id, run_id } = params;
+    return this._client.get(path3`/evals/${eval_id}/runs/${run_id}/output_items/${outputItemID}`, options);
+  }
+  list(runID, params, options) {
+    const { eval_id, ...query } = params;
+    return this._client.getAPIList(path3`/evals/${eval_id}/runs/${runID}/output_items`, CursorPage, { query, ...options });
+  }
+}
+
+// node_modules/openai/resources/evals/runs/runs.mjs
+class Runs2 extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.outputItems = new OutputItems(this._client);
+  }
+  create(evalID, body, options) {
+    return this._client.post(path3`/evals/${evalID}/runs`, { body, ...options });
+  }
+  retrieve(runID, params, options) {
+    const { eval_id } = params;
+    return this._client.get(path3`/evals/${eval_id}/runs/${runID}`, options);
+  }
+  list(evalID, query = {}, options) {
+    return this._client.getAPIList(path3`/evals/${evalID}/runs`, CursorPage, {
+      query,
+      ...options
+    });
+  }
+  delete(runID, params, options) {
+    const { eval_id } = params;
+    return this._client.delete(path3`/evals/${eval_id}/runs/${runID}`, options);
+  }
+  cancel(runID, params, options) {
+    const { eval_id } = params;
+    return this._client.post(path3`/evals/${eval_id}/runs/${runID}`, options);
+  }
+}
+Runs2.OutputItems = OutputItems;
+
+// node_modules/openai/resources/evals/evals.mjs
+class Evals extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.runs = new Runs2(this._client);
+  }
+  create(body, options) {
+    return this._client.post("/evals", { body, ...options });
+  }
+  retrieve(evalID, options) {
+    return this._client.get(path3`/evals/${evalID}`, options);
+  }
+  update(evalID, body, options) {
+    return this._client.post(path3`/evals/${evalID}`, { body, ...options });
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/evals", CursorPage, { query, ...options });
+  }
+  delete(evalID, options) {
+    return this._client.delete(path3`/evals/${evalID}`, options);
+  }
+}
+Evals.Runs = Runs2;
+// node_modules/openai/resources/files.mjs
+class Files2 extends APIResource {
+  create(body, options) {
+    return this._client.post("/files", multipartFormRequestOptions({ body, ...options }, this._client));
+  }
+  retrieve(fileID, options) {
+    return this._client.get(path3`/files/${fileID}`, options);
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/files", CursorPage, { query, ...options });
+  }
+  delete(fileID, options) {
+    return this._client.delete(path3`/files/${fileID}`, options);
+  }
+  content(fileID, options) {
+    return this._client.get(path3`/files/${fileID}/content`, {
+      ...options,
+      headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
+      __binaryResponse: true
+    });
+  }
+  async waitForProcessing(id, { pollInterval = 5000, maxWait = 30 * 60 * 1000 } = {}) {
+    const TERMINAL_STATES = new Set(["processed", "error", "deleted"]);
+    const start = Date.now();
+    let file2 = await this.retrieve(id);
+    while (!file2.status || !TERMINAL_STATES.has(file2.status)) {
+      await sleep2(pollInterval);
+      file2 = await this.retrieve(id);
+      if (Date.now() - start > maxWait) {
+        throw new APIConnectionTimeoutError({
+          message: `Giving up on waiting for file ${id} to finish processing after ${maxWait} milliseconds.`
+        });
+      }
+    }
+    return file2;
+  }
+}
+// node_modules/openai/resources/fine-tuning/methods.mjs
+class Methods extends APIResource {
+}
+
+// node_modules/openai/resources/fine-tuning/alpha/graders.mjs
+class Graders extends APIResource {
+  run(body, options) {
+    return this._client.post("/fine_tuning/alpha/graders/run", { body, ...options });
+  }
+  validate(body, options) {
+    return this._client.post("/fine_tuning/alpha/graders/validate", { body, ...options });
+  }
+}
+
+// node_modules/openai/resources/fine-tuning/alpha/alpha.mjs
+class Alpha extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.graders = new Graders(this._client);
+  }
+}
+Alpha.Graders = Graders;
+
+// node_modules/openai/resources/fine-tuning/checkpoints/permissions.mjs
+class Permissions extends APIResource {
+  create(fineTunedModelCheckpoint, body, options) {
+    return this._client.getAPIList(path3`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, Page, { body, method: "post", ...options });
+  }
+  retrieve(fineTunedModelCheckpoint, query = {}, options) {
+    return this._client.get(path3`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, {
+      query,
+      ...options
+    });
+  }
+  delete(permissionID, params, options) {
+    const { fine_tuned_model_checkpoint } = params;
+    return this._client.delete(path3`/fine_tuning/checkpoints/${fine_tuned_model_checkpoint}/permissions/${permissionID}`, options);
+  }
+}
+
+// node_modules/openai/resources/fine-tuning/checkpoints/checkpoints.mjs
+class Checkpoints extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.permissions = new Permissions(this._client);
+  }
+}
+Checkpoints.Permissions = Permissions;
+
+// node_modules/openai/resources/fine-tuning/jobs/checkpoints.mjs
+class Checkpoints2 extends APIResource {
+  list(fineTuningJobID, query = {}, options) {
+    return this._client.getAPIList(path3`/fine_tuning/jobs/${fineTuningJobID}/checkpoints`, CursorPage, { query, ...options });
+  }
+}
+
+// node_modules/openai/resources/fine-tuning/jobs/jobs.mjs
+class Jobs extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.checkpoints = new Checkpoints2(this._client);
+  }
+  create(body, options) {
+    return this._client.post("/fine_tuning/jobs", { body, ...options });
+  }
+  retrieve(fineTuningJobID, options) {
+    return this._client.get(path3`/fine_tuning/jobs/${fineTuningJobID}`, options);
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/fine_tuning/jobs", CursorPage, { query, ...options });
+  }
+  cancel(fineTuningJobID, options) {
+    return this._client.post(path3`/fine_tuning/jobs/${fineTuningJobID}/cancel`, options);
+  }
+  listEvents(fineTuningJobID, query = {}, options) {
+    return this._client.getAPIList(path3`/fine_tuning/jobs/${fineTuningJobID}/events`, CursorPage, { query, ...options });
+  }
+  pause(fineTuningJobID, options) {
+    return this._client.post(path3`/fine_tuning/jobs/${fineTuningJobID}/pause`, options);
+  }
+  resume(fineTuningJobID, options) {
+    return this._client.post(path3`/fine_tuning/jobs/${fineTuningJobID}/resume`, options);
+  }
+}
+Jobs.Checkpoints = Checkpoints2;
+
+// node_modules/openai/resources/fine-tuning/fine-tuning.mjs
+class FineTuning extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.methods = new Methods(this._client);
+    this.jobs = new Jobs(this._client);
+    this.checkpoints = new Checkpoints(this._client);
+    this.alpha = new Alpha(this._client);
+  }
+}
+FineTuning.Methods = Methods;
+FineTuning.Jobs = Jobs;
+FineTuning.Checkpoints = Checkpoints;
+FineTuning.Alpha = Alpha;
+// node_modules/openai/resources/graders/grader-models.mjs
+class GraderModels extends APIResource {
+}
+
+// node_modules/openai/resources/graders/graders.mjs
+class Graders2 extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.graderModels = new GraderModels(this._client);
+  }
+}
+Graders2.GraderModels = GraderModels;
+// node_modules/openai/resources/images.mjs
+class Images extends APIResource {
+  createVariation(body, options) {
+    return this._client.post("/images/variations", multipartFormRequestOptions({ body, ...options }, this._client));
+  }
+  edit(body, options) {
+    return this._client.post("/images/edits", multipartFormRequestOptions({ body, ...options, stream: body.stream ?? false }, this._client));
+  }
+  generate(body, options) {
+    return this._client.post("/images/generations", { body, ...options, stream: body.stream ?? false });
+  }
+}
+// node_modules/openai/resources/models.mjs
+class Models extends APIResource {
+  retrieve(model, options) {
+    return this._client.get(path3`/models/${model}`, options);
+  }
+  list(options) {
+    return this._client.getAPIList("/models", Page, options);
+  }
+  delete(model, options) {
+    return this._client.delete(path3`/models/${model}`, options);
+  }
+}
+// node_modules/openai/resources/moderations.mjs
+class Moderations extends APIResource {
+  create(body, options) {
+    return this._client.post("/moderations", { body, ...options });
+  }
+}
+// node_modules/openai/resources/realtime/calls.mjs
+class Calls extends APIResource {
+  accept(callID, body, options) {
+    return this._client.post(path3`/realtime/calls/${callID}/accept`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
+    });
+  }
+  hangup(callID, options) {
+    return this._client.post(path3`/realtime/calls/${callID}/hangup`, {
+      ...options,
+      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
+    });
+  }
+  refer(callID, body, options) {
+    return this._client.post(path3`/realtime/calls/${callID}/refer`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
+    });
+  }
+  reject(callID, body = {}, options) {
+    return this._client.post(path3`/realtime/calls/${callID}/reject`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
+    });
+  }
+}
+
+// node_modules/openai/resources/realtime/client-secrets.mjs
+class ClientSecrets extends APIResource {
+  create(body, options) {
+    return this._client.post("/realtime/client_secrets", { body, ...options });
+  }
+}
+
+// node_modules/openai/resources/realtime/realtime.mjs
+class Realtime2 extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.clientSecrets = new ClientSecrets(this._client);
+    this.calls = new Calls(this._client);
+  }
+}
+Realtime2.ClientSecrets = ClientSecrets;
+Realtime2.Calls = Calls;
+// node_modules/openai/lib/responses/ResponseStream.mjs
+var _ResponseStream_instances;
+var _ResponseStream_params;
+var _ResponseStream_currentResponseSnapshot;
+var _ResponseStream_finalResponse;
+var _ResponseStream_beginRequest;
+var _ResponseStream_addEvent;
+var _ResponseStream_endRequest;
+var _ResponseStream_accumulateResponse;
+
+class ResponseStream extends EventStream {
+  constructor(params) {
+    super();
+    _ResponseStream_instances.add(this);
+    _ResponseStream_params.set(this, undefined);
+    _ResponseStream_currentResponseSnapshot.set(this, undefined);
+    _ResponseStream_finalResponse.set(this, undefined);
+    __classPrivateFieldSet(this, _ResponseStream_params, params, "f");
+  }
+  static createResponse(client, params, options) {
+    const runner = new ResponseStream(params);
+    runner._run(() => runner._createOrRetrieveResponse(client, params, {
+      ...options,
+      headers: { ...options?.headers, "X-Stainless-Helper-Method": "stream" }
+    }));
+    return runner;
+  }
+  async _createOrRetrieveResponse(client, params, options) {
+    const signal = options?.signal;
+    if (signal) {
+      if (signal.aborted)
+        this.controller.abort();
+      signal.addEventListener("abort", () => this.controller.abort());
+    }
+    __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_beginRequest).call(this);
+    let stream;
+    let starting_after = null;
+    if ("response_id" in params) {
+      stream = await client.responses.retrieve(params.response_id, { stream: true }, { ...options, signal: this.controller.signal, stream: true });
+      starting_after = params.starting_after ?? null;
+    } else {
+      stream = await client.responses.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
+    }
+    this._connected();
+    for await (const event of stream) {
+      __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_addEvent).call(this, event, starting_after);
+    }
+    if (stream.controller.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    return __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_endRequest).call(this);
+  }
+  [(_ResponseStream_params = new WeakMap, _ResponseStream_currentResponseSnapshot = new WeakMap, _ResponseStream_finalResponse = new WeakMap, _ResponseStream_instances = new WeakSet, _ResponseStream_beginRequest = function _ResponseStream_beginRequest2() {
+    if (this.ended)
+      return;
+    __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, undefined, "f");
+  }, _ResponseStream_addEvent = function _ResponseStream_addEvent2(event, starting_after) {
+    if (this.ended)
+      return;
+    const maybeEmit = (name, event2) => {
+      if (starting_after == null || event2.sequence_number > starting_after) {
+        this._emit(name, event2);
+      }
+    };
+    const response = __classPrivateFieldGet(this, _ResponseStream_instances, "m", _ResponseStream_accumulateResponse).call(this, event);
+    maybeEmit("event", event);
+    switch (event.type) {
+      case "response.output_text.delta": {
+        const output = response.output[event.output_index];
+        if (!output) {
+          throw new OpenAIError(`missing output at index ${event.output_index}`);
+        }
+        if (output.type === "message") {
+          const content = output.content[event.content_index];
+          if (!content) {
+            throw new OpenAIError(`missing content at index ${event.content_index}`);
+          }
+          if (content.type !== "output_text") {
+            throw new OpenAIError(`expected content to be 'output_text', got ${content.type}`);
+          }
+          maybeEmit("response.output_text.delta", {
+            ...event,
+            snapshot: content.text
+          });
+        }
+        break;
+      }
+      case "response.function_call_arguments.delta": {
+        const output = response.output[event.output_index];
+        if (!output) {
+          throw new OpenAIError(`missing output at index ${event.output_index}`);
+        }
+        if (output.type === "function_call") {
+          maybeEmit("response.function_call_arguments.delta", {
+            ...event,
+            snapshot: output.arguments
+          });
+        }
+        break;
+      }
+      default:
+        maybeEmit(event.type, event);
+        break;
+    }
+  }, _ResponseStream_endRequest = function _ResponseStream_endRequest2() {
+    if (this.ended) {
+      throw new OpenAIError(`stream has ended, this shouldn't happen`);
+    }
+    const snapshot = __classPrivateFieldGet(this, _ResponseStream_currentResponseSnapshot, "f");
+    if (!snapshot) {
+      throw new OpenAIError(`request ended without sending any events`);
+    }
+    __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, undefined, "f");
+    const parsedResponse = finalizeResponse(snapshot, __classPrivateFieldGet(this, _ResponseStream_params, "f"));
+    __classPrivateFieldSet(this, _ResponseStream_finalResponse, parsedResponse, "f");
+    return parsedResponse;
+  }, _ResponseStream_accumulateResponse = function _ResponseStream_accumulateResponse2(event) {
+    let snapshot = __classPrivateFieldGet(this, _ResponseStream_currentResponseSnapshot, "f");
+    if (!snapshot) {
+      if (event.type !== "response.created") {
+        throw new OpenAIError(`When snapshot hasn't been set yet, expected 'response.created' event, got ${event.type}`);
+      }
+      snapshot = __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, event.response, "f");
+      return snapshot;
+    }
+    switch (event.type) {
+      case "response.output_item.added": {
+        snapshot.output.push(event.item);
+        break;
+      }
+      case "response.content_part.added": {
+        const output = snapshot.output[event.output_index];
+        if (!output) {
+          throw new OpenAIError(`missing output at index ${event.output_index}`);
+        }
+        const type = output.type;
+        const part = event.part;
+        if (type === "message" && part.type !== "reasoning_text") {
+          output.content.push(part);
+        } else if (type === "reasoning" && part.type === "reasoning_text") {
+          if (!output.content) {
+            output.content = [];
+          }
+          output.content.push(part);
+        }
+        break;
+      }
+      case "response.output_text.delta": {
+        const output = snapshot.output[event.output_index];
+        if (!output) {
+          throw new OpenAIError(`missing output at index ${event.output_index}`);
+        }
+        if (output.type === "message") {
+          const content = output.content[event.content_index];
+          if (!content) {
+            throw new OpenAIError(`missing content at index ${event.content_index}`);
+          }
+          if (content.type !== "output_text") {
+            throw new OpenAIError(`expected content to be 'output_text', got ${content.type}`);
+          }
+          content.text += event.delta;
+        }
+        break;
+      }
+      case "response.function_call_arguments.delta": {
+        const output = snapshot.output[event.output_index];
+        if (!output) {
+          throw new OpenAIError(`missing output at index ${event.output_index}`);
+        }
+        if (output.type === "function_call") {
+          output.arguments += event.delta;
+        }
+        break;
+      }
+      case "response.reasoning_text.delta": {
+        const output = snapshot.output[event.output_index];
+        if (!output) {
+          throw new OpenAIError(`missing output at index ${event.output_index}`);
+        }
+        if (output.type === "reasoning") {
+          const content = output.content?.[event.content_index];
+          if (!content) {
+            throw new OpenAIError(`missing content at index ${event.content_index}`);
+          }
+          if (content.type !== "reasoning_text") {
+            throw new OpenAIError(`expected content to be 'reasoning_text', got ${content.type}`);
+          }
+          content.text += event.delta;
+        }
+        break;
+      }
+      case "response.completed": {
+        __classPrivateFieldSet(this, _ResponseStream_currentResponseSnapshot, event.response, "f");
+        break;
+      }
+    }
+    return snapshot;
+  }, Symbol.asyncIterator)]() {
+    const pushQueue = [];
+    const readQueue = [];
+    let done = false;
+    this.on("event", (event) => {
+      const reader = readQueue.shift();
+      if (reader) {
+        reader.resolve(event);
+      } else {
+        pushQueue.push(event);
+      }
+    });
+    this.on("end", () => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.resolve(undefined);
+      }
+      readQueue.length = 0;
+    });
+    this.on("abort", (err) => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.reject(err);
+      }
+      readQueue.length = 0;
+    });
+    this.on("error", (err) => {
+      done = true;
+      for (const reader of readQueue) {
+        reader.reject(err);
+      }
+      readQueue.length = 0;
+    });
+    return {
+      next: async () => {
+        if (!pushQueue.length) {
+          if (done) {
+            return { value: undefined, done: true };
+          }
+          return new Promise((resolve, reject) => readQueue.push({ resolve, reject })).then((event2) => event2 ? { value: event2, done: false } : { value: undefined, done: true });
+        }
+        const event = pushQueue.shift();
+        return { value: event, done: false };
+      },
+      return: async () => {
+        this.abort();
+        return { value: undefined, done: true };
+      }
+    };
+  }
+  async finalResponse() {
+    await this.done();
+    const response = __classPrivateFieldGet(this, _ResponseStream_finalResponse, "f");
+    if (!response)
+      throw new OpenAIError("stream ended without producing a ChatCompletion");
+    return response;
+  }
+}
+function finalizeResponse(snapshot, params) {
+  return maybeParseResponse(snapshot, params);
+}
+
+// node_modules/openai/resources/responses/input-items.mjs
+class InputItems extends APIResource {
+  list(responseID, query = {}, options) {
+    return this._client.getAPIList(path3`/responses/${responseID}/input_items`, CursorPage, { query, ...options });
+  }
+}
+
+// node_modules/openai/resources/responses/input-tokens.mjs
+class InputTokens extends APIResource {
+  count(body = {}, options) {
+    return this._client.post("/responses/input_tokens", { body, ...options });
+  }
+}
+
+// node_modules/openai/resources/responses/responses.mjs
+class Responses extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.inputItems = new InputItems(this._client);
+    this.inputTokens = new InputTokens(this._client);
+  }
+  create(body, options) {
+    return this._client.post("/responses", { body, ...options, stream: body.stream ?? false })._thenUnwrap((rsp) => {
+      if ("object" in rsp && rsp.object === "response") {
+        addOutputText(rsp);
+      }
+      return rsp;
+    });
+  }
+  retrieve(responseID, query = {}, options) {
+    return this._client.get(path3`/responses/${responseID}`, {
+      query,
+      ...options,
+      stream: query?.stream ?? false
+    })._thenUnwrap((rsp) => {
+      if ("object" in rsp && rsp.object === "response") {
+        addOutputText(rsp);
+      }
+      return rsp;
+    });
+  }
+  delete(responseID, options) {
+    return this._client.delete(path3`/responses/${responseID}`, {
+      ...options,
+      headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
+    });
+  }
+  parse(body, options) {
+    return this._client.responses.create(body, options)._thenUnwrap((response) => parseResponse(response, body));
+  }
+  stream(body, options) {
+    return ResponseStream.createResponse(this._client, body, options);
+  }
+  cancel(responseID, options) {
+    return this._client.post(path3`/responses/${responseID}/cancel`, options);
+  }
+  compact(body, options) {
+    return this._client.post("/responses/compact", { body, ...options });
+  }
+}
+Responses.InputItems = InputItems;
+Responses.InputTokens = InputTokens;
+// node_modules/openai/resources/uploads/parts.mjs
+class Parts extends APIResource {
+  create(uploadID, body, options) {
+    return this._client.post(path3`/uploads/${uploadID}/parts`, multipartFormRequestOptions({ body, ...options }, this._client));
+  }
+}
+
+// node_modules/openai/resources/uploads/uploads.mjs
+class Uploads extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.parts = new Parts(this._client);
+  }
+  create(body, options) {
+    return this._client.post("/uploads", { body, ...options });
+  }
+  cancel(uploadID, options) {
+    return this._client.post(path3`/uploads/${uploadID}/cancel`, options);
+  }
+  complete(uploadID, body, options) {
+    return this._client.post(path3`/uploads/${uploadID}/complete`, { body, ...options });
+  }
+}
+Uploads.Parts = Parts;
+// node_modules/openai/lib/Util.mjs
+var allSettledWithThrow = async (promises3) => {
+  const results = await Promise.allSettled(promises3);
+  const rejected = results.filter((result) => result.status === "rejected");
+  if (rejected.length) {
+    for (const result of rejected) {
+      console.error(result.reason);
+    }
+    throw new Error(`${rejected.length} promise(s) failed - see the above errors`);
+  }
+  const values2 = [];
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      values2.push(result.value);
+    }
+  }
+  return values2;
+};
+
+// node_modules/openai/resources/vector-stores/file-batches.mjs
+class FileBatches extends APIResource {
+  create(vectorStoreID, body, options) {
+    return this._client.post(path3`/vector_stores/${vectorStoreID}/file_batches`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  retrieve(batchID, params, options) {
+    const { vector_store_id } = params;
+    return this._client.get(path3`/vector_stores/${vector_store_id}/file_batches/${batchID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  cancel(batchID, params, options) {
+    const { vector_store_id } = params;
+    return this._client.post(path3`/vector_stores/${vector_store_id}/file_batches/${batchID}/cancel`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  async createAndPoll(vectorStoreId, body, options) {
+    const batch = await this.create(vectorStoreId, body);
+    return await this.poll(vectorStoreId, batch.id, options);
+  }
+  listFiles(batchID, params, options) {
+    const { vector_store_id, ...query } = params;
+    return this._client.getAPIList(path3`/vector_stores/${vector_store_id}/file_batches/${batchID}/files`, CursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
+  }
+  async poll(vectorStoreID, batchID, options) {
+    const headers = buildHeaders([
+      options?.headers,
+      {
+        "X-Stainless-Poll-Helper": "true",
+        "X-Stainless-Custom-Poll-Interval": options?.pollIntervalMs?.toString() ?? undefined
+      }
+    ]);
+    while (true) {
+      const { data: batch, response } = await this.retrieve(batchID, { vector_store_id: vectorStoreID }, {
+        ...options,
+        headers
+      }).withResponse();
+      switch (batch.status) {
+        case "in_progress":
+          let sleepInterval = 5000;
+          if (options?.pollIntervalMs) {
+            sleepInterval = options.pollIntervalMs;
+          } else {
+            const headerInterval = response.headers.get("openai-poll-after-ms");
+            if (headerInterval) {
+              const headerIntervalMs = parseInt(headerInterval);
+              if (!isNaN(headerIntervalMs)) {
+                sleepInterval = headerIntervalMs;
+              }
+            }
+          }
+          await sleep2(sleepInterval);
+          break;
+        case "failed":
+        case "cancelled":
+        case "completed":
+          return batch;
+      }
+    }
+  }
+  async uploadAndPoll(vectorStoreId, { files, fileIds = [] }, options) {
+    if (files == null || files.length == 0) {
+      throw new Error(`No \`files\` provided to process. If you've already uploaded files you should use \`.createAndPoll()\` instead`);
+    }
+    const configuredConcurrency = options?.maxConcurrency ?? 5;
+    const concurrencyLimit = Math.min(configuredConcurrency, files.length);
+    const client = this._client;
+    const fileIterator = files.values();
+    const allFileIds = [...fileIds];
+    async function processFiles(iterator2) {
+      for (let item of iterator2) {
+        const fileObj = await client.files.create({ file: item, purpose: "assistants" }, options);
+        allFileIds.push(fileObj.id);
+      }
+    }
+    const workers = Array(concurrencyLimit).fill(fileIterator).map(processFiles);
+    await allSettledWithThrow(workers);
+    return await this.createAndPoll(vectorStoreId, {
+      file_ids: allFileIds
+    });
+  }
+}
+
+// node_modules/openai/resources/vector-stores/files.mjs
+class Files3 extends APIResource {
+  create(vectorStoreID, body, options) {
+    return this._client.post(path3`/vector_stores/${vectorStoreID}/files`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  retrieve(fileID, params, options) {
+    const { vector_store_id } = params;
+    return this._client.get(path3`/vector_stores/${vector_store_id}/files/${fileID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  update(fileID, params, options) {
+    const { vector_store_id, ...body } = params;
+    return this._client.post(path3`/vector_stores/${vector_store_id}/files/${fileID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  list(vectorStoreID, query = {}, options) {
+    return this._client.getAPIList(path3`/vector_stores/${vectorStoreID}/files`, CursorPage, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  delete(fileID, params, options) {
+    const { vector_store_id } = params;
+    return this._client.delete(path3`/vector_stores/${vector_store_id}/files/${fileID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  async createAndPoll(vectorStoreId, body, options) {
+    const file2 = await this.create(vectorStoreId, body, options);
+    return await this.poll(vectorStoreId, file2.id, options);
+  }
+  async poll(vectorStoreID, fileID, options) {
+    const headers = buildHeaders([
+      options?.headers,
+      {
+        "X-Stainless-Poll-Helper": "true",
+        "X-Stainless-Custom-Poll-Interval": options?.pollIntervalMs?.toString() ?? undefined
+      }
+    ]);
+    while (true) {
+      const fileResponse = await this.retrieve(fileID, {
+        vector_store_id: vectorStoreID
+      }, { ...options, headers }).withResponse();
+      const file2 = fileResponse.data;
+      switch (file2.status) {
+        case "in_progress":
+          let sleepInterval = 5000;
+          if (options?.pollIntervalMs) {
+            sleepInterval = options.pollIntervalMs;
+          } else {
+            const headerInterval = fileResponse.response.headers.get("openai-poll-after-ms");
+            if (headerInterval) {
+              const headerIntervalMs = parseInt(headerInterval);
+              if (!isNaN(headerIntervalMs)) {
+                sleepInterval = headerIntervalMs;
+              }
+            }
+          }
+          await sleep2(sleepInterval);
+          break;
+        case "failed":
+        case "completed":
+          return file2;
+      }
+    }
+  }
+  async upload(vectorStoreId, file2, options) {
+    const fileInfo = await this._client.files.create({ file: file2, purpose: "assistants" }, options);
+    return this.create(vectorStoreId, { file_id: fileInfo.id }, options);
+  }
+  async uploadAndPoll(vectorStoreId, file2, options) {
+    const fileInfo = await this.upload(vectorStoreId, file2, options);
+    return await this.poll(vectorStoreId, fileInfo.id, options);
+  }
+  content(fileID, params, options) {
+    const { vector_store_id } = params;
+    return this._client.getAPIList(path3`/vector_stores/${vector_store_id}/files/${fileID}/content`, Page, { ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
+  }
+}
+
+// node_modules/openai/resources/vector-stores/vector-stores.mjs
+class VectorStores extends APIResource {
+  constructor() {
+    super(...arguments);
+    this.files = new Files3(this._client);
+    this.fileBatches = new FileBatches(this._client);
+  }
+  create(body, options) {
+    return this._client.post("/vector_stores", {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  retrieve(vectorStoreID, options) {
+    return this._client.get(path3`/vector_stores/${vectorStoreID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  update(vectorStoreID, body, options) {
+    return this._client.post(path3`/vector_stores/${vectorStoreID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/vector_stores", CursorPage, {
+      query,
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  delete(vectorStoreID, options) {
+    return this._client.delete(path3`/vector_stores/${vectorStoreID}`, {
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+  search(vectorStoreID, body, options) {
+    return this._client.getAPIList(path3`/vector_stores/${vectorStoreID}/search`, Page, {
+      body,
+      method: "post",
+      ...options,
+      headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
+    });
+  }
+}
+VectorStores.Files = Files3;
+VectorStores.FileBatches = FileBatches;
+// node_modules/openai/resources/videos.mjs
+class Videos extends APIResource {
+  create(body, options) {
+    return this._client.post("/videos", maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+  }
+  retrieve(videoID, options) {
+    return this._client.get(path3`/videos/${videoID}`, options);
+  }
+  list(query = {}, options) {
+    return this._client.getAPIList("/videos", ConversationCursorPage, { query, ...options });
+  }
+  delete(videoID, options) {
+    return this._client.delete(path3`/videos/${videoID}`, options);
+  }
+  downloadContent(videoID, query = {}, options) {
+    return this._client.get(path3`/videos/${videoID}/content`, {
+      query,
+      ...options,
+      headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
+      __binaryResponse: true
+    });
+  }
+  remix(videoID, body, options) {
+    return this._client.post(path3`/videos/${videoID}/remix`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+  }
+}
+// node_modules/openai/resources/webhooks.mjs
+var _Webhooks_instances;
+var _Webhooks_validateSecret;
+var _Webhooks_getRequiredHeader;
+
+class Webhooks extends APIResource {
+  constructor() {
+    super(...arguments);
+    _Webhooks_instances.add(this);
+  }
+  async unwrap(payload, headers, secret = this._client.webhookSecret, tolerance = 300) {
+    await this.verifySignature(payload, headers, secret, tolerance);
+    return JSON.parse(payload);
+  }
+  async verifySignature(payload, headers, secret = this._client.webhookSecret, tolerance = 300) {
+    if (typeof crypto === "undefined" || typeof crypto.subtle.importKey !== "function" || typeof crypto.subtle.verify !== "function") {
+      throw new Error("Webhook signature verification is only supported when the `crypto` global is defined");
+    }
+    __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_validateSecret).call(this, secret);
+    const headersObj = buildHeaders([headers]).values;
+    const signatureHeader = __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_getRequiredHeader).call(this, headersObj, "webhook-signature");
+    const timestamp = __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_getRequiredHeader).call(this, headersObj, "webhook-timestamp");
+    const webhookId = __classPrivateFieldGet(this, _Webhooks_instances, "m", _Webhooks_getRequiredHeader).call(this, headersObj, "webhook-id");
+    const timestampSeconds = parseInt(timestamp, 10);
+    if (isNaN(timestampSeconds)) {
+      throw new InvalidWebhookSignatureError("Invalid webhook timestamp format");
+    }
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (nowSeconds - timestampSeconds > tolerance) {
+      throw new InvalidWebhookSignatureError("Webhook timestamp is too old");
+    }
+    if (timestampSeconds > nowSeconds + tolerance) {
+      throw new InvalidWebhookSignatureError("Webhook timestamp is too new");
+    }
+    const signatures = signatureHeader.split(" ").map((part) => part.startsWith("v1,") ? part.substring(3) : part);
+    const decodedSecret = secret.startsWith("whsec_") ? Buffer.from(secret.replace("whsec_", ""), "base64") : Buffer.from(secret, "utf-8");
+    const signedPayload = webhookId ? `${webhookId}.${timestamp}.${payload}` : `${timestamp}.${payload}`;
+    const key = await crypto.subtle.importKey("raw", decodedSecret, { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+    for (const signature of signatures) {
+      try {
+        const signatureBytes = Buffer.from(signature, "base64");
+        const isValid2 = await crypto.subtle.verify("HMAC", key, signatureBytes, new TextEncoder().encode(signedPayload));
+        if (isValid2) {
+          return;
+        }
+      } catch {
+        continue;
+      }
+    }
+    throw new InvalidWebhookSignatureError("The given webhook signature does not match the expected signature");
+  }
+}
+_Webhooks_instances = new WeakSet, _Webhooks_validateSecret = function _Webhooks_validateSecret2(secret) {
+  if (typeof secret !== "string" || secret.length === 0) {
+    throw new Error(`The webhook secret must either be set using the env var, OPENAI_WEBHOOK_SECRET, on the client class, OpenAI({ webhookSecret: '123' }), or passed to this function`);
+  }
+}, _Webhooks_getRequiredHeader = function _Webhooks_getRequiredHeader2(headers, name) {
+  if (!headers) {
+    throw new Error(`Headers are required`);
+  }
+  const value = headers.get(name);
+  if (value === null || value === undefined) {
+    throw new Error(`Missing required header: ${name}`);
+  }
+  return value;
+};
+// node_modules/openai/client.mjs
+var _OpenAI_instances;
+var _a4;
+var _OpenAI_encoder;
+var _OpenAI_baseURLOverridden;
+
+class OpenAI {
+  constructor({ baseURL = readEnv("OPENAI_BASE_URL"), apiKey = readEnv("OPENAI_API_KEY"), organization = readEnv("OPENAI_ORG_ID") ?? null, project = readEnv("OPENAI_PROJECT_ID") ?? null, webhookSecret = readEnv("OPENAI_WEBHOOK_SECRET") ?? null, ...opts } = {}) {
+    _OpenAI_instances.add(this);
+    _OpenAI_encoder.set(this, undefined);
+    this.completions = new Completions2(this);
+    this.chat = new Chat(this);
+    this.embeddings = new Embeddings(this);
+    this.files = new Files2(this);
+    this.images = new Images(this);
+    this.audio = new Audio(this);
+    this.moderations = new Moderations(this);
+    this.models = new Models(this);
+    this.fineTuning = new FineTuning(this);
+    this.graders = new Graders2(this);
+    this.vectorStores = new VectorStores(this);
+    this.webhooks = new Webhooks(this);
+    this.beta = new Beta(this);
+    this.batches = new Batches(this);
+    this.uploads = new Uploads(this);
+    this.responses = new Responses(this);
+    this.realtime = new Realtime2(this);
+    this.conversations = new Conversations(this);
+    this.evals = new Evals(this);
+    this.containers = new Containers(this);
+    this.videos = new Videos(this);
+    if (apiKey === undefined) {
+      throw new OpenAIError("Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.");
+    }
+    const options = {
+      apiKey,
+      organization,
+      project,
+      webhookSecret,
+      ...opts,
+      baseURL: baseURL || `https://api.openai.com/v1`
+    };
+    if (!options.dangerouslyAllowBrowser && isRunningInBrowser()) {
+      throw new OpenAIError(`It looks like you're running in a browser-like environment.
+
+This is disabled by default, as it risks exposing your secret API credentials to attackers.
+If you understand the risks and have appropriate mitigations in place,
+you can set the \`dangerouslyAllowBrowser\` option to \`true\`, e.g.,
+
+new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+
+https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
+`);
+    }
+    this.baseURL = options.baseURL;
+    this.timeout = options.timeout ?? _a4.DEFAULT_TIMEOUT;
+    this.logger = options.logger ?? console;
+    const defaultLogLevel = "warn";
+    this.logLevel = defaultLogLevel;
+    this.logLevel = parseLogLevel(options.logLevel, "ClientOptions.logLevel", this) ?? parseLogLevel(readEnv("OPENAI_LOG"), "process.env['OPENAI_LOG']", this) ?? defaultLogLevel;
+    this.fetchOptions = options.fetchOptions;
+    this.maxRetries = options.maxRetries ?? 2;
+    this.fetch = options.fetch ?? getDefaultFetch();
+    __classPrivateFieldSet(this, _OpenAI_encoder, FallbackEncoder, "f");
+    this._options = options;
+    this.apiKey = typeof apiKey === "string" ? apiKey : "Missing Key";
+    this.organization = organization;
+    this.project = project;
+    this.webhookSecret = webhookSecret;
+  }
+  withOptions(options) {
+    const client = new this.constructor({
+      ...this._options,
+      baseURL: this.baseURL,
+      maxRetries: this.maxRetries,
+      timeout: this.timeout,
+      logger: this.logger,
+      logLevel: this.logLevel,
+      fetch: this.fetch,
+      fetchOptions: this.fetchOptions,
+      apiKey: this.apiKey,
+      organization: this.organization,
+      project: this.project,
+      webhookSecret: this.webhookSecret,
+      ...options
+    });
+    return client;
+  }
+  defaultQuery() {
+    return this._options.defaultQuery;
+  }
+  validateHeaders({ values: values2, nulls }) {
+    return;
+  }
+  async authHeaders(opts) {
+    return buildHeaders([{ Authorization: `Bearer ${this.apiKey}` }]);
+  }
+  stringifyQuery(query) {
+    return stringify(query, { arrayFormat: "brackets" });
+  }
+  getUserAgent() {
+    return `${this.constructor.name}/JS ${VERSION7}`;
+  }
+  defaultIdempotencyKey() {
+    return `stainless-node-retry-${uuid42()}`;
+  }
+  makeStatusError(status, error50, message, headers) {
+    return APIError.generate(status, error50, message, headers);
+  }
+  async _callApiKey() {
+    const apiKey = this._options.apiKey;
+    if (typeof apiKey !== "function")
+      return false;
+    let token;
+    try {
+      token = await apiKey();
+    } catch (err) {
+      if (err instanceof OpenAIError)
+        throw err;
+      throw new OpenAIError(`Failed to get token from 'apiKey' function: ${err.message}`, { cause: err });
+    }
+    if (typeof token !== "string" || !token) {
+      throw new OpenAIError(`Expected 'apiKey' function argument to return a string but it returned ${token}`);
+    }
+    this.apiKey = token;
+    return true;
+  }
+  buildURL(path4, query, defaultBaseURL) {
+    const baseURL = !__classPrivateFieldGet(this, _OpenAI_instances, "m", _OpenAI_baseURLOverridden).call(this) && defaultBaseURL || this.baseURL;
+    const url2 = isAbsoluteURL(path4) ? new URL(path4) : new URL(baseURL + (baseURL.endsWith("/") && path4.startsWith("/") ? path4.slice(1) : path4));
+    const defaultQuery = this.defaultQuery();
+    if (!isEmptyObj2(defaultQuery)) {
+      query = { ...defaultQuery, ...query };
+    }
+    if (typeof query === "object" && query && !Array.isArray(query)) {
+      url2.search = this.stringifyQuery(query);
+    }
+    return url2.toString();
+  }
+  async prepareOptions(options) {
+    await this._callApiKey();
+  }
+  async prepareRequest(request2, { url: url2, options }) {}
+  get(path4, opts) {
+    return this.methodRequest("get", path4, opts);
+  }
+  post(path4, opts) {
+    return this.methodRequest("post", path4, opts);
+  }
+  patch(path4, opts) {
+    return this.methodRequest("patch", path4, opts);
+  }
+  put(path4, opts) {
+    return this.methodRequest("put", path4, opts);
+  }
+  delete(path4, opts) {
+    return this.methodRequest("delete", path4, opts);
+  }
+  methodRequest(method, path4, opts) {
+    return this.request(Promise.resolve(opts).then((opts2) => {
+      return { method, path: path4, ...opts2 };
+    }));
+  }
+  request(options, remainingRetries = null) {
+    return new APIPromise(this, this.makeRequest(options, remainingRetries, undefined));
+  }
+  async makeRequest(optionsInput, retriesRemaining, retryOfRequestLogID) {
+    const options = await optionsInput;
+    const maxRetries = options.maxRetries ?? this.maxRetries;
+    if (retriesRemaining == null) {
+      retriesRemaining = maxRetries;
+    }
+    await this.prepareOptions(options);
+    const { req, url: url2, timeout } = await this.buildRequest(options, {
+      retryCount: maxRetries - retriesRemaining
+    });
+    await this.prepareRequest(req, { url: url2, options });
+    const requestLogID = "log_" + (Math.random() * (1 << 24) | 0).toString(16).padStart(6, "0");
+    const retryLogStr = retryOfRequestLogID === undefined ? "" : `, retryOf: ${retryOfRequestLogID}`;
+    const startTime = Date.now();
+    loggerFor(this).debug(`[${requestLogID}] sending request`, formatRequestDetails({
+      retryOfRequestLogID,
+      method: options.method,
+      url: url2,
+      options,
+      headers: req.headers
+    }));
+    if (options.signal?.aborted) {
+      throw new APIUserAbortError;
+    }
+    const controller = new AbortController;
+    const response = await this.fetchWithTimeout(url2, req, timeout, controller).catch(castToError);
+    const headersTime = Date.now();
+    if (response instanceof globalThis.Error) {
+      const retryMessage = `retrying, ${retriesRemaining} attempts remaining`;
+      if (options.signal?.aborted) {
+        throw new APIUserAbortError;
+      }
+      const isTimeout = isAbortError(response) || /timed? ?out/i.test(String(response) + ("cause" in response ? String(response.cause) : ""));
+      if (retriesRemaining) {
+        loggerFor(this).info(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} - ${retryMessage}`);
+        loggerFor(this).debug(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} (${retryMessage})`, formatRequestDetails({
+          retryOfRequestLogID,
+          url: url2,
+          durationMs: headersTime - startTime,
+          message: response.message
+        }));
+        return this.retryRequest(options, retriesRemaining, retryOfRequestLogID ?? requestLogID);
+      }
+      loggerFor(this).info(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} - error; no more retries left`);
+      loggerFor(this).debug(`[${requestLogID}] connection ${isTimeout ? "timed out" : "failed"} (error; no more retries left)`, formatRequestDetails({
+        retryOfRequestLogID,
+        url: url2,
+        durationMs: headersTime - startTime,
+        message: response.message
+      }));
+      if (isTimeout) {
+        throw new APIConnectionTimeoutError;
+      }
+      throw new APIConnectionError({ cause: response });
+    }
+    const specialHeaders = [...response.headers.entries()].filter(([name]) => name === "x-request-id").map(([name, value]) => ", " + name + ": " + JSON.stringify(value)).join("");
+    const responseInfo = `[${requestLogID}${retryLogStr}${specialHeaders}] ${req.method} ${url2} ${response.ok ? "succeeded" : "failed"} with status ${response.status} in ${headersTime - startTime}ms`;
+    if (!response.ok) {
+      const shouldRetry = await this.shouldRetry(response);
+      if (retriesRemaining && shouldRetry) {
+        const retryMessage2 = `retrying, ${retriesRemaining} attempts remaining`;
+        await CancelReadableStream(response.body);
+        loggerFor(this).info(`${responseInfo} - ${retryMessage2}`);
+        loggerFor(this).debug(`[${requestLogID}] response error (${retryMessage2})`, formatRequestDetails({
+          retryOfRequestLogID,
+          url: response.url,
+          status: response.status,
+          headers: response.headers,
+          durationMs: headersTime - startTime
+        }));
+        return this.retryRequest(options, retriesRemaining, retryOfRequestLogID ?? requestLogID, response.headers);
+      }
+      const retryMessage = shouldRetry ? `error; no more retries left` : `error; not retryable`;
+      loggerFor(this).info(`${responseInfo} - ${retryMessage}`);
+      const errText = await response.text().catch((err2) => castToError(err2).message);
+      const errJSON = safeJSON(errText);
+      const errMessage = errJSON ? undefined : errText;
+      loggerFor(this).debug(`[${requestLogID}] response error (${retryMessage})`, formatRequestDetails({
+        retryOfRequestLogID,
+        url: response.url,
+        status: response.status,
+        headers: response.headers,
+        message: errMessage,
+        durationMs: Date.now() - startTime
+      }));
+      const err = this.makeStatusError(response.status, errJSON, errMessage, response.headers);
+      throw err;
+    }
+    loggerFor(this).info(responseInfo);
+    loggerFor(this).debug(`[${requestLogID}] response start`, formatRequestDetails({
+      retryOfRequestLogID,
+      url: response.url,
+      status: response.status,
+      headers: response.headers,
+      durationMs: headersTime - startTime
+    }));
+    return { response, options, controller, requestLogID, retryOfRequestLogID, startTime };
+  }
+  getAPIList(path4, Page2, opts) {
+    return this.requestAPIList(Page2, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path4, ...opts2 })) : { method: "get", path: path4, ...opts });
+  }
+  requestAPIList(Page2, options) {
+    const request2 = this.makeRequest(options, null, undefined);
+    return new PagePromise(this, request2, Page2);
+  }
+  async fetchWithTimeout(url2, init, ms, controller) {
+    const { signal, method, ...options } = init || {};
+    const abort = this._makeAbort(controller);
+    if (signal)
+      signal.addEventListener("abort", abort, { once: true });
+    const timeout = setTimeout(abort, ms);
+    const isReadableBody = globalThis.ReadableStream && options.body instanceof globalThis.ReadableStream || typeof options.body === "object" && options.body !== null && Symbol.asyncIterator in options.body;
+    const fetchOptions = {
+      signal: controller.signal,
+      ...isReadableBody ? { duplex: "half" } : {},
+      method: "GET",
+      ...options
+    };
+    if (method) {
+      fetchOptions.method = method.toUpperCase();
+    }
+    try {
+      return await this.fetch.call(undefined, url2, fetchOptions);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async shouldRetry(response) {
+    const shouldRetryHeader = response.headers.get("x-should-retry");
+    if (shouldRetryHeader === "true")
+      return true;
+    if (shouldRetryHeader === "false")
+      return false;
+    if (response.status === 408)
+      return true;
+    if (response.status === 409)
+      return true;
+    if (response.status === 429)
+      return true;
+    if (response.status >= 500)
+      return true;
+    return false;
+  }
+  async retryRequest(options, retriesRemaining, requestLogID, responseHeaders) {
+    let timeoutMillis;
+    const retryAfterMillisHeader = responseHeaders?.get("retry-after-ms");
+    if (retryAfterMillisHeader) {
+      const timeoutMs = parseFloat(retryAfterMillisHeader);
+      if (!Number.isNaN(timeoutMs)) {
+        timeoutMillis = timeoutMs;
+      }
+    }
+    const retryAfterHeader = responseHeaders?.get("retry-after");
+    if (retryAfterHeader && !timeoutMillis) {
+      const timeoutSeconds = parseFloat(retryAfterHeader);
+      if (!Number.isNaN(timeoutSeconds)) {
+        timeoutMillis = timeoutSeconds * 1000;
+      } else {
+        timeoutMillis = Date.parse(retryAfterHeader) - Date.now();
+      }
+    }
+    if (!(timeoutMillis && 0 <= timeoutMillis && timeoutMillis < 60 * 1000)) {
+      const maxRetries = options.maxRetries ?? this.maxRetries;
+      timeoutMillis = this.calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries);
+    }
+    await sleep2(timeoutMillis);
+    return this.makeRequest(options, retriesRemaining - 1, requestLogID);
+  }
+  calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries) {
+    const initialRetryDelay = 0.5;
+    const maxRetryDelay = 8;
+    const numRetries = maxRetries - retriesRemaining;
+    const sleepSeconds = Math.min(initialRetryDelay * Math.pow(2, numRetries), maxRetryDelay);
+    const jitter = 1 - Math.random() * 0.25;
+    return sleepSeconds * jitter * 1000;
+  }
+  async buildRequest(inputOptions, { retryCount = 0 } = {}) {
+    const options = { ...inputOptions };
+    const { method, path: path4, query, defaultBaseURL } = options;
+    const url2 = this.buildURL(path4, query, defaultBaseURL);
+    if ("timeout" in options)
+      validatePositiveInteger("timeout", options.timeout);
+    options.timeout = options.timeout ?? this.timeout;
+    const { bodyHeaders, body } = this.buildBody({ options });
+    const reqHeaders = await this.buildHeaders({ options: inputOptions, method, bodyHeaders, retryCount });
+    const req = {
+      method,
+      headers: reqHeaders,
+      ...options.signal && { signal: options.signal },
+      ...globalThis.ReadableStream && body instanceof globalThis.ReadableStream && { duplex: "half" },
+      ...body && { body },
+      ...this.fetchOptions ?? {},
+      ...options.fetchOptions ?? {}
+    };
+    return { req, url: url2, timeout: options.timeout };
+  }
+  async buildHeaders({ options, method, bodyHeaders, retryCount }) {
+    let idempotencyHeaders = {};
+    if (this.idempotencyHeader && method !== "get") {
+      if (!options.idempotencyKey)
+        options.idempotencyKey = this.defaultIdempotencyKey();
+      idempotencyHeaders[this.idempotencyHeader] = options.idempotencyKey;
+    }
+    const headers = buildHeaders([
+      idempotencyHeaders,
+      {
+        Accept: "application/json",
+        "User-Agent": this.getUserAgent(),
+        "X-Stainless-Retry-Count": String(retryCount),
+        ...options.timeout ? { "X-Stainless-Timeout": String(Math.trunc(options.timeout / 1000)) } : {},
+        ...getPlatformHeaders(),
+        "OpenAI-Organization": this.organization,
+        "OpenAI-Project": this.project
+      },
+      await this.authHeaders(options),
+      this._options.defaultHeaders,
+      bodyHeaders,
+      options.headers
+    ]);
+    this.validateHeaders(headers);
+    return headers.values;
+  }
+  _makeAbort(controller) {
+    return () => controller.abort();
+  }
+  buildBody({ options: { body, headers: rawHeaders } }) {
+    if (!body) {
+      return { bodyHeaders: undefined, body: undefined };
+    }
+    const headers = buildHeaders([rawHeaders]);
+    if (ArrayBuffer.isView(body) || body instanceof ArrayBuffer || body instanceof DataView || typeof body === "string" && headers.values.has("content-type") || globalThis.Blob && body instanceof globalThis.Blob || body instanceof FormData || body instanceof URLSearchParams || globalThis.ReadableStream && body instanceof globalThis.ReadableStream) {
+      return { bodyHeaders: undefined, body };
+    } else if (typeof body === "object" && ((Symbol.asyncIterator in body) || (Symbol.iterator in body) && ("next" in body) && typeof body.next === "function")) {
+      return { bodyHeaders: undefined, body: ReadableStreamFrom(body) };
+    } else {
+      return __classPrivateFieldGet(this, _OpenAI_encoder, "f").call(this, { body, headers });
+    }
+  }
+}
+_a4 = OpenAI, _OpenAI_encoder = new WeakMap, _OpenAI_instances = new WeakSet, _OpenAI_baseURLOverridden = function _OpenAI_baseURLOverridden2() {
+  return this.baseURL !== "https://api.openai.com/v1";
+};
+OpenAI.OpenAI = _a4;
+OpenAI.DEFAULT_TIMEOUT = 600000;
+OpenAI.OpenAIError = OpenAIError;
+OpenAI.APIError = APIError;
+OpenAI.APIConnectionError = APIConnectionError;
+OpenAI.APIConnectionTimeoutError = APIConnectionTimeoutError;
+OpenAI.APIUserAbortError = APIUserAbortError;
+OpenAI.NotFoundError = NotFoundError;
+OpenAI.ConflictError = ConflictError;
+OpenAI.RateLimitError = RateLimitError;
+OpenAI.BadRequestError = BadRequestError;
+OpenAI.AuthenticationError = AuthenticationError;
+OpenAI.InternalServerError = InternalServerError;
+OpenAI.PermissionDeniedError = PermissionDeniedError;
+OpenAI.UnprocessableEntityError = UnprocessableEntityError;
+OpenAI.InvalidWebhookSignatureError = InvalidWebhookSignatureError;
+OpenAI.toFile = toFile;
+OpenAI.Completions = Completions2;
+OpenAI.Chat = Chat;
+OpenAI.Embeddings = Embeddings;
+OpenAI.Files = Files2;
+OpenAI.Images = Images;
+OpenAI.Audio = Audio;
+OpenAI.Moderations = Moderations;
+OpenAI.Models = Models;
+OpenAI.FineTuning = FineTuning;
+OpenAI.Graders = Graders2;
+OpenAI.VectorStores = VectorStores;
+OpenAI.Webhooks = Webhooks;
+OpenAI.Beta = Beta;
+OpenAI.Batches = Batches;
+OpenAI.Uploads = Uploads;
+OpenAI.Responses = Responses;
+OpenAI.Realtime = Realtime2;
+OpenAI.Conversations = Conversations;
+OpenAI.Evals = Evals;
+OpenAI.Containers = Containers;
+OpenAI.Videos = Videos;
+// node_modules/openai/azure.mjs
+var _deployments_endpoints = new Set([
+  "/completions",
+  "/chat/completions",
+  "/embeddings",
+  "/audio/transcriptions",
+  "/audio/translations",
+  "/audio/speech",
+  "/images/generations",
+  "/batches",
+  "/images/edits"
+]);
+// src/shared/llm-model.ts
+var DEFAULT_MODEL = "gpt-5-mini";
+var openai = new OpenAI({
+  apiKey: getInput("openai-api-key")
+});
+var tokenizer = encodingForModel(DEFAULT_MODEL);
+// src/features/pr/cve-detection/check-vulnerabilities.ts
+function extractDependency(fileName, content) {
+  for (const parser2 of parserRegistry) {
+    if (parser2.canParse(fileName)) {
+      return parser2.parse(content);
+    }
+  }
+  return null;
+}
+var DEPENDENCY_FILES = [
+  "package.json",
+  "requirements.txt",
+  "build.gradle",
+  "build.gradle.kts"
+];
+async function checkVulnerabilities(diffs) {
   const findings = [];
-  chunk.diffs.forEach((diff) => {
-    const fileFindings = findingsIndex.get(diff.file);
-    if (!fileFindings) {
-      return;
+  const newDependencies = [];
+  for (const diff of diffs) {
+    let isDependencyFile = false;
+    for (const file2 of DEPENDENCY_FILES) {
+      if (diff.file.endsWith(file2)) {
+        isDependencyFile = true;
+        break;
+      }
     }
-    findings.push(...fileFindings);
+    if (!isDependencyFile) {
+      continue;
+    }
+    for (const addedLine of diff.added) {
+      const dep = extractDependency(diff.file, addedLine.content);
+      if (!dep) {
+        continue;
+      }
+      newDependencies.push({
+        dep,
+        file: diff.file,
+        line: addedLine.lineNumber
+      });
+    }
+  }
+  if (newDependencies.length === 0) {
+    return findings;
+  }
+  const allDeps = newDependencies.map((d) => d.dep);
+  const seenKeys = new Set;
+  const uniqueDeps = allDeps.filter((dep) => {
+    const key = `${dep.package.name} @${dep.version} `;
+    if (seenKeys.has(key)) {
+      return false;
+    }
+    seenKeys.add(key);
+    return true;
   });
+  const [fetchError, cveResults] = await expectError(fetchCVEs(uniqueDeps));
+  if (fetchError) {
+    throw new Error("Failed to fetch CVEs for dependencies", {
+      cause: fetchError
+    });
+  }
+  for (const item of newDependencies) {
+    const key = `${item.dep.package.name} @${item.dep.version} `;
+    const vulnerabilities = cveResults.get(key);
+    if (!vulnerabilities || vulnerabilities.length === 0) {
+      continue;
+    }
+    findings.push({
+      description: `Added dependency \`${item.dep.package.name}@${item.dep.version}\` has known vulnerabilities: ${vulnerabilities.join(", ")}.`,
+      file: item.file,
+      line: item.line,
+      severity: "high"
+    });
+  }
   return findings;
 }
-// src/features/pr/llm-call/prompts.ts
-var SYSTEM_PROMPT = `
-Expert Application Security reviewer.
-
-Review ONLY added code from the diff.
-
-Report ONLY:
-- Real vulnerabilities introduced by the diff
-- Verified dependency vulnerabilities
-- Valid security scanner findings
-
-Do NOT report:
-- Style issues
-- Code quality issues without security impact
-- Best practices
-- Speculation
-- Potential issues without evidence
-- False positives
-
-Focus on:
-SQL Injection, Command Injection, XSS, SSRF, Path Traversal,
-LDAP Injection, Template Injection, Unsafe Deserialization,
-Authentication flaws, Authorization flaws, IDOR,
-Privilege Escalation, Session Management flaws,
-Sensitive Data Exposure, Cryptography misuse,
-Business Logic vulnerabilities, Vulnerable Dependencies.
-
-Requirements:
-- Use exact added diff line numbers.
-- Base findings only on evidence visible in the diff.
-- Do not assume protections or missing protections.
-- If exploitation cannot be reasonably inferred, do not report.
-- Prefer false negatives over false positives.
-
-Severity:
-high   = authentication bypass, privilege escalation, RCE, significant data exposure
-medium = realistic security impact with additional conditions
-low    = limited security impact or defense-in-depth weakness
-
-For each finding:
-- problem: detailed vulnerability description and realistic risk.
-- solution: detailed solution with recommendations and code examples when useful.
-Solution formatting:
-- ALWAYS wrap code examples in fenced markdown code blocks (\`\`\`language ... \`\`\`).
-- Use the appropriate language identifier.
-- Prefer secure replacement code over pseudocode.
-- prompt: detailed prompt for another AI to implement the fix safely.
-
-Use technical English.
-Be direct, precise, and actionable.
-`;
-function formatFileDiff(fileDiff) {
-  const body = fileDiff.changes.map((line) => `${line.prefix}${line.lineNumber} ${line.content}`).join(`
-`);
-  return `FILE ${fileDiff.file}
-${body}`;
-}
-function formatFindings(label, findings) {
-  if (findings.length === 0) {
-    return `${label}: none`;
+// src/features/pr/cve-detection/fetch-cves.ts
+async function fetchCVEs(newDependencies) {
+  const vulnerabilities = new Map;
+  const [requestError, response] = await expectError(fetch("https://api.osv.dev/v1/querybatch", {
+    body: JSON.stringify({ queries: newDependencies }),
+    headers: {
+      "Content-Type": "application/json"
+    },
+    method: "POST"
+  }));
+  if (requestError) {
+    throw new Error("Network connection failed when calling OSV API", {
+      cause: requestError
+    });
   }
-  const lines = [];
-  findings.forEach((finding) => {
-    lines.push(`${finding.file}:${finding.line} ${finding.severity} ${finding.description}`);
-  });
-  return `${label}
-${lines.join(`
-`)}`;
-}
-function buildUserMessage(chunk, securityFindings, cveFindings) {
-  const parts = [];
-  if (chunk.totalChunks > 1) {
-    parts.push(`Chunk ${chunk.chunkIndex + 1}/${chunk.totalChunks}`);
+  if (!response) {
+    throw new Error("Received an empty response object from OSV API");
   }
-  parts.push(chunk.diffs.map(formatFileDiff).join(`
-
-`));
-  parts.push(formatFindings("SECURITY_SCAN", securityFindings));
-  parts.push(formatFindings("CVE_SCAN", cveFindings));
-  return parts.join(`
-
-`);
+  if (!response.ok) {
+    throw new Error(`OSV vulnerability database returned a non-2xx status code: HTTP ${response.status} ${response.statusText}`);
+  }
+  let data;
+  try {
+    data = await response.json();
+  } catch (error51) {
+    throw new Error("Failed to parse OSV response body as JSON", {
+      cause: error51
+    });
+  }
+  if (!data.results) {
+    debug("OSV API returned a valid payload structure but with empty results");
+    return vulnerabilities;
+  }
+  for (let i = 0;i < data.results.length; i++) {
+    const result = data.results[i];
+    const dep = newDependencies[i];
+    if (!dep) {
+      continue;
+    }
+    if (!result || !result.vulns || result.vulns.length === 0) {
+      continue;
+    }
+    const key = `${dep.package.name}@${dep.version}`;
+    vulnerabilities.set(key, result.vulns.map((v) => v.id));
+  }
+  return vulnerabilities;
+}
+// src/features/pr/cve-detection/parsers/base-class.ts
+class DependencyParser {
+}
+var parserRegistry = [];
+function registerParser(parser2) {
+  parserRegistry.push(parser2);
+}
+// src/features/pr/cve-detection/parsers/node.ts
+class NpmParser extends DependencyParser {
+  canParse(fileName) {
+    return fileName.endsWith("package.json");
+  }
+  parse(content) {
+    content = content.trim();
+    if (!content || content.startsWith("#")) {
+      return null;
+    }
+    const match2 = content.match(/"([^"]+)":\s*"([^"]+)"/);
+    if (!match2 || !match2[1] || !match2[2]) {
+      return null;
+    }
+    const version2 = match2[2].replace(/^[~^>=<]*/, "");
+    if (version2.includes("file:") || version2.includes("git+") || version2.includes("workspace:")) {
+      return null;
+    }
+    if (!/^[\d.]+/.test(version2)) {
+      return null;
+    }
+    return {
+      package: {
+        ecosystem: "npm",
+        name: match2[1]
+      },
+      version: version2
+    };
+  }
+}
+registerParser(new NpmParser);
+// src/features/pr/cve-detection/parsers/gradle.ts
+class GradleParser extends DependencyParser {
+  canParse(fileName) {
+    return fileName.endsWith("build.gradle") || fileName.endsWith("build.gradle.kts");
+  }
+  parse(content) {
+    const match2 = content.match(/(?:api|implementation|compileOnly|runtimeOnly|testImplementation)\s*\(?['"]([^'"]+):([^'"]+):([^'"]+)['"]\)?/);
+    if (!match2 || !match2[1] || !match2[2] || !match2[3]) {
+      return null;
+    }
+    if (match2[3].includes("$")) {
+      return null;
+    }
+    return {
+      package: {
+        ecosystem: "Maven",
+        name: `${match2[1]}:${match2[2]}`
+      },
+      version: match2[3]
+    };
+  }
+}
+registerParser(new GradleParser);
+// src/features/pr/cve-detection/parsers/python.ts
+class PythonParser extends DependencyParser {
+  canParse(fileName) {
+    return fileName.endsWith("requirements.txt");
+  }
+  parse(content) {
+    content = content.trim();
+    if (!content || content.startsWith("#")) {
+      return null;
+    }
+    const line = content.split("#")[0]?.trim();
+    if (!line) {
+      return null;
+    }
+    const match2 = line.match(/^([a-zA-Z0-9_-]+)\s*(?:==|>=|<=|>|<|~=)\s*(.+)$/);
+    if (!match2 || !match2[1] || !match2[2]) {
+      return null;
+    }
+    const version2 = match2[2].trim();
+    if (version2.includes("@") || version2.includes("git+") || version2.includes("#")) {
+      return null;
+    }
+    return {
+      package: {
+        ecosystem: "PyPI",
+        name: match2[1]
+      },
+      version: version2
+    };
+  }
+}
+registerParser(new PythonParser);
+// src/features/pr/git-diff/parse.ts
+var import_parse_diff = __toESM(require_parse_diff(), 1);
+function parseGitDiff(diff) {
+  const parsedFiles = import_parse_diff.default(diff);
+  return parsedFiles.map((file2) => {
+    const fileName = file2.to ?? file2.from ?? "unknown";
+    if (!matchesScanPatterns(fileName)) {
+      return null;
+    }
+    if (isIgnoredFile(fileName)) {
+      return null;
+    }
+    const added = [];
+    const removed = [];
+    const context3 = [];
+    const changesList = [];
+    for (const chunk of file2.chunks) {
+      for (const change of chunk.changes) {
+        const content = change.content.slice(1);
+        switch (change.type) {
+          case "add":
+            added.push({ content, lineNumber: change.ln });
+            changesList.push({ content, lineNumber: change.ln, prefix: "+" });
+            break;
+          case "del":
+            removed.push({ content, lineNumber: change.ln });
+            changesList.push({ content, lineNumber: change.ln, prefix: "-" });
+            break;
+          case "normal":
+            context3.push({ content, lineNumber: change.ln2 });
+            changesList.push({
+              content,
+              lineNumber: change.ln2,
+              prefix: " "
+            });
+            break;
+        }
+      }
+    }
+    return {
+      added,
+      changes: changesList,
+      context: context3,
+      file: fileName,
+      removed
+    };
+  }).filter((file2) => file2 !== null);
 }
 // node_modules/yocto-queue/index.js
 class Node {
@@ -56274,26 +56399,40 @@ function validateConcurrency(concurrency) {
   }
 }
 
-// src/features/pr/llm-call/review.ts
-var MAX_CONCURRENT_CHUNKS = 3;
-async function callLLM(diffs, securityFindings, cveFindings, apiKey) {
-  const openai = createLLMClient(apiKey);
-  const model2 = getConfig().model || "gpt-5-mini";
-  const chunks = chunkDiffs(diffs);
-  const securityLookupTable = createFindingsTable(securityFindings);
-  const cveLookupTable = createFindingsTable(cveFindings);
-  if (chunks.length === 1) {
-    const chunk = chunks[0];
-    const message = buildUserMessage(chunk, getRelevantChunkFindings(chunk, securityLookupTable), getRelevantChunkFindings(chunk, cveLookupTable));
-    return callWithRetry(openai, model2, message);
+// src/features/pr/llm-call/call-llm.ts
+function createFindingsTable(findings) {
+  const findingsByFile = new Map;
+  for (const finding of findings) {
+    const existingFindings = findingsByFile.get(finding.file) ?? [];
+    existingFindings.push(finding);
+    findingsByFile.set(finding.file, existingFindings);
   }
-  const limit2 = pLimit(MAX_CONCURRENT_CHUNKS);
-  const results = await Promise.all(chunks.map((chunk) => limit2(async () => {
-    const message = buildUserMessage(chunk, getRelevantChunkFindings(chunk, securityLookupTable), getRelevantChunkFindings(chunk, cveLookupTable));
-    return callWithRetry(openai, model2, message);
-  })));
+  return findingsByFile;
+}
+function getRelevantChunkFindings(chunk, findingsByFile) {
+  const relevantFindings = [];
+  for (const diff of chunk.diffs) {
+    const fileFindings = findingsByFile.get(diff.file);
+    if (!fileFindings) {
+      continue;
+    }
+    relevantFindings.push(...fileFindings);
+  }
+  return relevantFindings;
+}
+async function reviewChunk(chunk, securityFindingsByFile, cveFindingsByFile, prContext) {
+  const message = buildUserMessage(chunk, getRelevantChunkFindings(chunk, securityFindingsByFile), getRelevantChunkFindings(chunk, cveFindingsByFile), prContext);
+  const [error51, result] = await expectError(callWithRetry(SYSTEM_PROMPT, message, ReviewsSchema, "reviews"));
+  if (error51) {
+    throw new Error("Failed to generate AI review", {
+      cause: error51
+    });
+  }
+  return result;
+}
+function deduplicateReviews(reviews) {
   const seen = new Set;
-  const reviews = results.flat().filter((review) => {
+  return reviews.filter((review) => {
     const key = `${review.file}:${review.line}:${review.problem}`;
     if (seen.has(key)) {
       return false;
@@ -56301,49 +56440,185 @@ async function callLLM(diffs, securityFindings, cveFindings, apiKey) {
     seen.add(key);
     return true;
   });
-  return reviews;
+}
+function countTokens(file2) {
+  const formattedDiff = [
+    `FILE ${file2.file}`,
+    ...file2.changes.map((change) => `${change.prefix}${change.lineNumber} ${change.content}`)
+  ].join(`
+`);
+  return tokenizer.encode(formattedDiff).length;
+}
+async function callLLM(diffs, securityFindings, cveFindings, prContext) {
+  const diffChunks = chunkDiffs(diffs, countTokens);
+  const securityFindingsByFile = createFindingsTable(securityFindings);
+  const cveFindingsByFile = createFindingsTable(cveFindings);
+  if (diffChunks.length === 1) {
+    const result = await reviewChunk(diffChunks[0], securityFindingsByFile, cveFindingsByFile, prContext);
+    return result.reviews;
+  }
+  const limit2 = pLimit(MAX_CONCURRENT_CHUNKS);
+  const chunkResults = await Promise.all(diffChunks.map((chunk) => limit2(() => reviewChunk(chunk, securityFindingsByFile, cveFindingsByFile, prContext))));
+  const reviews = chunkResults.flatMap((result) => result.reviews);
+  return deduplicateReviews(reviews);
+}
+// src/features/pr/llm-call/prompts.ts
+var SYSTEM_PROMPT = `
+Expert Application Security reviewer.
+
+Review ONLY added code from the diff.
+
+Report ONLY:
+- Real vulnerabilities introduced by the diff
+- Verified dependency vulnerabilities
+- Valid security scanner findings
+
+Do NOT report:
+- Style issues
+- Code quality issues without security impact
+- Best practices
+- Speculation
+- Potential issues without evidence
+- False positives
+
+Focus on:
+SQL Injection, Command Injection, XSS, SSRF, Path Traversal,
+LDAP Injection, Template Injection, Unsafe Deserialization,
+Authentication flaws, Authorization flaws, IDOR,
+Privilege Escalation, Session Management flaws,
+Sensitive Data Exposure, Cryptography misuse,
+Business Logic vulnerabilities, Vulnerable Dependencies.
+
+Requirements:
+- Use exact added diff line numbers.
+- Base findings only on evidence visible in the diff.
+- Do not assume protections or missing protections.
+- If exploitation cannot be reasonably inferred, do not report.
+- Prefer false negatives over false positives.
+
+Use technical English.
+Be direct, precise, and actionable.
+`;
+function formatFileDiff(fileDiff) {
+  const body = fileDiff.changes.map((line) => `${line.prefix}${line.lineNumber} ${line.content}`).join(`
+`);
+  return `FILE ${fileDiff.file}
+${body}`;
+}
+function formatFindings(label, findings) {
+  if (findings.length === 0) {
+    return `${label}: none`;
+  }
+  const lines = [];
+  findings.forEach((finding) => {
+    lines.push(`${finding.file}:${finding.line} ${finding.severity} ${finding.description}`);
+  });
+  return `${label}
+${lines.join(`
+`)}`;
+}
+function formatPRContext(ctx) {
+  const lines = [];
+  lines.push(`PR TITLE: ${ctx.title}`);
+  if (ctx.description) {
+    lines.push(`PR DESCRIPTION:
+${ctx.description}`);
+  }
+  if (ctx.commitMessages.length > 0) {
+    lines.push(`COMMIT MESSAGES:
+${ctx.commitMessages.map((m) => `- ${m}`).join(`
+`)}`);
+  }
+  if (ctx.linkedIssues.length > 0) {
+    lines.push(`LINKED ISSUES:
+${ctx.linkedIssues.map((i) => `- #${i.number}: ${i.title}`).join(`
+`)}`);
+  }
+  return lines.join(`
+
+`);
+}
+function buildUserMessage(chunk, securityFindings, cveFindings, prContext) {
+  const parts = [];
+  if (chunk.totalChunks > 1) {
+    parts.push(`Chunk ${chunk.chunkIndex + 1}/${chunk.totalChunks}`);
+  }
+  parts.push(formatPRContext(prContext));
+  parts.push(chunk.diffs.map(formatFileDiff).join(`
+
+`));
+  parts.push(formatFindings("SECURITY_SCAN", securityFindings));
+  parts.push(formatFindings("CVE_SCAN", cveFindings));
+  return parts.join(`
+
+`);
 }
 // src/features/pr/llm-call/types.ts
 var SeveritySchema = exports_external.enum(["high", "medium", "low"]);
-var ReviewSchema = exports_external.object({
-  file: exports_external.string(),
-  line: exports_external.number(),
-  problem: exports_external.string(),
-  prompt: exports_external.string(),
-  severity: SeveritySchema,
-  solution: exports_external.string()
+var ReviewSchema2 = exports_external.object({
+  file: exports_external.string().describe("The exact file path where the security vulnerability was discovered, taken directly from the diff."),
+  line: exports_external.number().describe("The specific line number in the newly added code where the vulnerability exists."),
+  problem: exports_external.string().describe("A detailed explanation of the security vulnerability, the technical risk it introduces, and how it could be exploited."),
+  prompt: exports_external.string().describe("A direct, precise technical prompt instructing another AI model exactly how to refactor and fix this vulnerability safely."),
+  severity: SeveritySchema.describe("The impact level of the vulnerability: 'high' for RCE/Auth bypass, 'medium' for conditional exploits, or 'low' for defense-in-depth issues."),
+  solution: exports_external.string().describe("A step-by-step fix guide including a real, secure code replacement wrapped in markdown code blocks. Avoid pseudocode.")
 });
 var ReviewsSchema = exports_external.object({
-  reviews: exports_external.array(ReviewSchema)
+  reviews: exports_external.array(ReviewSchema2)
 });
+// src/features/pr/octokit/get-context.ts
+function stripMarkdown(text) {
+  return text.replace(/#{1,6}\s+/g, "").replace(/!\[.*?\]\(.*?\)/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/`{1,3}[^`]*`{1,3}/g, "").replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1").replace(/~~([^~]+)~~/g, "$1").replace(/^\s*[-*+>]\s+/gm, "").replace(/\r\n/g, `
+`).replace(/\n{3,}/g, `
 
-class LLMCallError extends Error {
-  cause;
-  attempts;
-  retryable;
-  constructor(message, options) {
-    super(message);
-    this.name = "LLMCallError";
-    this.cause = options.cause;
-    this.attempts = options.attempts;
-    this.retryable = options.retryable;
+`).trim();
+}
+function extractIssueNumbers(text) {
+  const pattern = /(?:closes?|fixes?|resolves?)\s+#(\d+)|(?<!\w)#(\d+)/gi;
+  const seen = new Set;
+  let match2;
+  while ((match2 = pattern.exec(text)) !== null) {
+    const num = parseInt(match2[1] ?? match2[2] ?? "", 10);
+    if (!isNaN(num))
+      seen.add(num);
   }
+  return [...seen];
 }
-// src/features/pr/octokit/fingerprint.ts
-function normaliseSnippet(snippet, maxLength = 120) {
-  return snippet.trim().replace(/\s+/g, " ").toLowerCase().slice(0, maxLength);
+async function getGitHubContext(token, owner, repo, pullNumber) {
+  const octokit = getOctokit(token);
+  const { data: pr } = await octokit.rest.pulls.get({
+    owner,
+    pull_number: pullNumber,
+    repo
+  });
+  const title = pr.title;
+  const description = stripMarkdown(pr.body ?? "");
+  const { data: commits } = await octokit.rest.pulls.listCommits({
+    owner,
+    per_page: 100,
+    pull_number: pullNumber,
+    repo
+  });
+  const commitMessages = commits.map((c) => c.commit.message.split(`
+`)[0]);
+  const allText = [pr.body ?? "", ...commits.map((c) => c.commit.message)].join(`
+`);
+  const issueNumbers = extractIssueNumbers(allText);
+  const linkedIssues = [];
+  await Promise.all(issueNumbers.map(async (num) => {
+    try {
+      const { data: issue3 } = await octokit.rest.issues.get({
+        issue_number: num,
+        owner,
+        repo
+      });
+      linkedIssues.push({ number: num, title: issue3.title });
+    } catch {}
+  }));
+  linkedIssues.sort((a, b) => a.number - b.number);
+  return { commitMessages, description, linkedIssues, title };
 }
-function fingerprintStatic(ruleId, file2, lineContent) {
-  return `static:${ruleId}:${file2}:${normaliseSnippet(lineContent)}`;
-}
-function fingerprintOSV(pkgName, pkgVersion, osvIds) {
-  const ids = [...osvIds].sort().join(",");
-  return `osv:${pkgName}@${pkgVersion}:${ids}`;
-}
-function fingerprintLLM(file2, lineContent) {
-  return `llm:${file2}:${normaliseSnippet(lineContent)}`;
-}
-// src/features/pr/octokit/get-diff.ts
+// src/features/pr/octokit/get-pr-diff.ts
 async function getPullRequestDiff(token, owner, repo, pullNumber) {
   const octokit = getOctokit(token);
   const response = await octokit.rest.pulls.get({
@@ -56354,127 +56629,95 @@ async function getPullRequestDiff(token, owner, repo, pullNumber) {
   });
   return response.data;
 }
-// src/features/pr/octokit/matcher.ts
-var import_string_similarity = __toESM(require_src(), 1);
-var FUZZY_THRESHOLD = 0.7;
-function getLineContent(file2, line, diffs) {
-  return diffs.find((d) => d.file === file2)?.added.find((a) => a.lineNumber === line)?.content ?? "";
+// src/features/pr/octokit/persistent-state.ts
+var SUMMARY_MARKER = "<!-- summary -->";
+var STATE_BLOCK_START = "<!-- state";
+var STATE_BLOCK_END = "-->";
+var EMPTY_STATE = {
+  findings: [],
+  version: 1
+};
+function decodeState(commentBody) {
+  try {
+    const stateBlockStartIndex = commentBody.indexOf(STATE_BLOCK_START);
+    if (stateBlockStartIndex === -1) {
+      return null;
+    }
+    const encodedStateStartIndex = commentBody.indexOf(`
+`, stateBlockStartIndex) + 1;
+    const stateBlockEndIndex = commentBody.indexOf(STATE_BLOCK_END, encodedStateStartIndex);
+    if (stateBlockEndIndex === -1) {
+      return null;
+    }
+    const encodedState = commentBody.slice(encodedStateStartIndex, stateBlockEndIndex).trim();
+    const decodedStateJson = Buffer.from(encodedState, "base64").toString("utf-8");
+    const parsedState = JSON.parse(decodedStateJson);
+    if (parsedState.version !== 1 || !Array.isArray(parsedState.findings)) {
+      return null;
+    }
+    return parsedState;
+  } catch {
+    return null;
+  }
 }
-function parseOSVDescription(description) {
-  const pkg = description.match(/`([^@`]+)@([^`]+)`/);
-  const pkgName = pkg?.[1] ?? "unknown";
-  const pkgVersion = pkg?.[2] ?? "unknown";
-  const idMatches = [
-    ...description.matchAll(/\b(CVE-\d{4}-\d+|GHSA-[a-z0-9-]+)\b/gi)
-  ];
-  const osvIds = idMatches.map((match2) => match2[0].toUpperCase());
-  return {
-    osvIds,
-    pkgName,
-    pkgVersion
-  };
+function encodeState(state) {
+  const serializedState = JSON.stringify(state);
+  const encodedState = Buffer.from(serializedState, "utf-8").toString("base64");
+  return ["", STATE_BLOCK_START, encodedState, STATE_BLOCK_END].join(`
+`);
 }
-function inferRuleId(description) {
-  return description.trim().slice(0, 40).toLowerCase().replace(/\s+/g, "-");
-}
-function matchFindings(staticFindings, osvFindings, llmReviews, diffs, previous) {
-  const previousFindings = new Map(previous.findings.map((finding) => [finding.fingerprint, finding]));
-  const matchedPrevious = new Set;
-  const matched = [];
-  function findPrevious(fingerprint) {
-    const finding = previousFindings.get(fingerprint);
-    if (finding) {
-      matchedPrevious.add(fingerprint);
-    }
-    return finding;
-  }
-  for (const finding of staticFindings) {
-    const lineContent = getLineContent(finding.file, finding.line, diffs);
-    const ruleId = inferRuleId(finding.description);
-    const fingerprint = fingerprintStatic(ruleId, finding.file, lineContent);
-    const previousFinding = findPrevious(fingerprint);
-    matched.push({
-      finding,
-      fingerprint,
-      previous: previousFinding ?? null,
-      source: "static",
-      status: previousFinding ? "active" : "new"
-    });
-  }
-  for (const finding of osvFindings) {
-    const { osvIds, pkgName, pkgVersion } = parseOSVDescription(finding.description);
-    const fingerprint = fingerprintOSV(pkgName, pkgVersion, osvIds);
-    const previousFinding = findPrevious(fingerprint);
-    matched.push({
-      finding,
-      fingerprint,
-      previous: previousFinding ?? null,
-      source: "osv",
-      status: previousFinding ? "active" : "new"
-    });
-  }
-  for (const review2 of llmReviews) {
-    const lineContent = getLineContent(review2.file, review2.line, diffs);
-    const fingerprint = fingerprintLLM(review2.file, lineContent);
-    const exactMatch = findPrevious(fingerprint);
-    if (exactMatch) {
-      matched.push({
-        fingerprint,
-        previous: exactMatch,
-        review: review2,
-        source: "llm",
-        status: "active"
-      });
-      continue;
-    }
-    const normalisedCurrentSnippet = normaliseSnippet(lineContent);
-    let bestScore = 0;
-    let bestMatch = null;
-    for (const [previousFingerprint, previousFinding] of previousFindings) {
-      if (matchedPrevious.has(previousFingerprint) || previousFinding.source !== "llm") {
-        continue;
-      }
-      const prefix = `llm:${previousFinding.file}:`;
-      const previousSnippet = previousFingerprint.startsWith(prefix) ? previousFingerprint.slice(prefix.length) : "";
-      const score = import_string_similarity.default.compareTwoStrings(normalisedCurrentSnippet, previousSnippet);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = previousFinding;
-      }
-    }
-    if (bestScore >= FUZZY_THRESHOLD && bestMatch) {
-      matchedPrevious.add(bestMatch.fingerprint);
-      matched.push({
-        fingerprint,
-        previous: bestMatch,
-        review: review2,
-        source: "llm",
-        status: "active"
-      });
-      continue;
-    }
-    matched.push({
-      fingerprint,
-      previous: null,
-      review: review2,
-      source: "llm",
-      status: "new"
-    });
-  }
-  const fixed = [];
-  for (const [fingerprint, previousFinding] of previousFindings) {
-    if (!matchedPrevious.has(fingerprint)) {
-      fixed.push({
-        previous: previousFinding
-      });
-    }
+async function loadState(token, owner, repo, pullNumber) {
+  const octokit = getOctokit(token);
+  const { data: issueComments } = await octokit.rest.issues.listComments({
+    issue_number: pullNumber,
+    owner,
+    per_page: 100,
+    repo
+  });
+  const summaryComment = issueComments.find((comment) => comment.body?.includes(SUMMARY_MARKER));
+  if (!summaryComment?.body) {
+    return {
+      state: EMPTY_STATE,
+      summaryCommentId: null
+    };
   }
   return {
-    fixed,
-    matched
+    state: decodeState(summaryComment.body) ?? EMPTY_STATE,
+    summaryCommentId: summaryComment.id
   };
 }
 // src/features/pr/octokit/post-comment.ts
+var SEV_COLOR = {
+  high: "B60205",
+  low: "0075CA",
+  medium: "E4A11B"
+};
+function severityBadge(severity) {
+  return `![severity: ${severity}](https://img.shields.io/badge/severity-${severity}-${SEV_COLOR[severity]}?style=flat-square)`;
+}
+var toComment = (review) => {
+  const parts = [
+    `${severityBadge(review.severity)} \`${review.file}:${review.line}\``,
+    "",
+    "---",
+    "",
+    "**Problem**",
+    "",
+    review.problem
+  ];
+  if (review.solution) {
+    parts.push("", "**Solution**", "", review.solution);
+  }
+  if (review.prompt) {
+    parts.push("", "**AI Prompt**", "", "```text", review.prompt, "```");
+  }
+  return {
+    body: parts.join(`
+`),
+    line: review.line,
+    path: review.file
+  };
+};
 var RESOLVED_PREFIX = `> ~~**Resolved** — this issue was fixed in a later commit.~~
 
 ---
@@ -56485,18 +56728,19 @@ async function postReviewComment(token, owner, repo, pullNumber, commitSha, matc
   const newFindings = [];
   let currentSummaryCommentId = summaryCommentId;
   if (currentSummaryCommentId === null) {
-    try {
-      const { data } = await octokit.rest.issues.createComment({
-        body: `${SUMMARY_MARKER}
+    const [err, response] = await expectError(octokit.rest.issues.createComment({
+      body: `${SUMMARY_MARKER}
 
 _Processing findings..._`,
-        issue_number: pullNumber,
-        owner,
-        repo
-      });
-      currentSummaryCommentId = data.id;
-    } catch (err) {
-      warning(`Failed to create initial summary comment — ${String(err)}`);
+      issue_number: pullNumber,
+      owner,
+      repo
+    }));
+    if (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      warning(`Failed to create initial summary comment — ${msg}`);
+    } else {
+      currentSummaryCommentId = response.data.id;
     }
   }
   for (const m of matched) {
@@ -56531,146 +56775,96 @@ _Processing findings..._`,
     }
     const payload = toComment(m.review);
     const severity = m.review.severity;
-    try {
-      const { data: comment } = await octokit.rest.pulls.createReviewComment({
-        body: payload.body,
-        commit_id: commitSha,
-        line: payload.line,
-        owner,
-        path: payload.path,
-        pull_number: pullNumber,
-        repo,
-        side: "RIGHT"
-      });
+    const [err, response] = await expectError(octokit.rest.pulls.createReviewComment({
+      body: payload.body,
+      commit_id: commitSha,
+      line: payload.line,
+      owner,
+      path: payload.path,
+      pull_number: pullNumber,
+      repo,
+      side: "RIGHT"
+    }));
+    if (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      warning(`Failed to post comment for ${payload.path}:${payload.line} — ${msg}`);
+    } else {
       newFindings.push({
-        commentId: comment.id,
+        commentId: response.data.id,
         file: payload.path,
         fingerprint: m.fingerprint,
         line: payload.line,
         severity,
         source: m.source
       });
-    } catch (err) {
-      warning(`Failed to post comment for ${payload.path}:${payload.line} — ${String(err)}`);
     }
   }
   for (const f of fixed) {
     if (f.previous.commentId === null) {
       continue;
     }
-    try {
-      const { data: existing } = await octokit.rest.pulls.getReviewComment({
-        comment_id: f.previous.commentId,
-        owner,
-        repo
-      });
-      if (existing.body.startsWith(RESOLVED_PREFIX)) {
-        continue;
-      }
-      await octokit.rest.pulls.updateReviewComment({
-        body: RESOLVED_PREFIX + existing.body,
-        comment_id: f.previous.commentId,
-        owner,
-        repo
-      });
-    } catch (err) {
-      warning(`Failed to resolve comment ${f.previous.commentId} — ${String(err)}`);
+    const [err, response] = await expectError(octokit.rest.pulls.getReviewComment({
+      comment_id: f.previous.commentId,
+      owner,
+      repo
+    }));
+    if (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      warning(`Failed to retrieve comment ${f.previous.commentId} for resolution — ${msg}`);
+      continue;
+    }
+    const existing = response.data;
+    if (existing.body.startsWith(RESOLVED_PREFIX)) {
+      continue;
+    }
+    const [updateErr] = await expectError(octokit.rest.pulls.updateReviewComment({
+      body: RESOLVED_PREFIX + existing.body,
+      comment_id: f.previous.commentId,
+      owner,
+      repo
+    }));
+    if (updateErr) {
+      const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+      warning(`Failed to resolve comment ${f.previous.commentId} — ${msg}`);
     }
   }
   const newState = { findings: newFindings, version: 1 };
   const summaryBody = `${SUMMARY_MARKER}
 
 ${summary2}${encodeState(newState)}`;
-  try {
-    if (currentSummaryCommentId !== null) {
-      await octokit.rest.issues.updateComment({
-        body: summaryBody,
-        comment_id: currentSummaryCommentId,
-        owner,
-        repo
-      });
-    } else {
-      await octokit.rest.issues.createComment({
-        body: summaryBody,
-        issue_number: pullNumber,
-        owner,
-        repo
-      });
-    }
-  } catch (err) {
-    error(`Failed to upsert summary comment — ${String(err)}`);
-    throw err;
+  let upsertErr;
+  if (currentSummaryCommentId !== null) {
+    [upsertErr] = await expectError(octokit.rest.issues.updateComment({
+      body: summaryBody,
+      comment_id: currentSummaryCommentId,
+      owner,
+      repo
+    }));
+  } else {
+    [upsertErr] = await expectError(octokit.rest.issues.createComment({
+      body: summaryBody,
+      issue_number: pullNumber,
+      owner,
+      repo
+    }));
   }
-}
-// src/features/pr/octokit/state.ts
-var SUMMARY_MARKER = "<!-- summary -->";
-var STATE_OPEN = "<!-- state";
-var STATE_CLOSE = "-->";
-var EMPTY_STATE = { findings: [], version: 1 };
-function encodeState(state) {
-  const serializedState = JSON.stringify(state);
-  const encodedState = Buffer.from(serializedState, "utf-8").toString("base64");
-  return ["", STATE_OPEN, encodedState, STATE_CLOSE].join(`
-`);
-}
-function decodeState(body) {
-  try {
-    const stateStart = body.indexOf(STATE_OPEN);
-    if (stateStart === -1) {
-      return null;
-    }
-    const contentStart = body.indexOf(`
-`, stateStart) + 1;
-    const stateEnd = body.indexOf(STATE_CLOSE, contentStart);
-    if (stateEnd === -1) {
-      return null;
-    }
-    const encodedState = body.slice(contentStart, stateEnd).trim();
-    const decodedState = Buffer.from(encodedState, "base64").toString("utf-8");
-    const state = JSON.parse(decodedState);
-    if (state.version !== 1 || !Array.isArray(state.findings)) {
-      return null;
-    }
-    return state;
-  } catch {
-    return null;
+  if (upsertErr) {
+    throw new Error("Failed to publish summary comment", { cause: upsertErr });
   }
-}
-async function loadState(token, owner, repo, pullNumber) {
-  const octokit = getOctokit(token);
-  const { data: comments } = await octokit.rest.issues.listComments({
-    issue_number: pullNumber,
-    owner,
-    per_page: 100,
-    repo
-  });
-  const summaryComment = comments.find((comment) => comment.body?.includes(SUMMARY_MARKER));
-  if (!summaryComment?.body) {
-    return {
-      state: EMPTY_STATE,
-      summaryCommentId: null
-    };
-  }
-  return {
-    state: decodeState(summaryComment.body) ?? EMPTY_STATE,
-    summaryCommentId: summaryComment.id
-  };
 }
 // src/features/pr/octokit/summary.ts
-var SEV_COLOR = {
+var SEV_COLOR2 = {
   high: "B60205",
   low: "0075CA",
   medium: "E4A11B"
 };
-function severityBadge(sev) {
-  return `<img src="https://img.shields.io/badge/severity-${sev}-${SEV_COLOR[sev]}?style=flat-square" alt="severity: ${sev}">`;
+function severityBadge2(sev) {
+  return `<img src="https://img.shields.io/badge/severity-${sev}-${SEV_COLOR2[sev]}?style=flat-square" alt="severity: ${sev}">`;
 }
 var STATUS_CLEAN = "![security: clean](https://img.shields.io/badge/security-clean-2EA44F?style=flat-square)";
 var STATUS_ISSUES = "![security: issues found](https://img.shields.io/badge/security-issues_found-B60205?style=flat-square)";
 var severityWeight = { high: 3, low: 1, medium: 2 };
 function extractRow(m) {
-  if (m.status === "fixed")
-    return null;
   if (m.source === "llm") {
     return {
       file: m.review.file,
@@ -56702,7 +56896,7 @@ function generateSummary(matched, fixed) {
       "",
       "---",
       "",
-      "> No security issues were detected in the analyzed changes.",
+      "> No security issues were detected in the analysed changes.",
       ""
     ].join(`
 `);
@@ -56717,14 +56911,14 @@ function generateSummary(matched, fixed) {
     `    <tr><td>Fixed</td><td><strong>${fixedCount}</strong></td></tr>`
   ].join(`
 `);
-  const summaryRows = severities.filter((s) => counts[s] > 0).map((s) => `    <tr><td>${severityBadge(s)}</td><td><strong>${counts[s]}</strong></td></tr>`).join(`
+  const summaryRows = severities.filter((s) => counts[s] > 0).map((s) => `    <tr><td>${severityBadge2(s)}</td><td><strong>${counts[s]}</strong></td></tr>`).join(`
 `);
   const sortedRows = [...rows].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
   const findingRows = sortedRows.map((r) => {
     const location = `<code>${r.file}:${r.line}</code>`;
     const issue3 = r.problem.replace(/\n/g, " ").trim();
     const status = r.status === "new" ? "New" : "Active";
-    return `    <tr><td>${severityBadge(r.severity)}</td><td>${location}</td><td>${issue3}</td><td>${status}</td></tr>`;
+    return `    <tr><td>${severityBadge2(r.severity)}</td><td>${location}</td><td>${issue3}</td><td>${status}</td></tr>`;
   }).join(`
 `);
   const intro = total > 0 ? `> **${total} finding${total === 1 ? "" : "s"}** detected` + (newCount > 0 ? ` (${newCount} new)` : "") + `. Review and resolve issues before merging.` : `> All previously reported findings have been resolved.`;
@@ -56786,45 +56980,13 @@ function generateSummary(matched, fixed) {
   ].join(`
 `);
 }
-// src/features/pr/octokit/to-comment.ts
-var SEV_COLOR2 = {
-  high: "B60205",
-  low: "0075CA",
-  medium: "E4A11B"
-};
-function severityBadge2(severity) {
-  return `![severity: ${severity}](https://img.shields.io/badge/severity-${severity}-${SEV_COLOR2[severity]}?style=flat-square)`;
-}
-var toComment = (review2) => {
-  const parts = [
-    `${severityBadge2(review2.severity)} \`${review2.file}:${review2.line}\``,
-    "",
-    "---",
-    "",
-    "**Problem**",
-    "",
-    review2.problem
-  ];
-  if (review2.solution) {
-    parts.push("", "**Solution**", "", review2.solution);
-  }
-  if (review2.prompt) {
-    parts.push("", "**AI Prompt**", "", "```text", review2.prompt, "```");
-  }
-  return {
-    body: parts.join(`
-`),
-    line: review2.line,
-    path: review2.file
-  };
-};
 // src/features/pr/security-engine/engine.ts
 function runSecurityEngine(diffs) {
   const findings = [];
   const config3 = getConfig();
   const rules2 = [...rules];
-  if (config3.rules) {
-    for (const rule of config3.rules) {
+  if (config3.review?.security?.rules) {
+    for (const rule of config3.review.security.rules) {
       rules2.push({
         description: rule.description,
         fileExtensions: rule.fileExtensions,
@@ -56927,96 +57089,811 @@ var rules = [
 ];
 // src/features/pr/handler.ts
 async function handlePullRequest({
-  apiKey,
+  commitSha,
   owner,
   prNumber,
   repo,
   token
 }) {
-  const [loadError, loadedState] = await expectError(loadState(token, owner, repo, prNumber));
-  const previousState = loadedState?.state ?? EMPTY_STATE;
-  const summaryCommentId = loadedState?.summaryCommentId ?? null;
-  if (loadError) {
-    warning(`Failed to load previous state: ${loadError.message}`);
+  const [loadStateError, loadedState] = await expectError(loadState(token, owner, repo, prNumber));
+  if (loadStateError) {
+    throw new Error("Failed to load previous state from summary", {
+      cause: loadStateError
+    });
   }
   const [diffError, rawDiff] = await expectError(getPullRequestDiff(token, owner, repo, prNumber));
   if (diffError) {
-    throw new Error("Failed to fetch pull request diff.");
+    throw new Error("Failed to fetch raw git diff from GitHub API", {
+      cause: diffError
+    });
   }
-  const parsedDiff = parseGitDiff(rawDiff);
-  if (parsedDiff.length === 0) {
+  const [contextError, prContext] = await expectError(getGitHubContext(token, owner, repo, prNumber));
+  if (contextError) {
+    throw new Error("Failed to fetch PR context from GitHub API", {
+      cause: contextError
+    });
+  }
+  const parsedGitDiff = parseGitDiff(rawDiff);
+  if (parsedGitDiff.length === 0) {
+    info("No file changes detected in PR. Skipping analysis.");
+    return;
+  }
+  const [dependencyError, dependencyScan] = await expectError(checkVulnerabilities(parsedGitDiff));
+  if (dependencyError) {
+    warning(`Dependency vulnerability scan failed: ${dependencyError.message}`);
+  }
+  const securityScan = runSecurityEngine(parsedGitDiff);
+  const [llmError, llmReviews] = await expectError(callLLM(parsedGitDiff, securityScan, dependencyScan ?? [], prContext));
+  if (llmError) {
+    throw new Error("LLM review failed", {
+      cause: llmError
+    });
+  }
+  const { fixed, matched } = matchFindings(securityScan, dependencyScan ?? [], llmReviews, parsedGitDiff, loadedState.state);
+  if (matched.length === 0 && fixed.length === 0) {
+    info("No new, active, or fixed findings to report.");
+    return;
+  }
+  const summary3 = generateSummary(matched, fixed);
+  const [postError] = await expectError(postReviewComment(token, owner, repo, prNumber, commitSha, matched, fixed, summary3, loadedState.summaryCommentId));
+  if (postError) {
+    throw new Error("Failed to publish review comments", {
+      cause: postError
+    });
+  }
+}
+
+// src/features/push/generator/generator.ts
+async function generateDocumentEdits(prContext, currentContent) {
+  const userMessage = `PR Context:
+Title: ${prContext.title}
+Description: ${prContext.description}
+Commits:
+${prContext.commits.map((c) => `- ${c}`).join(`
+`)}
+Net Diff:
+${prContext.diff}
+Current Document Content:
+\`\`\`
+${currentContent}
+\`\`\``;
+  const [error51, result] = await expectError(callWithRetry(SYSTEM_PROMPT2, userMessage, DocumentEditsSchema, "documentEdits"));
+  if (error51) {
+    throw new Error("Failed to generate document edits using LLM", {
+      cause: error51
+    });
+  }
+  return result.edits;
+}
+// src/features/push/generator/prompt.ts
+var SYSTEM_PROMPT2 = `You are a Documentation Updater AI. Your ONLY job is to reflect code changes (from the provided git diff) into an existing documentation file. You must not invent, assume, or embellish.
+
+## Output Format
+Return a JSON object with an "edits" array. Each item must be one of:
+
+1. **replace** — modify existing content:
+   { "operation": "replace", "search": "<exact text>", "replace": "<new text>" }
+
+2. **append** — add entirely new content that has NO existing anchor in the document:
+   { "operation": "append", "content": "<new markdown content>" }
+
+## Rules
+
+### Grounding (most important)
+- Every edit MUST be directly traceable to a change visible in the diff.
+- Do NOT document things that are not in the diff. If a function is unchanged, do not touch its documentation.
+- Do NOT invent API parameters, return types, version numbers, or behavior that are not explicitly shown in the diff.
+- If you are unsure whether something changed, do not edit it.
+
+### Choosing the right operation
+- Use **replace** when the content to update already exists somewhere in the document. The "search" string must appear verbatim and exactly once.
+- Use **append** only when the PR introduces a completely new concept, endpoint, flag, or section that has absolutely no existing anchor text in the document.
+- Never use **append** to rewrite or duplicate existing content.
+
+### Search string quality (for replace)
+- The "search" string must match the document exactly: same whitespace, same casing, same punctuation.
+- Choose a "search" string that is unique in the document — do not use a search string that repeats (e.g., a bare "#" heading that appears multiple times).
+- Make the "search" string as short as possible while still being unique and capturing the full context of the change.
+
+### Scope and size
+- Do NOT rewrite the entire document or large sections. Make the smallest possible edit that correctly reflects the diff.
+- If a sentence changes, replace that sentence, not the whole paragraph.
+- If no changes are necessary for this document, return: { "edits": [] }
+
+### Formatting preservation
+- Preserve all markdown formatting, heading levels, code block fences, and list styles.
+- Do NOT modify or delete folder structure markers (lines matching '--- File: <path> ---').
+
+### Folder structure documents
+- If the document contains '--- File: <path> ---' headers, only generate edits for content under the relevant file header. Never modify the header lines themselves.`;
+// src/features/push/generator/types.ts
+var ReplaceEditSchema = v4_default.object({
+  operation: v4_default.literal("replace"),
+  replace: v4_default.string(),
+  search: v4_default.string()
+});
+var AppendEditSchema = v4_default.object({
+  content: v4_default.string(),
+  operation: v4_default.literal("append")
+});
+var DocumentEditsSchema = v4_default.object({
+  edits: v4_default.array(v4_default.discriminatedUnion("operation", [ReplaceEditSchema, AppendEditSchema]))
+});
+// src/features/push/octokit/collect-pr-context.ts
+async function collectPRContext({
+  owner,
+  prNumber,
+  repo,
+  token
+}) {
+  const octokit = getOctokit(token);
+  const { data: pr } = await octokit.rest.pulls.get({
+    owner,
+    pull_number: prNumber,
+    repo
+  });
+  const base = pr.base.sha;
+  const head = pr.merge_commit_sha ?? pr.head.sha;
+  const title = pr.title;
+  const description = pr.body ?? "";
+  const labels = pr.labels.map((label) => label.name);
+  const { data: comparison } = await octokit.rest.repos.compareCommits({
+    base,
+    head,
+    owner,
+    repo
+  });
+  const commits = comparison.commits.map((commit) => commit.commit.message);
+  const changedFiles = (comparison.files ?? []).map((file2) => ({
+    path: file2.filename,
+    status: file2.status
+  }));
+  const { data: diff } = await octokit.rest.repos.compareCommits({
+    base,
+    head,
+    headers: {
+      accept: "application/vnd.github.diff"
+    },
+    owner,
+    repo
+  });
+  return {
+    changedFiles,
+    commits,
+    description,
+    diff,
+    labels,
+    title
+  };
+}
+// src/features/push/publisher/confluence.ts
+async function publishConfluenceUpdate({
+  codeOwner,
+  codePrNumber,
+  codeRepo,
+  codeToken,
+  confluenceBaseUrl,
+  pageId,
+  reason,
+  updatedContent
+}) {
+  const codeOctokit = getOctokit(codeToken);
+  const normalizedBaseUrl = confluenceBaseUrl.replace(/\/$/, "");
+  const confluencePageUrl = `${normalizedBaseUrl}/wiki/pages/viewpage.action?pageId=${pageId}`;
+  const commentBody = [
+    `## Documentation update suggested`,
+    ``,
+    `Triggered by [PR #${codePrNumber}](https://github.com/${codeOwner}/${codeRepo}/pull/${codePrNumber}) in [${codeOwner}/${codeRepo}](https://github.com/${codeOwner}/${codeRepo}).`,
+    ``,
+    `**Confluence page:** [${pageId}](${confluencePageUrl})`,
+    `**Reason:** ${reason}`,
+    ``,
+    `<details>`,
+    `<summary><strong>Proposed content</strong></summary>`,
+    ``,
+    `\`\`\`html`,
+    updatedContent,
+    `\`\`\``,
+    ``,
+    `</details>`,
+    ``,
+    `### Next steps`,
+    ``,
+    `1. Review the proposed content above.`,
+    `2. Open the [Confluence page](${confluencePageUrl}).`,
+    `3. Apply the changes, or paste the block directly into the page editor.`,
+    ``,
+    `---`,
+    ``,
+    `*Opened automatically by RepoOwl.*`
+  ].join(`
+`);
+  const { data: commentResponse } = await codeOctokit.rest.issues.createComment({
+    body: commentBody,
+    issue_number: codePrNumber,
+    owner: codeOwner,
+    repo: codeRepo
+  });
+  return commentResponse.html_url;
+}
+// src/features/push/publisher/github.ts
+async function publishGitHubUpdate({
+  codeOwner,
+  codePrNumber,
+  codeRepo,
+  docsGithubToken,
+  path: path4,
+  reason,
+  updatedContent
+}) {
+  const octokit = getOctokit(docsGithubToken);
+  const parts = path4.split("/").filter(Boolean);
+  if (parts.length < 2) {
+    throw new Error(`Invalid path format for git platform: ${path4}. Expected /owner/repo/filepath`);
+  }
+  const owner = parts[0];
+  const repo = parts[1];
+  const targetPath = parts.slice(2).join("/");
+  const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+  const baseBranch = repoData.default_branch || "main";
+  const { data: refData } = await octokit.rest.git.getRef({
+    owner,
+    ref: `heads/${baseBranch}`,
+    repo
+  });
+  const baseSha = refData.object.sha;
+  const newBranchName = `prowl/docs-update-pr-${codePrNumber}-${Date.now()}`;
+  await octokit.rest.git.createRef({
+    owner,
+    ref: `refs/heads/${newBranchName}`,
+    repo,
+    sha: baseSha
+  });
+  const contentResponse = await octokit.rest.repos.getContent({
+    owner,
+    path: targetPath,
+    ref: newBranchName,
+    repo
+  });
+  const isFolder = Array.isArray(contentResponse.data);
+  const updatedFilePaths = [];
+  if (isFolder) {
+    const fileMarkerRegex = /--- File: (.*?) ---\n([\s\S]*?)(?=(?:\n--- File:|$))/g;
+    let match2;
+    const fileUpdates = [];
+    while ((match2 = fileMarkerRegex.exec(updatedContent)) !== null) {
+      const filePath = match2[1].trim();
+      const content = match2[2];
+      fileUpdates.push({ content, filePath });
+    }
+    if (fileUpdates.length === 0) {
+      throw new Error("Failed to parse file updates from folder content representation.");
+    }
+    for (const update of fileUpdates) {
+      let fileSha;
+      try {
+        const fileResponse = await octokit.rest.repos.getContent({
+          owner,
+          path: update.filePath,
+          ref: newBranchName,
+          repo
+        });
+        if (!Array.isArray(fileResponse.data) && fileResponse.data.type === "file") {
+          fileSha = fileResponse.data.sha;
+        }
+      } catch {}
+      await octokit.rest.repos.createOrUpdateFileContents({
+        branch: newBranchName,
+        content: Buffer.from(update.content).toString("base64"),
+        message: `docs: update documentation for ${update.filePath} [skip ci]`,
+        owner,
+        path: update.filePath,
+        repo,
+        sha: fileSha
+      });
+      updatedFilePaths.push(update.filePath);
+    }
+  } else {
+    const fileData = contentResponse.data;
+    if (fileData.type !== "file" || !("sha" in fileData)) {
+      throw new Error(`Path ${targetPath} is not a valid file for update.`);
+    }
+    const fileSha = fileData.sha;
+    await octokit.rest.repos.createOrUpdateFileContents({
+      branch: newBranchName,
+      content: Buffer.from(updatedContent).toString("base64"),
+      message: `docs: update documentation for ${targetPath} [skip ci]`,
+      owner,
+      path: targetPath,
+      repo,
+      sha: fileSha
+    });
+    updatedFilePaths.push(targetPath);
+  }
+  const prTitle = `docs: update documentation for PR #${codePrNumber}`;
+  const fileSection = updatedFilePaths.length === 1 ? `**File:** \`${updatedFilePaths[0]}\`` : `**Files:**
+${updatedFilePaths.map((f) => `- \`${f}\``).join(`
+`)}`;
+  const prBody = [
+    `## Documentation update`,
+    ``,
+    `Triggered by [PR #${codePrNumber}](https://github.com/${codeOwner}/${codeRepo}/pull/${codePrNumber}) in [${codeOwner}/${codeRepo}](https://github.com/${codeOwner}/${codeRepo}).`,
+    ``,
+    fileSection,
+    `**Reason:** ${reason}`,
+    ``,
+    `### Review`,
+    ``,
+    `- [ ] Changes are accurate and reflect the code diff`,
+    `- [ ] Formatting and tone match existing docs`,
+    `- [ ] No unrelated sections touched`,
+    ``,
+    `---`,
+    ``,
+    `*Opened automatically by RepoOwl.*`
+  ].join(`
+`);
+  const { data: prResponse } = await octokit.rest.pulls.create({
+    base: baseBranch,
+    body: prBody,
+    head: newBranchName,
+    owner,
+    repo,
+    title: prTitle
+  });
+  return prResponse.html_url;
+}
+// src/features/push/publisher/publisher.ts
+async function publishDocumentUpdate({
+  codeOwner,
+  codePrNumber,
+  codeRepo,
+  codeToken,
+  credentials,
+  routedDoc,
+  updatedContent
+}) {
+  const platform2 = routedDoc.platform.toLowerCase();
+  if (platform2.includes("gitbook") || platform2.includes("readme")) {
+    const token = credentials.docsGithubToken;
+    if (!token) {
+      throw new Error(`Missing docsGithubToken for platform ${routedDoc.platform}`);
+    }
+    return publishGitHubUpdate({
+      codeOwner,
+      codePrNumber,
+      codeRepo,
+      docsGithubToken: token,
+      path: routedDoc.path,
+      reason: routedDoc.reason,
+      updatedContent
+    });
+  } else if (platform2.includes("confluence")) {
+    const confluenceBaseUrl = credentials.confluence?.baseUrl ? credentials.confluence.baseUrl.replace(/\/$/, "") : "https://confluence.atlassian.net";
+    const confluenceUsername = credentials.confluence?.username;
+    const confluenceApiToken = credentials.confluence?.apiToken;
+    if (!confluenceUsername || !confluenceApiToken) {
+      throw new Error("Missing Confluence credentials username or apiToken.");
+    }
+    return publishConfluenceUpdate({
+      codeOwner,
+      codePrNumber,
+      codeRepo,
+      codeToken,
+      confluenceBaseUrl,
+      pageId: routedDoc.path,
+      reason: routedDoc.reason,
+      updatedContent
+    });
+  } else {
+    throw new Error(`Unsupported platform: ${routedDoc.platform}`);
+  }
+}
+// src/features/push/retriever/confluence.ts
+async function retrieveConfluenceContent(pageId, baseUrl2, username, apiToken) {
+  const url2 = new URL(`/wiki/api/v2/pages/${pageId}`, baseUrl2);
+  url2.searchParams.set("body-format", "storage");
+  const auth2 = Buffer.from(`${username}:${apiToken}`).toString("base64");
+  const response = await fetch(url2, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Basic ${auth2}`
+    },
+    method: "GET"
+  });
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    throw new Error(`Failed to retrieve Confluence page "${pageId}". ` + `Status: ${response.status} ${response.statusText}${details ? ` - ${details}` : ""}`);
+  }
+  const data = await response.json();
+  if (!data.body?.storage?.value) {
+    throw new Error(`Confluence page "${pageId}" does not contain storage-format content.`);
+  }
+  if (data.version?.number == null) {
+    throw new Error(`Confluence page "${pageId}" does not include version information.`);
+  }
+  return {
+    content: data.body.storage.value,
+    id: data.id,
+    title: data.title,
+    updatedAt: data.version.createdAt,
+    version: data.version.number,
+    webUrl: data._links?.webui ? new URL(data._links.webui, baseUrl2).toString() : undefined
+  };
+}
+// src/features/push/retriever/github.ts
+function parseGitHubPath(path4, minSegments = 2) {
+  const parts = path4.split("/").filter(Boolean);
+  if (parts.length < minSegments) {
+    throw new Error(`Invalid GitHub path "${path4}". Expected format: /owner/repository/path`);
+  }
+  return {
+    filePath: parts.slice(2).join("/"),
+    owner: parts[0],
+    repo: parts[1]
+  };
+}
+async function listGitHubDirectory(path4, token) {
+  const { filePath, owner, repo } = parseGitHubPath(path4);
+  const octokit = getOctokit(token);
+  const response = await octokit.rest.repos.getContent({
+    owner,
+    path: filePath,
+    repo
+  });
+  if (!Array.isArray(response.data)) {
+    return [path4];
+  }
+  return response.data.filter((item) => item.type === "file").map((item) => `/${owner}/${repo}/${item.path}`);
+}
+async function retrieveGitHubContent(path4, token) {
+  const { filePath, owner, repo } = parseGitHubPath(path4, 3);
+  const octokit = getOctokit(token);
+  const response = await octokit.rest.repos.getContent({
+    owner,
+    path: filePath,
+    repo
+  });
+  if (Array.isArray(response.data) || response.data.type !== "file" || !("content" in response.data)) {
+    throw new Error(`"${path4}" is not a valid GitHub file. If this is a directory, ensure the LLM routes to specific files within it.`);
+  }
+  return Buffer.from(response.data.content, "base64").toString("utf8");
+}
+// src/features/push/retriever/retriever.ts
+async function retrieveDocumentContent(doc2, credentials) {
+  const platform2 = doc2.platform.toLowerCase();
+  if (platform2.includes("github")) {
+    const token = credentials.docsGithubToken;
+    if (!token) {
+      throw new Error("Missing docsGithubToken.");
+    }
+    const [err, content] = await expectError(retrieveGitHubContent(doc2.path, token));
+    if (err) {
+      throw new Error(`Failed to retrieve GitHub content for ${doc2.path}`, {
+        cause: err
+      });
+    }
+    return content;
+  }
+  if (platform2.includes("confluence")) {
+    const confluence2 = credentials.confluence;
+    if (!confluence2?.baseUrl || !confluence2.username || !confluence2.apiToken) {
+      throw new Error("Missing Confluence credentials.");
+    }
+    const [err, result] = await expectError(retrieveConfluenceContent(doc2.path, confluence2.baseUrl, confluence2.username, confluence2.apiToken));
+    if (err) {
+      throw new Error(`Failed to retrieve Confluence content for ${doc2.path}`, {
+        cause: err
+      });
+    }
+    return result.content;
+  }
+  throw new Error(`Unsupported documentation platform: ${doc2.platform}`);
+}
+// src/features/push/select-documents/list-directory.ts
+async function fetchDirectoryListing(path4, token) {
+  const [err, files] = await expectError(listGitHubDirectory(path4, token));
+  if (err) {
+    warning(`Could not list GitHub directory "${path4}": ${err.message}. The LLM will not see its file listing.`);
     return null;
   }
-  const [dependencyError, dependencyScanResult] = await expectError(checkVulnerabilities(parsedDiff));
-  if (dependencyError) {
-    warning("Dependency vulnerability scan failed.");
-    debug(String(dependencyError));
+  return files;
+}
+function isDirectoryPath(path4) {
+  const lastSegment = path4.split("/").filter(Boolean).at(-1) ?? "";
+  return !lastSegment.includes(".");
+}
+// src/features/push/select-documents/prompt.ts
+var SYSTEM_PROMPT3 = `
+Your task is to determine which documentation files should be updated based on a pull request.
+You will receive:
+1. The PR context containing:
+   - Title
+   - Description
+   - Changed files
+   - Commit messages
+2. The documentation sources defined in the configuration.
+   - If a source is a GitHub directory, its available files will be listed under it.
+
+Your responsibilities:
+- Analyse the pull request to understand what functionality, behavior, API, configuration, workflow, or user experience has changed.
+- Evaluate every configured documentation source independently.
+- Determine whether the changes require updates to that source.
+- Be conservative. Do not route documentation unless there is a reasonable likelihood that it requires modification.
+- Ignore formatting changes, refactoring, renaming, comments, dependency updates, test-only changes, CI changes, or other implementation details unless they change the documented behavior.
+- When a source lists available files, you MUST route to the specific file paths that need updating — never route the directory path itself.
+- If none of the listed files in a directory require updates, do not route anything from that source.
+
+For every routed document, provide:
+- The exact file path (not a directory path)
+- The platform
+- A short reason explaining why it should be updated.
+
+Only return documentation that should be updated.
+If no documentation changes are required, return an empty list.
+`;
+// src/features/push/select-documents/select-relevant-docs.ts
+async function selectDocuments(prContext, sources, docsGithubToken) {
+  const enabledSources = sources.filter((source) => source.enabled !== false);
+  if (enabledSources.length === 0) {
+    return [];
   }
-  const dependencyScan = dependencyScanResult ?? [];
-  const securityScan = runSecurityEngine(parsedDiff);
-  const [llmError, llmReviews] = await expectError(callLLM(parsedDiff, securityScan, dependencyScan, apiKey));
-  if (llmError) {
-    if (llmError instanceof LLMCallError) {
-      error([
-        "AI review encountered an unexpected error.",
-        `Message: ${llmError.message}`,
-        `Retryable: ${llmError.retryable}`,
-        `Cause: ${llmError.cause instanceof Error ? llmError.cause.stack ?? llmError.cause.message : JSON.stringify(llmError.cause, null, 2)}`
-      ].join(`
-`));
-    } else {
-      error(llmError instanceof Error ? llmError.stack ?? llmError.message : JSON.stringify(llmError, null, 2));
+  const directoryListings = new Map;
+  await Promise.all(enabledSources.map(async (source) => {
+    if (source.platform !== "confluence" && docsGithubToken && isDirectoryPath(source.path)) {
+      const files = await fetchDirectoryListing(source.path, docsGithubToken);
+      directoryListings.set(source.path, files);
+    }
+  }));
+  const userMessage = `
+# Pull Request Context
+## Title
+${prContext.title}
+## Description
+${prContext.description || "(none)"}
+## Commits
+${prContext.commits.map((commit) => `- ${commit}`).join(`
+`) || "(none)"}
+## Changed Files
+${prContext.changedFiles.map((file2) => `- ${file2.path} (${file2.status})`).join(`
+`) || "(none)"}
+# Documentation Sources
+Each source represents an independent documentation location that may need updating.
+${enabledSources.map((source, index) => {
+    const header = `
+## Source ${index + 1}
+Platform: ${source.platform}
+${source.platform === "confluence" ? `Page ID: ${source.pageId}` : `Path: ${source.path}`}
+Audience: ${source.audience}
+Purpose: ${source.purpose ?? "(not specified)"}`;
+    if (source.platform === "confluence") {
+      return header;
+    }
+    const listing = directoryListings.get(source.path);
+    if (listing === undefined) {
+      return header;
+    }
+    if (listing === null || listing.length === 0) {
+      return `${header}
+Available files: (could not be retrieved — skip this source if uncertain)`;
+    }
+    return `${header}
+Available files:
+${listing.map((f) => `  - ${f}`).join(`
+`)}`;
+  }).join(`
+`)}
+`.trim();
+  const [error51, result] = await expectError(callWithRetry(SYSTEM_PROMPT3, userMessage, RoutedDocumentsResponseSchema, "routedDocuments"));
+  if (error51) {
+    throw new Error("Failed to route documentation sources.", { cause: error51 });
+  }
+  return result?.routedDocuments ?? [];
+}
+// src/features/push/select-documents/types.ts
+var RoutedDocumentSchema = exports_external.object({
+  path: exports_external.string(),
+  platform: exports_external.string(),
+  reason: exports_external.string()
+});
+var RoutedDocumentsResponseSchema = exports_external.object({
+  routedDocuments: exports_external.array(RoutedDocumentSchema)
+});
+// src/features/push/validator/validator.ts
+function applyAndValidateEdits(currentContent, edits, codeDiff) {
+  let content = currentContent;
+  for (const edit of edits) {
+    if (edit.operation === "append") {
+      content = content.trimEnd() + `
+
+` + edit.content;
+      continue;
+    }
+    if (!edit.search) {
+      return {
+        isValid: false,
+        reason: "Edit contains an empty search pattern."
+      };
+    }
+    const firstIndex = content.indexOf(edit.search);
+    if (firstIndex === -1) {
+      return {
+        isValid: false,
+        reason: `Search pattern not found in document: "${edit.search.substring(0, 50)}..."`
+      };
+    }
+    const lastIndex = content.lastIndexOf(edit.search);
+    if (firstIndex !== lastIndex) {
+      return {
+        isValid: false,
+        reason: `Search pattern is not unique: "${edit.search.substring(0, 50)}..."`
+      };
+    }
+    content = content.substring(0, firstIndex) + edit.replace + content.substring(firstIndex + edit.search.length);
+  }
+  const originalCodeBlocks = (currentContent.match(/```/g) || []).length;
+  const newCodeBlocks = (content.match(/```/g) || []).length;
+  if (newCodeBlocks % 2 !== 0 && originalCodeBlocks % 2 === 0) {
+    return {
+      isValid: false,
+      reason: "Validation failed: an odd number of markdown code blocks (```) were detected, which may indicate broken formatting."
+    };
+  }
+  const diffSize = codeDiff.length;
+  const changeSize = Math.abs(content.length - currentContent.length);
+  const maxReasonableChange = Math.max(4000, diffSize * 3);
+  if (changeSize > maxReasonableChange) {
+    return {
+      isValid: false,
+      reason: `Generated change size (${changeSize} chars) is unreasonably large compared to code diff size (${diffSize} chars).`
+    };
+  }
+  const headerRegex = /^--- File: (.*?) ---$/gm;
+  const originalHeaders = Array.from(currentContent.matchAll(headerRegex), (m) => m[0]);
+  if (originalHeaders.length > 0) {
+    const updatedHeaders = Array.from(content.matchAll(headerRegex), (m) => m[0]);
+    if (originalHeaders.length !== updatedHeaders.length || !originalHeaders.every((val, index) => val === updatedHeaders[index])) {
+      return {
+        isValid: false,
+        reason: "Validation failed: File header markers (e.g., '--- File: <path> ---') were modified or deleted."
+      };
     }
   }
-  const { fixed, matched } = matchFindings(securityScan, dependencyScan, llmReviews ?? [], parsedDiff, previousState);
-  const summary3 = generateSummary(matched, fixed);
   return {
-    fixed,
-    matched,
-    summary: summary3,
-    summaryCommentId
+    isValid: true,
+    updatedContent: content
   };
+}
+// src/features/push/handler.ts
+var DOC_CONCURRENCY = 3;
+var limit2 = pLimit(DOC_CONCURRENCY);
+async function handleMerge({
+  credentials,
+  owner,
+  prNumber,
+  repo,
+  token
+}) {
+  const [collectorError, prContext] = await expectError(collectPRContext({ owner, prNumber, repo, token }));
+  if (collectorError) {
+    throw new Error("Failed to collect pull request context", {
+      cause: collectorError
+    });
+  }
+  const config3 = getConfig();
+  const sources = config3.documentation?.documents;
+  if (!sources?.length) {
+    info("No documentation sources are configured. Skipping documentation updates.");
+    return;
+  }
+  const [selectionError, selectedDocs] = await expectError(selectDocuments(prContext, sources, credentials.docsGithubToken));
+  if (selectionError) {
+    throw new Error("Failed to select relevant documents", {
+      cause: selectionError
+    });
+  }
+  if (selectedDocs.length === 0) {
+    info("No documents were selected for update by the LLM.");
+    return;
+  }
+  const processingPromises = selectedDocs.map((doc2) => limit2(async () => {
+    try {
+      info(`Processing selected document: ${doc2.path} (${doc2.platform})`);
+      const [retrieverError, currentContent] = await expectError(retrieveDocumentContent(doc2, credentials));
+      if (retrieverError) {
+        throw new Error(`Failed to retrieve content for ${doc2.path}`, {
+          cause: retrieverError
+        });
+      }
+      const [generatorError, edits] = await expectError(generateDocumentEdits(prContext, currentContent));
+      if (generatorError) {
+        throw new Error(`Failed to generate edits for ${doc2.path}`, {
+          cause: generatorError
+        });
+      }
+      if (edits.length === 0) {
+        info(`No edits were generated for ${doc2.path}.`);
+        return { doc: doc2 };
+      }
+      const validationResult = applyAndValidateEdits(currentContent, edits, prContext.diff);
+      if (!validationResult.isValid || !validationResult.updatedContent) {
+        warning(`Validation failed for ${doc2.path}: ${validationResult.reason}. Skipping publication.`);
+        return { doc: doc2 };
+      }
+      const [publishError, url2] = await expectError(publishDocumentUpdate({
+        codeOwner: owner,
+        codePrNumber: prNumber,
+        codeRepo: repo,
+        codeToken: token,
+        credentials,
+        routedDoc: doc2,
+        updatedContent: validationResult.updatedContent
+      }));
+      if (publishError) {
+        throw new Error(`Failed to publish update for ${doc2.path}`, {
+          cause: publishError
+        });
+      }
+      info(`Successfully published update for ${doc2.path}: ${url2}`);
+      return { doc: doc2 };
+    } catch (err) {
+      return { doc: doc2, error: err };
+    }
+  }));
+  const results = await Promise.all(processingPromises);
+  const failed = results.filter((r) => r.error);
+  if (failed.length > 0) {
+    error(`Failed to process ${failed.length} document(s):`);
+    for (const { doc: doc2, error: error51 } of failed) {
+      error(`- ${doc2.path}: ${error51?.message}`);
+    }
+  }
 }
 
 // src/index.ts
 async function run() {
   const token = getInput("github-token");
-  const apiKey = getInput("openai-api-key");
   const { context: context3 } = exports_github;
+  const { owner, repo } = context3.repo;
   if (context3.eventName !== "pull_request") {
-    notice(`Triggered by '${context3.eventName}' event but this action only runs on pull requests.`);
+    notice(`Unsupported event: "${context3.eventName}".`);
     return;
   }
   const pr = context3.payload.pull_request;
   if (!pr) {
-    error("Pull request payload was not found.");
-    setFailed("No pull request found in the GitHub context.");
+    setFailed("Pull request payload was not found.");
     return;
   }
-  const { owner, repo } = context3.repo;
-  const commitSha = pr["head"].sha;
-  const [analysisError, result] = await expectError(handlePullRequest({
-    apiKey,
-    owner,
-    prNumber: pr.number,
-    repo,
-    token
-  }));
-  if (analysisError) {
-    error(`Security analysis failed: ${analysisError.message}`);
-    setFailed(analysisError.message);
+  if (context3.payload.action === "closed" && pr["merged"]) {
+    const [error51] = await expectError(handleMerge({
+      credentials: {
+        confluence: {
+          apiToken: getInput("confluence-api-token"),
+          baseUrl: getInput("confluence-base-url"),
+          username: getInput("confluence-username")
+        },
+        docsGithubToken: getInput("docs-token")
+      },
+      owner,
+      prNumber: pr.number,
+      repo,
+      token
+    }));
+    if (error51) {
+      exitFailedAction("Prowl documentation workflow failed", error51);
+    }
     return;
-  }
-  if (!result)
-    return;
-  if (result.matched.length === 0 && result.fixed.length === 0 && result.summaryCommentId === null) {
-    return;
-  }
-  const [postError] = await expectError(postReviewComment(token, owner, repo, pr.number, commitSha, result.matched, result.fixed, result.summary, result.summaryCommentId));
-  if (postError) {
-    error(`Failed to publish review comments: ${postError.message}`);
-    setFailed(postError.message);
-    return;
+  } else {
+    const [error51] = await expectError(handlePullRequest({
+      commitSha: pr["head"]["sha"],
+      owner,
+      prNumber: pr.number,
+      repo,
+      token
+    }));
+    if (error51) {
+      exitFailedAction("Pull request workflow failed", error51);
+    }
   }
 }
 run();

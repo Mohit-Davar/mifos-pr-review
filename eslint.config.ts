@@ -7,8 +7,16 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig([
   {
+    ignores: [
+      "documentation-interface/**",
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+    ],
+  },
+  {
     extends: ["js/recommended"],
-    files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
+    files: ["src/**/*.{js,mjs,cjs,ts,mts,cts}"],
     languageOptions: {
       globals: globals.browser,
     },

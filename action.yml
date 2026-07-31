@@ -1,5 +1,5 @@
-name: "Review Owl"
-description: "Reviews pull requests for security issues, vulnerable dependencies, and code quality concerns."
+name: "Mifos Hawk"
+description: "AI-powered repository assistant for pull request security analysis and automated documentation generation."
 author: "Mohit Davar"
 
 branding:
@@ -7,13 +7,33 @@ branding:
   color: "blue"
 
 inputs:
+  # GitHub Personal Access Token or GITHUB_TOKEN used to access repository data and perform repository operations.
   github-token:
-    description: "GitHub token used to read pull requests and post review comments."
+    description: "GitHub token used to read and write repository data."
     required: true
 
+  # OpenAI API key used for AI-powered code analysis and documentation generation.
   openai-api-key:
-    description: "OpenAI API key used for AI-powered review."
+    description: "OpenAI API key used for security analysis and documentation generation."
     required: true
+
+  # GitHub Personal Access Token used to create, update, and delete generated documentation in the documentation repository.
+  docs-token:
+    description: "Personal Access Token used to authenticate and push documentation updates to a remote docs repository."
+    required: false
+
+  # Base URL of the target Confluence instance.
+  confluence-base-url:
+    description: "Base URL of the Confluence instance"
+    required: false
+  # Username or email used to authenticate with Confluence.
+  confluence-username:
+    description: "Confluence username or email address."
+    required: false
+  # API token used for authenticating requests to the Confluence REST API.
+  confluence-api-token:
+    description: "Confluence API token used for authentication."
+    required: false
 
 runs:
   using: "node24"

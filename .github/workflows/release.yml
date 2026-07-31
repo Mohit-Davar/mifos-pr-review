@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  # Do not cancel a release deployment mid-execution if another one is triggered
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clone the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history so that git tags and commits can be accurately verified/pushed
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      # Automatically determine the next version based on conventional commits since last tag
+      - name: Determine next automated version
+        id: semver
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          major_pattern: "(MAJOR)"
+          minor_pattern: "feat"
+          version_format: "v${major}.${minor}.${patch}"
+          # If no release commits are found, this will default to an empty string output
+
+      # Safeguard to prevent a release step run if there are no new feature or fix commits
+      - name: Check if new version is required
+        if: steps.semver.outputs.version == ''
+        run: |
+          echo "No release-worthy conventional commits detected. Skipping release lifecycle."
+          exit 0
+
+      # Prevent duplicate release tags
+      - name: Ensure tag does not already exist
+        run: |
+          VERSION="${{ steps.semver.outputs.version }}"
+
+          # Checks if the tag is already registered in the git reference history
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "::error title=Tag Exists::Tag $VERSION already exists."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Test
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      # Safety check to guarantee source files weren't modified during build
+      - name: Ensure only dist changed
+        run: |
+          CHANGED=$(git diff --name-only)
+
+          # If nothing changed at all, build is already identical; proceed cleanly
+          if [ -z "$CHANGED" ]; then
+            echo "No files changed."
+            exit 0
+          fi
+
+          # Filter out any changes that do NOT live inside the dist/ directory
+          INVALID=$(echo "$CHANGED" | grep -v "^dist/" || true)
+
+          # If unexpected source or configuration files were changed by the build step, fail
+          if [ -n "$INVALID" ]; then
+            echo "::error title=Unexpected Files Changed::Unexpected source or configuration files were modified during the build."
+            echo "$INVALID"
+            exit 1
+          fi
+
+      # Commiting the compiled bundle inside the repository
+      - name: Commit updated dist
+        run: |
+          # Configure standard GitHub Actions bot credentials
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add dist
+
+          # Check if the freshly built dist differs from upstream main
+          if git diff --cached --quiet; then
+            echo "dist is already up-to-date."
+          else
+            # Follow conventional commits styling to keep history pristine
+            git commit -m "chore(release): update dist for ${{ steps.semver.outputs.version }} [skip ci]"
+            git push origin main
+          fi
+
+      # Create version tag dynamically determined by semantic parser step
+      - name: Create version tag
+        run: |
+          VERSION="${{ steps.semver.outputs.version }}"
+
+          git tag "$VERSION"
+          git push origin "$VERSION"
+
+      # Manage the floating major tag (e.g., v1 always references the latest v1.x.x)
+      - name: Update floating major tag
+        run: |
+          VERSION="${{ steps.semver.outputs.version }}"
+          # Extracts the major release version identifier (e.g. "v1" from "v1.2.3")
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+
+          # Atomically overwrite and force-push the major tag relocation
+          git tag -f "$MAJOR"
+          git push origin "$MAJOR" --force
+
+      # Generate documentation and formalise the GitHub Release UI artifact
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Creates the release and auto-generates changelogs/notes based on commit differences
+          gh release create "${{ steps.semver.outputs.version }}" \
+            --title "Release ${{ steps.semver.outputs.version }}" \
+            --generate-notes

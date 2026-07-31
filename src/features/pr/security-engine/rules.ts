@@ -1,5 +1,14 @@
 import type { SecurityRule } from "@src/features/pr/security-engine";
 
+/**
+ * A default set of security rules for detecting common vulnerabilities and secrets.
+ *
+ * @remarks
+ * This array contains rules for identifying sensitive information such as API keys,
+ * private keys, and hardcoded credentials, as well as potentially unsafe code patterns
+ * like the use of `eval()`. Each rule includes a description, a unique ID, a regex
+ * pattern, a severity level, and optional file extensions to which it applies.
+ */
 export const rules: SecurityRule[] = [
   {
     description:

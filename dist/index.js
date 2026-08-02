@@ -57615,7 +57615,7 @@ async function retrieveGitHubContent(path5, token, branch) {
 // src/features/push/retriever/retriever.ts
 async function retrieveDocumentContent(doc2, credentials) {
   const platform2 = doc2.platform.toLowerCase();
-  if (platform2.includes("github")) {
+  if (platform2.includes("gitbook") || platform2.includes("readme")) {
     const token = credentials.docsGithubToken;
     if (!token) {
       throw new Error("Missing docsGithubToken.");
@@ -58019,6 +58019,10 @@ async function handleMerge({
   }
   for (const result of failed) {
     error(`✗ ${result.doc.path}: ${result.error.message}`);
+    if (result.error.cause) {
+      const causeMessage = result.error.cause instanceof Error ? result.error.cause.message : String(result.error.cause);
+      error(`  Cause: ${causeMessage}`);
+    }
   }
 }
 

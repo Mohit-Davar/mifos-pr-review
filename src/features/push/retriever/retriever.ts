@@ -23,7 +23,7 @@ export async function retrieveDocumentContent(
 ): Promise<string> {
   const platform = doc.platform.toLowerCase();
 
-  if (platform.includes("github")) {
+  if (platform.includes("gitbook") || platform.includes("readme")) {
     const token = credentials.docsGithubToken;
     if (!token) {
       throw new Error("Missing docsGithubToken.");

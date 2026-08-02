@@ -206,5 +206,12 @@ export async function handleMerge({
   }
   for (const result of failed) {
     core.error(`✗ ${result.doc.path}: ${result.error.message}`);
+    if (result.error.cause) {
+      const causeMessage =
+        result.error.cause instanceof Error
+          ? result.error.cause.message
+          : String(result.error.cause);
+      core.error(`  Cause: ${causeMessage}`);
+    }
   }
 }

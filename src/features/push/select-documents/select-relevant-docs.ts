@@ -172,17 +172,21 @@ ${renderedSources}
     });
   }
 
-  const pathToBranch = new Map(
-    enabledSources
-      .filter((source) => source.platform !== "confluence")
-      .map((source) => [
-        resolveGitHubPath(source.repo, source.path),
-        source.branch,
-      ])
-  );
-
-  return result.routedDocuments.map((document) => ({
-    ...document,
-    branch: pathToBranch.get(document.path) ?? "",
-  }));
+  return result.routedDocuments.map((document) => {
+    const matchingSource = enabledSources.find((source) => {
+      if (source.platform === "confluence") return false;
+      const sourcePath = resolveGitHubPath(source.repo, source.path);
+      return (
+        document.path === sourcePath ||
+        document.path.startsWith(sourcePath + "/")
+      );
+    });
+    return {
+      ...document,
+      branch:
+        matchingSource && "branch" in matchingSource
+          ? matchingSource.branch
+          : "",
+    };
+  });
 }

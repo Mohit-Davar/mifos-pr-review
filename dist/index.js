@@ -58019,9 +58019,11 @@ async function handleMerge({
   }
   for (const result of failed) {
     error(`✗ ${result.doc.path}: ${result.error.message}`);
-    if (result.error.cause) {
-      const causeMessage = result.error.cause instanceof Error ? result.error.cause.message : String(result.error.cause);
+    let currentCause = result.error.cause;
+    while (currentCause) {
+      const causeMessage = currentCause instanceof Error ? currentCause.message : String(currentCause);
       error(`  Cause: ${causeMessage}`);
+      currentCause = currentCause instanceof Error ? currentCause.cause : undefined;
     }
   }
 }

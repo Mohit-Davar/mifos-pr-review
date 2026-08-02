@@ -57259,17 +57259,13 @@ Return a JSON object with an "edits" array. Each item must be one of:
 ### Folder structure documents
 - If the document contains '--- File: <path> ---' headers, only generate edits for content under the relevant file header. Never modify the header lines themselves.`;
 // src/features/push/generator/types.ts
-var ReplaceEditSchema = v4_default.object({
-  operation: v4_default.literal("replace"),
-  replace: v4_default.string(),
-  search: v4_default.string()
-});
-var AppendEditSchema = v4_default.object({
-  content: v4_default.string(),
-  operation: v4_default.literal("append")
-});
 var DocumentEditsSchema = v4_default.object({
-  edits: v4_default.array(v4_default.discriminatedUnion("operation", [ReplaceEditSchema, AppendEditSchema]))
+  edits: v4_default.array(v4_default.object({
+    content: v4_default.string().optional(),
+    operation: v4_default.enum(["replace", "append"]),
+    replace: v4_default.string().optional(),
+    search: v4_default.string().optional()
+  }))
 });
 // src/features/push/publisher/confluence.ts
 async function publishConfluenceUpdate({

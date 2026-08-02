@@ -6,15 +6,15 @@ export const AudienceSchema = z.enum(["user", "implementor", "developer"]);
 /** Fields shared by all documentation platforms. */
 export const CommonDocumentSchema = {
   audience: AudienceSchema,
-  enabled: z.boolean().optional(),
+  enabled: z.boolean().optional().default(true),
   purpose: z.string(),
 };
 
 /** Fields used by platforms that synchronise documentation through GitHub. */
 export const GitHubDocSchema = {
-  branch: z.string().optional(),
+  branch: z.string(),
   path: z.string(),
-  repo: z.string().optional(),
+  repo: z.string(),
 };
 
 /** GitBook page configuration. */
@@ -32,11 +32,21 @@ export const ReadMeDocumentSchema = z.object({
 });
 
 /** Confluence page configuration. */
-export const ConfluenceDocumentSchema = z.object({
-  ...CommonDocumentSchema,
-  pageId: z.string(),
-  platform: z.literal("confluence"),
-});
+export const ConfluenceDocumentSchema = z
+  .object({
+    ...CommonDocumentSchema,
+    pageId: z.string().optional(),
+    platform: z.literal("confluence"),
+    spaceKey: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      !!(data.pageId ?? data.spaceKey) && !(data.pageId && data.spaceKey),
+    {
+      message:
+        "A Confluence source must specify exactly one of 'pageId' or 'spaceKey', not both.",
+    }
+  );
 
 /** Union of all supported documentation platform schemas. */
 export const DocumentSchema = z.discriminatedUnion("platform", [
@@ -48,7 +58,7 @@ export const DocumentSchema = z.discriminatedUnion("platform", [
 /** Schema for the 'documentation' section of the config. */
 export const DocumentationSchema = z.object({
   documents: z.array(DocumentSchema),
-  enabled: z.boolean().optional(),
+  enabled: z.boolean().optional().default(true),
 });
 
 /** Schema for file inclusion/exclusion in reviews. */

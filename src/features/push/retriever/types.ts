@@ -30,6 +30,29 @@ export interface ConfluencePageResponse {
 }
 
 /**
+ * Represents a single page entry returned by the Confluence v2 space pages listing API.
+ */
+export interface ConfluenceSpacePageEntry {
+  /** The unique identifier of the page. */
+  id: string;
+  /** The title of the page. */
+  title: string;
+}
+
+/**
+ * Represents the paginated response from the Confluence v2 space pages listing API.
+ */
+export interface ConfluenceSpacePagesResponse {
+  /** Pagination links. */
+  _links?: {
+    /** URL to fetch the next page of results, if any. */
+    next?: string;
+  };
+  /** The list of pages in the space. */
+  results: ConfluenceSpacePageEntry[];
+}
+
+/**
  * Represents a normalized Confluence document with essential information.
  */
 export interface ConfluenceDocument {

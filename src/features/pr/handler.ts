@@ -5,13 +5,11 @@ import { parseGitDiff } from "@src/features/pr/git-diff";
 import { callLLM } from "@src/features/pr/llm-call";
 import {
   generateSummary,
-  getGitHubContext,
-  getPullRequestDiff,
   loadState,
   postReviewComment,
 } from "@src/features/pr/octokit";
 import { runSecurityEngine } from "@src/features/pr/security-engine";
-import { expectError } from "@src/shared";
+import { expectError, getPRContext } from "@src/shared";
 
 /**
  * The main handler for the pull request review process.
@@ -60,25 +58,23 @@ export async function handlePullRequest({
     });
   }
 
-  // Fetch the raw git diff.
-  const [diffError, rawDiff] = await expectError(
-    getPullRequestDiff(token, owner, repo, prNumber)
-  );
-  if (diffError) {
-    throw new Error("Failed to fetch raw git diff from GitHub API", {
-      cause: diffError,
-    });
-  }
-
-  // Fetch additional context using PR and Issues from GitHub
+  // Fetch PR context
   const [contextError, prContext] = await expectError(
-    getGitHubContext(token, owner, repo, prNumber)
+    getPRContext({ owner, prNumber, repo, token })
   );
   if (contextError) {
     throw new Error("Failed to fetch PR context from GitHub API", {
       cause: contextError,
     });
   }
+
+  const rawDiff = prContext.diff;
+  const PRContext = {
+    commitMessages: prContext.commitMessages,
+    description: prContext.strippedDescription,
+    linkedIssues: prContext.linkedIssues,
+    title: prContext.title,
+  };
 
   // Convert the git diff into a structured format.
   const parsedGitDiff = parseGitDiff(rawDiff);
@@ -102,7 +98,7 @@ export async function handlePullRequest({
 
   // Get AI review for the changes
   const [llmError, llmReviews] = await expectError(
-    callLLM(parsedGitDiff, securityScan, dependencyScan ?? [], prContext)
+    callLLM(parsedGitDiff, securityScan, dependencyScan ?? [], PRContext)
   );
   if (llmError) {
     throw new Error("LLM review failed", {
@@ -112,8 +108,6 @@ export async function handlePullRequest({
 
   // Compare current findings against the previous run.
   const { fixed, matched } = matchFindings(
-    securityScan,
-    dependencyScan ?? [],
     llmReviews,
     parsedGitDiff,
     loadedState.state

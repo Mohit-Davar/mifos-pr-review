@@ -14,6 +14,7 @@ Return a JSON object with an "edits" array. Each item must be one of:
 
 1. **replace** — modify existing content:
    { "operation": "replace", "search": "<exact text>", "replace": "<new text>" }
+    The search string must uniquely identify the text. Include surrounding context if necessary.
 
 2. **append** — add entirely new content that has NO existing anchor in the document:
    { "operation": "append", "content": "<new markdown content>" }

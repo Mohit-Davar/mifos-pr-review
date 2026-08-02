@@ -69,10 +69,21 @@ export function generateSummary(
   const rows = matched
     .map(extractRow)
     .filter((r): r is SummaryRow => r !== null);
-  const newCount = matched.filter((m) => m.status === "new").length;
-  const activeCount = matched.filter((m) => m.status === "active").length;
+
+  const uniqueRows: SummaryRow[] = [];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    const key = `${r.file}:${r.line}:${r.problem.trim().toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueRows.push(r);
+    }
+  }
+
+  const newCount = uniqueRows.filter((r) => r.status === "new").length;
+  const activeCount = uniqueRows.filter((r) => r.status === "active").length;
   const fixedCount = fixed.length;
-  const total = rows.length;
+  const total = uniqueRows.length;
 
   // Case 1: No findings at all, ever.
   if (total === 0 && fixedCount === 0) {
@@ -89,7 +100,7 @@ export function generateSummary(
   }
   const severities: Severity[] = ["high", "medium", "low"];
   const counts: Record<Severity, number> = { high: 0, low: 0, medium: 0 };
-  for (const r of rows) counts[r.severity]++;
+  for (const r of uniqueRows) counts[r.severity]++;
   const statusRows = [
     `    <tr><td>New</td><td><strong>${newCount}</strong></td></tr>`,
     `    <tr><td>Active</td><td><strong>${activeCount}</strong></td></tr>`,
@@ -104,7 +115,7 @@ export function generateSummary(
         )}</td><td><strong>${counts[s]}</strong></td></tr>`
     )
     .join("\n");
-  const sortedRows = [...rows].sort(
+  const sortedRows = [...uniqueRows].sort(
     (a, b) => severityWeight[b.severity] - severityWeight[a.severity]
   );
   const findingRows = sortedRows

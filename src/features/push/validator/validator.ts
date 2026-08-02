@@ -2,116 +2,139 @@ import type { DocumentEdit } from "@src/features/push/generator";
 import type { ValidationResult } from "@src/features/push/validator";
 
 /**
- * Applies and validates a series of document edits.
- * Supports two operation types:
- * - `replace`: Finds an exact string in the document and replaces it. The search
- *   string must exist verbatim exactly once.
- * - `append`: Appends new content to the end of the document. Used for new sections
- *   or concepts introduced by the PR that have no existing anchor text.
+ * Applies and validates LLM-generated document edits.
  *
- * @param currentContent - The original content of the document.
- * @param edits - An array of edits to apply (replace or append operations).
- * @param codeDiff - The raw diff string of the code changes, used for reasonableness checks.
- * @returns A `ValidationResult` object indicating whether the edits are valid and, if so, the `updatedContent`.
+ * Supported operations:
+ * - `replace`: Replaces an existing unique string in the document.
+ * - `append`: Appends new content to the end of the document.
+ *
+ * Validation ensures:
+ * - Replace targets exist exactly once.
+ * - Markdown code fences remain balanced.
+ * - Multi-file document headers are preserved.
+ *
+ * @example
+ * const currentContent = "Hello world";
+ * const edits = [{ operation: "replace", search: "world", replace: "universe" }];
+ * const result = validateEdits(currentContent, edits, "+ some diff");
+ * result.isValid === true
+ * result.updatedContent === "Hello universe"
+ *
+ * @param currentContent - Original document content.
+ * @param edits - LLM-generated edit operations.
+ * @param codeDiff - Raw git diff (used for lightweight sanity checks).
+ * @returns Validation result containing either the updated document or the failure reason.
  */
-export function applyAndValidateEdits(
+export function validateEdits(
   currentContent: string,
   edits: DocumentEdit[],
   codeDiff: string
 ): ValidationResult {
-  let content = currentContent;
+  let updatedContent = currentContent;
 
   for (const edit of edits) {
     if (edit.operation === "append") {
-      // Append new content at the end of the document.
-      // Ensure there is exactly one blank line separating the existing content from the appended block, regardless of trailing whitespace.
-      content = content.trimEnd() + "\n\n" + edit.content;
+      // Example: updatedContent = "Title", edit.content = "Subtitle"
+      // Result: "Title\n\nSubtitle"
+      updatedContent = updatedContent.trimEnd() + "\n\n" + edit.content;
       continue;
     }
 
-    // replace operation
+    // Example: edit = { operation: "replace", search: "", replace: "new data" }
+    // This is rejected because we don't know what to replace.
     if (!edit.search) {
       return {
         isValid: false,
-        reason: "Edit contains an empty search pattern.",
+        reason: "Replace operation contains an empty search string.",
       };
     }
 
-    // Ensure each `search` pattern appears exactly once.
-    const firstIndex = content.indexOf(edit.search);
+    const firstIndex = updatedContent.indexOf(edit.search);
+    // Example: If updatedContent is "apple banana" and edit.search is "orange",
+    // firstIndex is -1. We must reject since the target text is missing.
     if (firstIndex === -1) {
       return {
         isValid: false,
-        reason: `Search pattern not found in document: "${edit.search.substring(
-          0,
-          50
-        )}..."`,
+        reason: `Search pattern not found: "${edit.search.slice(0, 50)}..."`,
       };
     }
-    const lastIndex = content.lastIndexOf(edit.search);
-    if (firstIndex !== lastIndex) {
+
+    // Example: If updatedContent is "apple apple" and edit.search is "apple",
+    // firstIndex is 0 but lastIndexOf is 6. We reject it to prevent replacing the wrong occurrence.
+    if (firstIndex !== updatedContent.lastIndexOf(edit.search)) {
       return {
         isValid: false,
-        reason: `Search pattern is not unique: "${edit.search.substring(
-          0,
-          50
-        )}..."`,
+        reason: `Search pattern is not unique: "${edit.search.slice(0, 50)}..."`,
       };
     }
-    // Apply the replacement.
-    content =
-      content.substring(0, firstIndex) +
+
+    // Example: updatedContent = "abc", search = "b", replace = "X"
+    // slice(0, 1) -> "a"
+    // edit.replace -> "X"
+    // slice(1 + 1) -> "c"
+    // Result: "aXc"
+    updatedContent =
+      updatedContent.slice(0, firstIndex) +
       edit.replace +
-      content.substring(firstIndex + edit.search.length);
+      updatedContent.slice(firstIndex + edit.search.length);
   }
 
-  // Ensure markdown code blocks are not left unclosed.
-  const originalCodeBlocks = (currentContent.match(/```/g) || []).length;
-  const newCodeBlocks = (content.match(/```/g) || []).length;
-  if (newCodeBlocks % 2 !== 0 && originalCodeBlocks % 2 === 0) {
+  // Ensure markdown code fences remain balanced.
+  // Example: If the original file had two ``` marks (one open, one close),
+  // but the LLM outputted three ``` marks, it leaves a trailing unclosed block.
+  const originalFenceCount = (currentContent.match(/```/g) ?? []).length;
+  const updatedFenceCount = (updatedContent.match(/```/g) ?? []).length;
+  if (originalFenceCount % 2 === 0 && updatedFenceCount % 2 !== 0) {
     return {
       isValid: false,
-      reason:
-        "Validation failed: an odd number of markdown code blocks (```) were detected, which may indicate broken formatting.",
+      reason: "Generated document contains an unclosed markdown code block.",
     };
   }
 
-  // Prevent excessively large changes relative to the code diff.
-  const diffSize = codeDiff.length;
-  const changeSize = Math.abs(content.length - currentContent.length);
-  const maxReasonableChange = Math.max(4000, diffSize * 3);
-  if (changeSize > maxReasonableChange) {
-    return {
-      isValid: false,
-      reason: `Generated change size (${changeSize} chars) is unreasonably large compared to code diff size (${diffSize} chars).`,
-    };
-  }
-
-  // For multi-file documents, ensure file headers are not altered.
-  const headerRegex = /^--- File: (.*?) ---$/gm;
+  // Preserve multi-file document headers.
+  // Example: Validates that markers like "--- File: src/main.ts ---"
+  // weren't accidentally deleted or modified by the LLM during generation.
+  const headerPattern = /^--- File: .* ---$/gm;
   const originalHeaders = Array.from(
-    currentContent.matchAll(headerRegex),
-    (m) => m[0]
+    currentContent.matchAll(headerPattern),
+    (match) => match[0]
   );
   if (originalHeaders.length > 0) {
     const updatedHeaders = Array.from(
-      content.matchAll(headerRegex),
-      (m) => m[0]
+      updatedContent.matchAll(headerPattern),
+      (match) => match[0]
     );
-    if (
-      originalHeaders.length !== updatedHeaders.length ||
-      !originalHeaders.every((val, index) => val === updatedHeaders[index])
-    ) {
+    // Example: Comparing ["--- File: index.ts ---"] against what the LLM produced.
+    // They must match perfectly in length and string value.
+    const headersMatch =
+      originalHeaders.length === updatedHeaders.length &&
+      originalHeaders.every(
+        (header, index) => header === updatedHeaders[index]
+      );
+    if (!headersMatch) {
       return {
         isValid: false,
-        reason:
-          "Validation failed: File header markers (e.g., '--- File: <path> ---') were modified or deleted.",
+        reason: "Generated document modified multi-file header markers.",
       };
     }
+  }
+  // Example: If a 100-character document is edited, and the new version is 5,000 characters,
+  // but the codeDiff was only 20 characters long, the LLM likely hallucinated massive text chunks.
+  const changeSize = Math.abs(updatedContent.length - currentContent.length);
+  if (
+    currentContent.length > 0 &&
+    changeSize > Math.max(currentContent.length * 5, codeDiff.length * 20)
+  ) {
+    return {
+      isValid: false,
+      reason:
+        "Generated document change is unexpectedly large relative to the original document.",
+    };
   }
 
   return {
     isValid: true,
-    updatedContent: content,
+    reason: "",
+    updatedContent,
   };
 }

@@ -29,7 +29,7 @@ export async function retrieveDocumentContent(
       throw new Error("Missing docsGithubToken.");
     }
     const [err, content] = await expectError(
-      retrieveGitHubContent(doc.path, token)
+      retrieveGitHubContent(doc.path, token, doc.branch)
     );
     if (err) {
       throw new Error(`Failed to retrieve GitHub content for ${doc.path}`, {

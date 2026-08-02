@@ -3,34 +3,39 @@ import {
   DocumentEditsSchema,
   SYSTEM_PROMPT,
 } from "@src/features/push/generator";
-import type { PRContext } from "@src/features/push/octokit";
-import { callWithRetry, expectError } from "@src/shared";
+import { callWithRetry, expectError, type PRContext } from "@src/shared";
 
 /**
- * Generates document edits using an LLM based on PR context and current document content.
- * It constructs a prompt containing the PR details and the document's current state,
- * then calls the LLM to get a list of search-and-replace edits.
+ * Generates documentation edits using an LLM based on the pull request context
+ * and the current document contents.
  *
- * @param prContext - The context of the pull request, including title, description, and diff.
- * @param currentContent - The current content of the documentation file to be updated.
- * @returns A promise that resolves to an array of `DocumentEdit` objects.
- * @throws An error if the LLM call fails.
+ * The LLM returns a sequence of search-and-replace operations (or append
+ * operations) that can be applied to the document.
+ *
+ * @param prContext - Pull request metadata and diff.
+ * @param currentContent - Current document contents.
+ * @returns A list of document edit operations.
+ * @throws If the LLM request fails.
  */
 export async function generateDocumentEdits(
   prContext: PRContext,
   currentContent: string
 ): Promise<DocumentEdit[]> {
-  const userMessage = `PR Context:
-Title: ${prContext.title}
-Description: ${prContext.description}
-Commits:
-${prContext.commits.map((c) => `- ${c}`).join("\n")}
-Net Diff:
-${prContext.diff}
-Current Document Content:
-\`\`\`
-${currentContent}
-\`\`\``;
+  const userMessage = [
+    "# Pull Request Context",
+    `## Title\n${prContext.title}`,
+    `## Description\n${prContext.description || "(none)"}`,
+    `## Commits\n${
+      prContext.commits.length
+        ? prContext.commits.map((commit) => `- ${commit}`).join("\n")
+        : "(none)"
+    }`,
+    `## Net Diff\n${prContext.diff}`,
+    "## Current Document",
+    "```",
+    currentContent,
+    "```",
+  ].join("\n\n");
 
   const [error, result] = await expectError(
     callWithRetry(
@@ -40,8 +45,9 @@ ${currentContent}
       "documentEdits"
     )
   );
-  if (error) {
-    throw new Error("Failed to generate document edits using LLM", {
+
+  if (error || !result) {
+    throw new Error("Failed to generate document edits using the LLM.", {
       cause: error,
     });
   }

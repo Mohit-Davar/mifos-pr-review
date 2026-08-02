@@ -16,11 +16,11 @@ export interface BaseDocument {
 /** Shared interface for platforms using centralized GitHub documentation. */
 export interface GitHubSyncDocument extends BaseDocument {
   /** The branch to sync from. */
-  branch?: string;
+  branch: string;
   /** The path to the document in the repository. */
   path: string;
-  /** The repository to sync from. */
-  repo?: string;
+  /** The repository to sync from, in `owner/repo` format. */
+  repo: string;
 }
 
 /** GitBook page configuration. */
@@ -37,10 +37,18 @@ export interface ReadMeDocument extends GitHubSyncDocument {
 
 /** Confluence page configuration. */
 export interface ConfluenceDocument extends BaseDocument {
-  /** The ID of the Confluence page. */
-  pageId: string;
+  /**
+   * The ID of a specific Confluence page to update.
+   * Mutually exclusive with `spaceKey`.
+   */
+  pageId?: string;
   /** The documentation platform. */
   platform: "confluence";
+  /**
+   * The key of a Confluence space whose pages are listed for the LLM to select from.
+   * Analogous to a GitHub directory path. Mutually exclusive with `pageId`.
+   */
+  spaceKey?: string;
 }
 
 /** Supported documentation targets. */

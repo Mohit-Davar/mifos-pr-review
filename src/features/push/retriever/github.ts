@@ -1,16 +1,26 @@
 import { getOctokit } from "@actions/github";
 
 /**
- * Parses a GitHub path string in the format `/owner/repo/path/to/...` into its components.
+ * Parses an absolute GitHub path in the format `/owner/repository/path/to/resource`
+ * into its repository and relative path components.
+ *
+ * @param path - Absolute-style GitHub path.
+ * @param minSegments - Minimum number of required path segments.
+ * @returns The repository owner, repository name and relative file path.
+ * @throws If the path does not contain the required number of segments.
  */
 function parseGitHubPath(
   path: string,
   minSegments = 2
-): { filePath: string; owner: string; repo: string } {
+): {
+  filePath: string;
+  owner: string;
+  repo: string;
+} {
   const parts = path.split("/").filter(Boolean);
   if (parts.length < minSegments) {
     throw new Error(
-      `Invalid GitHub path "${path}". Expected format: /owner/repository/path`
+      `Invalid GitHub path "${path}". Expected format: /owner/repository/<path>.`
     );
   }
   return {
@@ -21,76 +31,99 @@ function parseGitHubPath(
 }
 
 /**
- * Lists all file paths directly inside a GitHub directory (shallow, non-recursive).
- * Returns only file entries — not sub-directories. Use this to pre-fetch a directory's
- * structure before passing it to an LLM for precise file selection.
+ * Lists all files within a GitHub directory using the Git Trees API.
  *
- * If the path resolves to a single file rather than a directory, that file's path is
- * returned as the only element.
+ * Unlike the Contents API, which requires one request per directory, the Git
+ * Trees API retrieves the entire repository tree in a single request. The
+ * returned tree is then filtered to include only files beneath the requested
+ * directory.
  *
- * The path must be in the format:
- * `/owner/repository/path/to/directory`
+ * If the supplied path resolves to a single file instead of a directory, that
+ * file is returned as the only entry.
  *
- * @param path - GitHub path to a directory (or file).
+ * @param path - GitHub path to a directory or file.
  * @param token - GitHub personal access token.
- * @returns A flat list of absolute-style GitHub file paths found directly in the directory.
+ * @param branch - Branch to list files from.
+ * @param maxFiles - Maximum number of files to return. Defaults to `500`.
+ * @returns Absolute-style GitHub file paths.
  */
 export async function listGitHubDirectory(
   path: string,
-  token: string
+  token: string,
+  branch: string,
+  maxFiles = 500
 ): Promise<string[]> {
   const { filePath, owner, repo } = parseGitHubPath(path);
   const octokit = getOctokit(token);
 
-  const response = await octokit.rest.repos.getContent({
+  // Resolve the branch to its commit SHA.
+  const {
+    data: {
+      commit: { sha: commitSha },
+    },
+  } = await octokit.rest.repos.getBranch({
+    branch,
     owner,
-    path: filePath,
     repo,
   });
 
-  if (!Array.isArray(response.data)) {
-    // Path resolves to a single file — return it as-is.
-    return [path];
-  }
+  // Retrieve the complete repository tree.
+  const { data: tree } = await octokit.rest.git.getTree({
+    owner,
+    recursive: "true",
+    repo,
+    tree_sha: commitSha,
+  });
 
-  return response.data
-    .filter((item) => item.type === "file")
-    .map((item) => `/${owner}/${repo}/${item.path}`);
+  const prefix = filePath ? `${filePath}/` : "";
+
+  // If the requested path is itself a file, return it.
+  const exactFile = tree.tree.find(
+    (entry) => entry.type === "blob" && entry.path === filePath
+  );
+  if (exactFile) {
+    return [`/${owner}/${repo}/${filePath}`];
+  }
+  return tree.tree
+    .filter(
+      (entry): entry is typeof entry & { path: string } =>
+        entry.type === "blob" && !!entry.path && entry.path.startsWith(prefix)
+    )
+    .slice(0, maxFiles)
+    .map((entry) => `/${owner}/${repo}/${entry.path}`);
 }
 
 /**
- * Retrieves the decoded text content of a single file from a GitHub repository.
+ * Retrieves the decoded UTF-8 content of a GitHub file.
  *
  * The path must be in the format:
- * `/owner/repository/path/to/file.md`
+ * `/owner/repository/path/to/file`
  *
  * @param path - GitHub path to a file.
  * @param token - GitHub personal access token.
- * @returns The decoded UTF-8 content of the file.
- * @throws If the path points to a directory rather than a file.
+ * @param branch - Branch to retrieve the file from.
+ * @returns The decoded UTF-8 file contents.
+ * @throws If the supplied path resolves to a directory or a non-file resource.
  */
 export async function retrieveGitHubContent(
   path: string,
-  token: string
+  token: string,
+  branch: string
 ): Promise<string> {
   const { filePath, owner, repo } = parseGitHubPath(path, 3);
   const octokit = getOctokit(token);
-
   const response = await octokit.rest.repos.getContent({
     owner,
     path: filePath,
+    ref: branch,
     repo,
   });
-
   if (
     Array.isArray(response.data) ||
     response.data.type !== "file" ||
-    !("content" in response.data)
+    !response.data.content
   ) {
-    throw new Error(
-      `"${path}" is not a valid GitHub file. If this is a directory, ensure the LLM routes to specific files within it.`
-    );
+    throw new Error(`"${path}" does not resolve to a GitHub file.`);
   }
-
   return Buffer.from(response.data.content, "base64").toString("utf8");
 }

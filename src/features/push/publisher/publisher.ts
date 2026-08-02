@@ -46,6 +46,7 @@ export async function publishDocumentUpdate({
       );
     }
     return publishGitHubUpdate({
+      branch: routedDoc.branch,
       codeOwner,
       codePrNumber,
       codeRepo,
@@ -55,17 +56,15 @@ export async function publishDocumentUpdate({
       updatedContent,
     });
   } else if (platform.includes("confluence")) {
-    const confluenceBaseUrl = credentials.confluence?.baseUrl
-      ? credentials.confluence.baseUrl.replace(/\/$/, "")
-      : "https://confluence.atlassian.net";
-
+    const confluenceBaseUrl = credentials.confluence?.baseUrl.replace(
+      /\/$/,
+      ""
+    );
     const confluenceUsername = credentials.confluence?.username;
     const confluenceApiToken = credentials.confluence?.apiToken;
-
-    if (!confluenceUsername || !confluenceApiToken) {
-      throw new Error("Missing Confluence credentials username or apiToken.");
+    if (!confluenceUsername || !confluenceApiToken || !confluenceBaseUrl) {
+      throw new Error("Missing Confluence credentials.");
     }
-
     return publishConfluenceUpdate({
       codeOwner,
       codePrNumber,

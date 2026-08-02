@@ -1,5 +1,6 @@
 import type { StoredReviewState } from "@src/features/pr/compare-state";
 import type { Severity } from "@src/features/pr/security-engine";
+import type { LinkedIssue } from "@src/shared/github";
 
 /**
  * Represents the state loaded from a PR, including the parsed state object
@@ -32,12 +33,7 @@ export interface PRContext {
   /** The sanitized, markdown-stripped description body text of the Pull Request. */
   description: string;
   /** A deterministically ordered list of validated tracking issues referenced within the pull scope. */
-  linkedIssues: Array<{
-    /** The unique identifier or issue number on the tracker. */
-    number: number;
-    /** The summary title text retrieved from the issue definition. */
-    title: string;
-  }>;
+  linkedIssues: LinkedIssue[];
   /** The top-level title string of the Pull Request. */
   title: string;
 }

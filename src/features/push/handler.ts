@@ -1,11 +1,15 @@
 import * as core from "@actions/core";
 import { generateDocumentEdits } from "@src/features/push/generator";
-import { collectPRContext } from "@src/features/push/octokit";
 import { publishDocumentUpdate } from "@src/features/push/publisher";
 import { retrieveDocumentContent } from "@src/features/push/retriever";
 import { selectDocuments } from "@src/features/push/select-documents";
-import { applyAndValidateEdits } from "@src/features/push/validator";
-import { expectError, getConfig, type PlatformCredentials } from "@src/shared";
+import { validateEdits } from "@src/features/push/validator";
+import {
+  expectError,
+  getConfig,
+  getPRContext,
+  type PlatformCredentials,
+} from "@src/shared";
 import pLimit from "p-limit";
 
 const DOC_CONCURRENCY = 3;
@@ -38,7 +42,12 @@ export async function handleMerge({
 }) {
   // Collect context from the pull request, including diff, commits, and metadata.
   const [collectorError, prContext] = await expectError(
-    collectPRContext({ owner, prNumber, repo, token })
+    getPRContext({
+      owner,
+      prNumber,
+      repo,
+      token,
+    })
   );
   if (collectorError) {
     throw new Error("Failed to collect pull request context", {
@@ -58,7 +67,7 @@ export async function handleMerge({
 
   // Use an LLM to select which documents are relevant to the merged changes.
   const [selectionError, selectedDocs] = await expectError(
-    selectDocuments(prContext, sources, credentials.docsGithubToken)
+    selectDocuments(prContext, sources, credentials)
   );
   if (selectionError) {
     throw new Error("Failed to select relevant documents", {
@@ -71,81 +80,131 @@ export async function handleMerge({
   }
 
   // Process each selected document concurrently.
-  type ProcessResult = {
-    doc: (typeof selectedDocs)[number];
-    error?: Error;
-  };
-  const processingPromises = selectedDocs.map((doc) =>
-    limit(async (): Promise<ProcessResult> => {
-      try {
-        core.info(
-          `Processing selected document: ${doc.path} (${doc.platform})`
-        );
-        // Retrieve the current content.
-        const [retrieverError, currentContent] = await expectError(
-          retrieveDocumentContent(doc, credentials)
-        );
-        if (retrieverError) {
-          throw new Error(`Failed to retrieve content for ${doc.path}`, {
-            cause: retrieverError,
-          });
-        }
-        // Generate edits.
-        const [generatorError, edits] = await expectError(
-          generateDocumentEdits(prContext, currentContent)
-        );
-        if (generatorError) {
-          throw new Error(`Failed to generate edits for ${doc.path}`, {
-            cause: generatorError,
-          });
-        }
-        if (edits.length === 0) {
-          core.info(`No edits were generated for ${doc.path}.`);
-          return { doc };
-        }
-        // Validate edits.
-        const validationResult = applyAndValidateEdits(
-          currentContent,
-          edits,
-          prContext.diff
-        );
-        if (!validationResult.isValid || !validationResult.updatedContent) {
-          core.warning(
-            `Validation failed for ${doc.path}: ${validationResult.reason}. Skipping publication.`
-          );
-          return { doc };
-        }
-        // Publish the updated document.
-        const [publishError, url] = await expectError(
-          publishDocumentUpdate({
-            codeOwner: owner,
-            codePrNumber: prNumber,
-            codeRepo: repo,
-            codeToken: token,
-            credentials,
-            routedDoc: doc,
-            updatedContent: validationResult.updatedContent,
-          })
-        );
-        if (publishError) {
-          throw new Error(`Failed to publish update for ${doc.path}`, {
-            cause: publishError,
-          });
-        }
-        core.info(`Successfully published update for ${doc.path}: ${url}`);
-        return { doc };
-      } catch (err) {
-        return { doc, error: err as Error };
+  type ProcessResult =
+    | {
+        doc: (typeof selectedDocs)[number];
+        status: "published";
+        url: string;
       }
-    })
+    | {
+        doc: (typeof selectedDocs)[number];
+        reason: string;
+        status: "skipped";
+      }
+    | {
+        doc: (typeof selectedDocs)[number];
+        error: Error;
+        status: "failed";
+      };
+
+  const results = await Promise.all(
+    selectedDocs.map((doc) =>
+      limit(async (): Promise<ProcessResult> => {
+        try {
+          core.info(`Processing: ${doc.path}`);
+          // Retrieve current document.
+          const [retrievalError, currentContent] = await expectError(
+            retrieveDocumentContent(doc, credentials)
+          );
+          if (retrievalError) {
+            throw new Error(`Failed to retrieve "${doc.path}".`, {
+              cause: retrievalError,
+            });
+          }
+
+          // Generate edits.
+          const [generationError, edits] = await expectError(
+            generateDocumentEdits(prContext, currentContent)
+          );
+          if (generationError) {
+            throw new Error(`Failed to generate edits for "${doc.path}".`, {
+              cause: generationError,
+            });
+          }
+          if (edits.length === 0) {
+            return {
+              doc,
+              reason: "No edits were generated.",
+              status: "skipped",
+            };
+          }
+
+          // Validate edits.
+          const validation = validateEdits(
+            currentContent,
+            edits,
+            prContext.diff
+          );
+          if (!validation.isValid || !validation.updatedContent) {
+            return {
+              doc,
+              reason: validation.reason,
+              status: "skipped",
+            };
+          }
+
+          // Publish.
+          const [publishError, url] = await expectError(
+            publishDocumentUpdate({
+              codeOwner: owner,
+              codePrNumber: prNumber,
+              codeRepo: repo,
+              codeToken: token,
+              credentials,
+              routedDoc: doc,
+              updatedContent: validation.updatedContent,
+            })
+          );
+          if (publishError) {
+            throw new Error(`Failed to publish "${doc.path}".`, {
+              cause: publishError,
+            });
+          }
+          return {
+            doc,
+            status: "published",
+            url,
+          };
+        } catch (error) {
+          return {
+            doc,
+            error: error as Error,
+            status: "failed",
+          };
+        }
+      })
+    )
   );
 
-  const results = await Promise.all(processingPromises);
-  const failed = results.filter((r) => r.error);
-  if (failed.length > 0) {
-    core.error(`Failed to process ${failed.length} document(s):`);
-    for (const { doc, error } of failed) {
-      core.error(`- ${doc.path}: ${error?.message}`);
-    }
+  const published = results.filter(
+    (result): result is Extract<ProcessResult, { status: "published" }> =>
+      result.status === "published"
+  );
+
+  const skipped = results.filter(
+    (result): result is Extract<ProcessResult, { status: "skipped" }> =>
+      result.status === "skipped"
+  );
+
+  const failed = results.filter(
+    (result): result is Extract<ProcessResult, { status: "failed" }> =>
+      result.status === "failed"
+  );
+
+  core.info("");
+  core.info("Documentation update summary");
+  core.info("----------------------------");
+  core.info(`Selected : ${selectedDocs.length}`);
+  core.info(`Published: ${published.length}`);
+  core.info(`Skipped  : ${skipped.length}`);
+  core.info(`Failed   : ${failed.length}`);
+  for (const result of published) {
+    core.info(`✓ ${result.doc.path}`);
+  }
+  for (const result of skipped) {
+    core.warning(`↷ ${result.doc.path}: ${result.reason}`);
+  }
+  for (const result of failed) {
+    core.error(`✗ ${result.doc.path}: ${result.error.message}`);
   }
 }

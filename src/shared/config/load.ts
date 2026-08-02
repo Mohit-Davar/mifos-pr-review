@@ -48,5 +48,10 @@ export function loadConfig(workspacePath: string | undefined): Config {
  * using `loadConfig` and caches the result.
  */
 export function getConfig(): Config {
-  return cachedConfig ?? loadConfig(process.env["GITHUB_WORKSPACE"]);
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+  const workspacePath =
+    core.getInput("github-workspace") || process.env["GITHUB_WORKSPACE"];
+  return loadConfig(workspacePath);
 }

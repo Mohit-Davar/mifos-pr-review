@@ -9,6 +9,8 @@ import { getOctokit } from "@actions/github";
  * @param params.codePrNumber - The number of the original pull request.
  * @param params.codeRepo - The name of the original code repository.
  * @param params.docsGithubToken - The GitHub token for accessing the documentation repository.
+ * @param params.branch - The branch to use as the base for the documentation PR.
+ *   The PR is opened against this branch.
  * @param params.path - The path to the document or folder in the format `/owner/repo/filepath`.
  * @param params.reason - The reason the document was selected for an update.
  * @param params.updatedContent - The new content for the document(s).
@@ -16,6 +18,7 @@ import { getOctokit } from "@actions/github";
  * @throws An error if the path format is invalid or if the update process fails.
  */
 export async function publishGitHubUpdate({
+  branch,
   codeOwner,
   codePrNumber,
   codeRepo,
@@ -24,6 +27,7 @@ export async function publishGitHubUpdate({
   reason,
   updatedContent,
 }: {
+  branch: string;
   codeOwner: string;
   codePrNumber: number;
   codeRepo: string;
@@ -46,9 +50,7 @@ export async function publishGitHubUpdate({
   const repo = parts[1]!;
   const targetPath = parts.slice(2).join("/");
 
-  // Get the default branch of the documentation repository.
-  const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
-  const baseBranch = repoData.default_branch || "main";
+  const baseBranch = branch;
 
   // Get the SHA of the latest commit on the default branch.
   const { data: refData } = await octokit.rest.git.getRef({

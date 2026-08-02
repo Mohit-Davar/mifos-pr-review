@@ -2,18 +2,13 @@ import {
   type CurrentFinding,
   type FindingMatchResult,
   fingerprintLLM,
-  fingerprintOSV,
-  fingerprintStatic,
   getLineContent,
-  inferRuleId,
   normaliseSnippet,
-  parseOSVDescription,
   type ResolvedFinding,
   type StoredFinding,
   type StoredReviewState,
 } from "@src/features/pr/compare-state";
 import type { Review } from "@src/features/pr/llm-call";
-import type { Findings } from "@src/features/pr/security-engine";
 import type { ParsedFileDiff } from "@src/shared";
 import stringSimilarity from "string-similarity";
 
@@ -32,8 +27,6 @@ const FUZZY_THRESHOLD = 0.7;
  * @returns An object containing lists of matched and fixed findings.
  */
 export function matchFindings(
-  staticFindings: Findings[],
-  osvFindings: Findings[],
   llmReviews: Review[],
   diffs: ParsedFileDiff[],
   previous: StoredReviewState
@@ -51,37 +44,6 @@ export function matchFindings(
       matchedPrevious.add(fingerprint);
     }
     return finding;
-  }
-
-  // Match security scan findings.
-  for (const finding of staticFindings) {
-    const lineContent = getLineContent(finding.file, finding.line, diffs);
-    const ruleId = inferRuleId(finding.description);
-    const fingerprint = fingerprintStatic(ruleId, finding.file, lineContent);
-    const previousFinding = findPrevious(fingerprint);
-    matched.push({
-      finding,
-      fingerprint,
-      previous: previousFinding ?? null,
-      source: "static",
-      status: previousFinding ? "active" : "new",
-    });
-  }
-
-  // Match dependency vulnerabilities.
-  for (const finding of osvFindings) {
-    const { osvIds, pkgName, pkgVersion } = parseOSVDescription(
-      finding.description
-    );
-    const fingerprint = fingerprintOSV(pkgName, pkgVersion, osvIds);
-    const previousFinding = findPrevious(fingerprint);
-    matched.push({
-      finding,
-      fingerprint,
-      previous: previousFinding ?? null,
-      source: "osv",
-      status: previousFinding ? "active" : "new",
-    });
   }
 
   // Match LLM findings using exact and fuzzy matching.

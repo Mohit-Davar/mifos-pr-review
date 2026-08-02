@@ -57261,10 +57261,10 @@ Return a JSON object with an "edits" array. Each item must be one of:
 // src/features/push/generator/types.ts
 var DocumentEditsSchema = v4_default.object({
   edits: v4_default.array(v4_default.object({
-    content: v4_default.string().optional(),
+    content: v4_default.string().nullable(),
     operation: v4_default.enum(["replace", "append"]),
-    replace: v4_default.string().optional(),
-    search: v4_default.string().optional()
+    replace: v4_default.string().nullable(),
+    search: v4_default.string().nullable()
   }))
 });
 // src/features/push/publisher/confluence.ts
@@ -57844,9 +57844,10 @@ function validateEdits(currentContent, edits, codeDiff) {
   let updatedContent = currentContent;
   for (const edit of edits) {
     if (edit.operation === "append") {
+      const content = edit.content ?? "";
       updatedContent = updatedContent.trimEnd() + `
 
-` + edit.content;
+` + content;
       continue;
     }
     if (!edit.search) {
@@ -57868,7 +57869,8 @@ function validateEdits(currentContent, edits, codeDiff) {
         reason: `Search pattern is not unique: "${edit.search.slice(0, 50)}..."`
       };
     }
-    updatedContent = updatedContent.slice(0, firstIndex) + edit.replace + updatedContent.slice(firstIndex + edit.search.length);
+    const replace = edit.replace ?? "";
+    updatedContent = updatedContent.slice(0, firstIndex) + replace + updatedContent.slice(firstIndex + edit.search.length);
   }
   const originalFenceCount = (currentContent.match(/```/g) ?? []).length;
   const updatedFenceCount = (updatedContent.match(/```/g) ?? []).length;

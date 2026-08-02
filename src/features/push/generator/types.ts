@@ -6,22 +6,22 @@ import z from "zod/v4";
  */
 export interface DocumentEdit {
   /** The new content to append at the end of the document. */
-  content?: string;
+  content: string | null;
   operation: "replace" | "append";
   /** The new string to replace the `search` block with. */
-  replace?: string;
+  replace: string | null;
   /** The exact block of text to find in the document. */
-  search?: string;
+  search: string | null;
 }
 
 // Defines the schema for the expected LLM response, containing a list of edits.
 export const DocumentEditsSchema = z.object({
   edits: z.array(
     z.object({
-      content: z.string().optional(),
+      content: z.string().nullable(),
       operation: z.enum(["replace", "append"]),
-      replace: z.string().optional(),
-      search: z.string().optional(),
+      replace: z.string().nullable(),
+      search: z.string().nullable(),
     })
   ),
 });

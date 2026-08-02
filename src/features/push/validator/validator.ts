@@ -36,7 +36,8 @@ export function validateEdits(
     if (edit.operation === "append") {
       // Example: updatedContent = "Title", edit.content = "Subtitle"
       // Result: "Title\n\nSubtitle"
-      updatedContent = updatedContent.trimEnd() + "\n\n" + edit.content;
+      const content = edit.content ?? "";
+      updatedContent = updatedContent.trimEnd() + "\n\n" + content;
       continue;
     }
 
@@ -73,9 +74,10 @@ export function validateEdits(
     // edit.replace -> "X"
     // slice(1 + 1) -> "c"
     // Result: "aXc"
+    const replace = edit.replace ?? "";
     updatedContent =
       updatedContent.slice(0, firstIndex) +
-      edit.replace +
+      replace +
       updatedContent.slice(firstIndex + edit.search.length);
   }
 

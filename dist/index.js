@@ -18038,17 +18038,17 @@ var require_visit = __commonJS((exports) => {
   visit.BREAK = BREAK;
   visit.SKIP = SKIP;
   visit.REMOVE = REMOVE;
-  function visit_(key, node, visitor, path) {
-    const ctrl = callVisitor(key, node, visitor, path);
+  function visit_(key, node, visitor, path2) {
+    const ctrl = callVisitor(key, node, visitor, path2);
     if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-      replaceNode(key, path, ctrl);
-      return visit_(key, ctrl, visitor, path);
+      replaceNode(key, path2, ctrl);
+      return visit_(key, ctrl, visitor, path2);
     }
     if (typeof ctrl !== "symbol") {
       if (identity.isCollection(node)) {
-        path = Object.freeze(path.concat(node));
+        path2 = Object.freeze(path2.concat(node));
         for (let i = 0;i < node.items.length; ++i) {
-          const ci = visit_(i, node.items[i], visitor, path);
+          const ci = visit_(i, node.items[i], visitor, path2);
           if (typeof ci === "number")
             i = ci - 1;
           else if (ci === BREAK)
@@ -18059,13 +18059,13 @@ var require_visit = __commonJS((exports) => {
           }
         }
       } else if (identity.isPair(node)) {
-        path = Object.freeze(path.concat(node));
-        const ck = visit_("key", node.key, visitor, path);
+        path2 = Object.freeze(path2.concat(node));
+        const ck = visit_("key", node.key, visitor, path2);
         if (ck === BREAK)
           return BREAK;
         else if (ck === REMOVE)
           node.key = null;
-        const cv = visit_("value", node.value, visitor, path);
+        const cv = visit_("value", node.value, visitor, path2);
         if (cv === BREAK)
           return BREAK;
         else if (cv === REMOVE)
@@ -18086,17 +18086,17 @@ var require_visit = __commonJS((exports) => {
   visitAsync.BREAK = BREAK;
   visitAsync.SKIP = SKIP;
   visitAsync.REMOVE = REMOVE;
-  async function visitAsync_(key, node, visitor, path) {
-    const ctrl = await callVisitor(key, node, visitor, path);
+  async function visitAsync_(key, node, visitor, path2) {
+    const ctrl = await callVisitor(key, node, visitor, path2);
     if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-      replaceNode(key, path, ctrl);
-      return visitAsync_(key, ctrl, visitor, path);
+      replaceNode(key, path2, ctrl);
+      return visitAsync_(key, ctrl, visitor, path2);
     }
     if (typeof ctrl !== "symbol") {
       if (identity.isCollection(node)) {
-        path = Object.freeze(path.concat(node));
+        path2 = Object.freeze(path2.concat(node));
         for (let i = 0;i < node.items.length; ++i) {
-          const ci = await visitAsync_(i, node.items[i], visitor, path);
+          const ci = await visitAsync_(i, node.items[i], visitor, path2);
           if (typeof ci === "number")
             i = ci - 1;
           else if (ci === BREAK)
@@ -18107,13 +18107,13 @@ var require_visit = __commonJS((exports) => {
           }
         }
       } else if (identity.isPair(node)) {
-        path = Object.freeze(path.concat(node));
-        const ck = await visitAsync_("key", node.key, visitor, path);
+        path2 = Object.freeze(path2.concat(node));
+        const ck = await visitAsync_("key", node.key, visitor, path2);
         if (ck === BREAK)
           return BREAK;
         else if (ck === REMOVE)
           node.key = null;
-        const cv = await visitAsync_("value", node.value, visitor, path);
+        const cv = await visitAsync_("value", node.value, visitor, path2);
         if (cv === BREAK)
           return BREAK;
         else if (cv === REMOVE)
@@ -18140,23 +18140,23 @@ var require_visit = __commonJS((exports) => {
     }
     return visitor;
   }
-  function callVisitor(key, node, visitor, path) {
+  function callVisitor(key, node, visitor, path2) {
     if (typeof visitor === "function")
-      return visitor(key, node, path);
+      return visitor(key, node, path2);
     if (identity.isMap(node))
-      return visitor.Map?.(key, node, path);
+      return visitor.Map?.(key, node, path2);
     if (identity.isSeq(node))
-      return visitor.Seq?.(key, node, path);
+      return visitor.Seq?.(key, node, path2);
     if (identity.isPair(node))
-      return visitor.Pair?.(key, node, path);
+      return visitor.Pair?.(key, node, path2);
     if (identity.isScalar(node))
-      return visitor.Scalar?.(key, node, path);
+      return visitor.Scalar?.(key, node, path2);
     if (identity.isAlias(node))
-      return visitor.Alias?.(key, node, path);
+      return visitor.Alias?.(key, node, path2);
     return;
   }
-  function replaceNode(key, path, node) {
-    const parent = path[path.length - 1];
+  function replaceNode(key, path2, node) {
+    const parent = path2[path2.length - 1];
     if (identity.isCollection(parent)) {
       parent.items[key] = node;
     } else if (identity.isPair(parent)) {
@@ -18715,10 +18715,10 @@ var require_Collection = __commonJS((exports) => {
   var createNode = require_createNode();
   var identity = require_identity();
   var Node = require_Node();
-  function collectionFromPath(schema, path, value) {
+  function collectionFromPath(schema, path2, value) {
     let v = value;
-    for (let i = path.length - 1;i >= 0; --i) {
-      const k = path[i];
+    for (let i = path2.length - 1;i >= 0; --i) {
+      const k = path2[i];
       if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
         const a = [];
         a[k] = v;
@@ -18737,7 +18737,7 @@ var require_Collection = __commonJS((exports) => {
       sourceObjects: new Map
     });
   }
-  var isEmptyPath = (path) => path == null || typeof path === "object" && !!path[Symbol.iterator]().next().done;
+  var isEmptyPath = (path2) => path2 == null || typeof path2 === "object" && !!path2[Symbol.iterator]().next().done;
 
   class Collection2 extends Node.NodeBase {
     constructor(type, schema) {
@@ -18758,11 +18758,11 @@ var require_Collection = __commonJS((exports) => {
         copy.range = this.range.slice();
       return copy;
     }
-    addIn(path, value) {
-      if (isEmptyPath(path))
+    addIn(path2, value) {
+      if (isEmptyPath(path2))
         this.add(value);
       else {
-        const [key, ...rest] = path;
+        const [key, ...rest] = path2;
         const node = this.get(key, true);
         if (identity.isCollection(node))
           node.addIn(rest, value);
@@ -18772,8 +18772,8 @@ var require_Collection = __commonJS((exports) => {
           throw new Error(`Expected YAML collection at ${key}. Remaining path: ${rest}`);
       }
     }
-    deleteIn(path) {
-      const [key, ...rest] = path;
+    deleteIn(path2) {
+      const [key, ...rest] = path2;
       if (rest.length === 0)
         return this.delete(key);
       const node = this.get(key, true);
@@ -18782,8 +18782,8 @@ var require_Collection = __commonJS((exports) => {
       else
         throw new Error(`Expected YAML collection at ${key}. Remaining path: ${rest}`);
     }
-    getIn(path, keepScalar) {
-      const [key, ...rest] = path;
+    getIn(path2, keepScalar) {
+      const [key, ...rest] = path2;
       const node = this.get(key, true);
       if (rest.length === 0)
         return !keepScalar && identity.isScalar(node) ? node.value : node;
@@ -18798,15 +18798,15 @@ var require_Collection = __commonJS((exports) => {
         return n == null || allowScalar && identity.isScalar(n) && n.value == null && !n.commentBefore && !n.comment && !n.tag;
       });
     }
-    hasIn(path) {
-      const [key, ...rest] = path;
+    hasIn(path2) {
+      const [key, ...rest] = path2;
       if (rest.length === 0)
         return this.has(key);
       const node = this.get(key, true);
       return identity.isCollection(node) ? node.hasIn(rest) : false;
     }
-    setIn(path, value) {
-      const [key, ...rest] = path;
+    setIn(path2, value) {
+      const [key, ...rest] = path2;
       if (rest.length === 0) {
         this.set(key, value);
       } else {
@@ -21199,9 +21199,9 @@ var require_Document = __commonJS((exports) => {
       if (assertCollection(this.contents))
         this.contents.add(value);
     }
-    addIn(path, value) {
+    addIn(path2, value) {
       if (assertCollection(this.contents))
-        this.contents.addIn(path, value);
+        this.contents.addIn(path2, value);
     }
     createAlias(node, name) {
       if (!node.anchor) {
@@ -21250,30 +21250,30 @@ var require_Document = __commonJS((exports) => {
     delete(key) {
       return assertCollection(this.contents) ? this.contents.delete(key) : false;
     }
-    deleteIn(path) {
-      if (Collection2.isEmptyPath(path)) {
+    deleteIn(path2) {
+      if (Collection2.isEmptyPath(path2)) {
         if (this.contents == null)
           return false;
         this.contents = null;
         return true;
       }
-      return assertCollection(this.contents) ? this.contents.deleteIn(path) : false;
+      return assertCollection(this.contents) ? this.contents.deleteIn(path2) : false;
     }
     get(key, keepScalar) {
       return identity.isCollection(this.contents) ? this.contents.get(key, keepScalar) : undefined;
     }
-    getIn(path, keepScalar) {
-      if (Collection2.isEmptyPath(path))
+    getIn(path2, keepScalar) {
+      if (Collection2.isEmptyPath(path2))
         return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-      return identity.isCollection(this.contents) ? this.contents.getIn(path, keepScalar) : undefined;
+      return identity.isCollection(this.contents) ? this.contents.getIn(path2, keepScalar) : undefined;
     }
     has(key) {
       return identity.isCollection(this.contents) ? this.contents.has(key) : false;
     }
-    hasIn(path) {
-      if (Collection2.isEmptyPath(path))
+    hasIn(path2) {
+      if (Collection2.isEmptyPath(path2))
         return this.contents !== undefined;
-      return identity.isCollection(this.contents) ? this.contents.hasIn(path) : false;
+      return identity.isCollection(this.contents) ? this.contents.hasIn(path2) : false;
     }
     set(key, value) {
       if (this.contents == null) {
@@ -21282,13 +21282,13 @@ var require_Document = __commonJS((exports) => {
         this.contents.set(key, value);
       }
     }
-    setIn(path, value) {
-      if (Collection2.isEmptyPath(path)) {
+    setIn(path2, value) {
+      if (Collection2.isEmptyPath(path2)) {
         this.contents = value;
       } else if (this.contents == null) {
-        this.contents = Collection2.collectionFromPath(this.schema, Array.from(path), value);
+        this.contents = Collection2.collectionFromPath(this.schema, Array.from(path2), value);
       } else if (assertCollection(this.contents)) {
-        this.contents.setIn(path, value);
+        this.contents.setIn(path2, value);
       }
     }
     setSchema(version2, options = {}) {
@@ -23185,9 +23185,9 @@ var require_cst_visit = __commonJS((exports) => {
   visit.BREAK = BREAK;
   visit.SKIP = SKIP;
   visit.REMOVE = REMOVE;
-  visit.itemAtPath = (cst, path) => {
+  visit.itemAtPath = (cst, path2) => {
     let item = cst;
-    for (const [field, index] of path) {
+    for (const [field, index] of path2) {
       const tok = item?.[field];
       if (tok && "items" in tok) {
         item = tok.items[index];
@@ -23196,23 +23196,23 @@ var require_cst_visit = __commonJS((exports) => {
     }
     return item;
   };
-  visit.parentCollection = (cst, path) => {
-    const parent = visit.itemAtPath(cst, path.slice(0, -1));
-    const field = path[path.length - 1][0];
+  visit.parentCollection = (cst, path2) => {
+    const parent = visit.itemAtPath(cst, path2.slice(0, -1));
+    const field = path2[path2.length - 1][0];
     const coll = parent?.[field];
     if (coll && "items" in coll)
       return coll;
     throw new Error("Parent collection not found");
   };
-  function _visit(path, item, visitor) {
-    let ctrl = visitor(item, path);
+  function _visit(path2, item, visitor) {
+    let ctrl = visitor(item, path2);
     if (typeof ctrl === "symbol")
       return ctrl;
     for (const field of ["key", "value"]) {
       const token = item[field];
       if (token && "items" in token) {
         for (let i = 0;i < token.items.length; ++i) {
-          const ci = _visit(Object.freeze(path.concat([[field, i]])), token.items[i], visitor);
+          const ci = _visit(Object.freeze(path2.concat([[field, i]])), token.items[i], visitor);
           if (typeof ci === "number")
             i = ci - 1;
           else if (ci === BREAK)
@@ -23223,10 +23223,10 @@ var require_cst_visit = __commonJS((exports) => {
           }
         }
         if (typeof ctrl === "function" && field === "key")
-          ctrl = ctrl(item, path);
+          ctrl = ctrl(item, path2);
       }
     }
-    return typeof ctrl === "function" ? ctrl(item, path) : ctrl;
+    return typeof ctrl === "function" ? ctrl(item, path2) : ctrl;
   }
   exports.visit = visit;
 });
@@ -24513,14 +24513,14 @@ var require_parser = __commonJS((exports) => {
           case "scalar":
           case "single-quoted-scalar":
           case "double-quoted-scalar": {
-            const fs2 = this.flowScalar(this.type);
+            const fs3 = this.flowScalar(this.type);
             if (atNextItem || it.value) {
-              map3.items.push({ start, key: fs2, sep: [] });
+              map3.items.push({ start, key: fs3, sep: [] });
               this.onKeyLine = true;
             } else if (it.sep) {
-              this.stack.push(fs2);
+              this.stack.push(fs3);
             } else {
-              Object.assign(it, { key: fs2, sep: [] });
+              Object.assign(it, { key: fs3, sep: [] });
               this.onKeyLine = true;
             }
             return;
@@ -24648,13 +24648,13 @@ var require_parser = __commonJS((exports) => {
           case "scalar":
           case "single-quoted-scalar":
           case "double-quoted-scalar": {
-            const fs2 = this.flowScalar(this.type);
+            const fs3 = this.flowScalar(this.type);
             if (!it || it.value)
-              fc.items.push({ start: [], key: fs2, sep: [] });
+              fc.items.push({ start: [], key: fs3, sep: [] });
             else if (it.sep)
-              this.stack.push(fs2);
+              this.stack.push(fs3);
             else
-              Object.assign(it, { key: fs2, sep: [] });
+              Object.assign(it, { key: fs3, sep: [] });
             return;
           }
           case "flow-map-end":
@@ -29281,20 +29281,13 @@ function getOctokit(token, options, ...additionalPlugins) {
 function normaliseSnippet(snippet, maxLength = 120) {
   return snippet.trim().replace(/\s+/g, " ").toLowerCase().slice(0, maxLength);
 }
-function fingerprintStatic(ruleId, file, lineContent) {
-  return `static:${ruleId}:${file}:${normaliseSnippet(lineContent)}`;
-}
-function fingerprintOSV(pkgName, pkgVersion, osvIds) {
-  const ids = [...osvIds].sort().join(",");
-  return `osv:${pkgName}@${pkgVersion}:${ids}`;
-}
 function fingerprintLLM(file, lineContent) {
   return `llm:${file}:${normaliseSnippet(lineContent)}`;
 }
 // src/features/pr/compare-state/matcher.ts
 var import_string_similarity = __toESM(require_src(), 1);
 var FUZZY_THRESHOLD = 0.7;
-function matchFindings(staticFindings, osvFindings, llmReviews, diffs, previous) {
+function matchFindings(llmReviews, diffs, previous) {
   const previousFindings = new Map(previous.findings.map((finding) => [finding.fingerprint, finding]));
   const matchedPrevious = new Set;
   const matched = [];
@@ -29304,31 +29297,6 @@ function matchFindings(staticFindings, osvFindings, llmReviews, diffs, previous)
       matchedPrevious.add(fingerprint);
     }
     return finding;
-  }
-  for (const finding of staticFindings) {
-    const lineContent = getLineContent(finding.file, finding.line, diffs);
-    const ruleId = inferRuleId(finding.description);
-    const fingerprint = fingerprintStatic(ruleId, finding.file, lineContent);
-    const previousFinding = findPrevious(fingerprint);
-    matched.push({
-      finding,
-      fingerprint,
-      previous: previousFinding ?? null,
-      source: "static",
-      status: previousFinding ? "active" : "new"
-    });
-  }
-  for (const finding of osvFindings) {
-    const { osvIds, pkgName, pkgVersion } = parseOSVDescription(finding.description);
-    const fingerprint = fingerprintOSV(pkgName, pkgVersion, osvIds);
-    const previousFinding = findPrevious(fingerprint);
-    matched.push({
-      finding,
-      fingerprint,
-      previous: previousFinding ?? null,
-      source: "osv",
-      status: previousFinding ? "active" : "new"
-    });
   }
   for (const review of llmReviews) {
     const lineContent = getLineContent(review.file, review.line, diffs);
@@ -29395,22 +29363,55 @@ function matchFindings(staticFindings, osvFindings, llmReviews, diffs, previous)
 function getLineContent(file, line, diffs) {
   return diffs.find((d) => d.file === file)?.added.find((a) => a.lineNumber === line)?.content ?? "";
 }
-function parseOSVDescription(description) {
-  const pkg = description.match(/`([^@`]+)@([^`]+)`/);
-  const pkgName = pkg?.[1] ?? "unknown";
-  const pkgVersion = pkg?.[2] ?? "unknown";
-  const idMatches = [
-    ...description.matchAll(/\b(CVE-\d{4}-\d+|GHSA-[a-z0-9-]+)\b/gi)
-  ];
-  const osvIds = idMatches.map((match) => match[0].toUpperCase());
-  return {
-    osvIds,
-    pkgName,
-    pkgVersion
-  };
+// src/features/push/select-documents/cache.ts
+import * as fs2 from "node:fs";
+import * as path from "node:path";
+var CACHE_DIR = ".mifoshawk";
+var CACHE_FILE = "directory-cache.json";
+var CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+function getCacheFilePath() {
+  const workspace = getInput("github-workspace") || process.env["GITHUB_WORKSPACE"] || process.cwd();
+  return path.join(workspace, CACHE_DIR, CACHE_FILE);
 }
-function inferRuleId(description) {
-  return description.trim().slice(0, 40).toLowerCase().replace(/\s+/g, "-");
+function loadDirectoryCache() {
+  const filePath = getCacheFilePath();
+  if (!fs2.existsSync(filePath)) {
+    return { listings: {} };
+  }
+  try {
+    const content = fs2.readFileSync(filePath, "utf8");
+    return JSON.parse(content);
+  } catch (error2) {
+    debug(`Failed to read directory cache: ${error2}`);
+    return { listings: {} };
+  }
+}
+function saveDirectoryCache(data) {
+  const filePath = getCacheFilePath();
+  try {
+    fs2.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs2.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
+  } catch (error2) {
+    warning(`Failed to write directory cache: ${error2}`);
+  }
+}
+function getCachedDirectoryListing(repo, branch, dirPath) {
+  const cache = loadDirectoryCache();
+  const cacheKey = `${repo}:${branch}:${dirPath}`;
+  const entry = cache.listings[cacheKey];
+  if (!entry || Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    return null;
+  }
+  return entry.files;
+}
+function setCachedDirectoryListing(repo, branch, dirPath, files) {
+  const cache = loadDirectoryCache();
+  const cacheKey = `${repo}:${branch}:${dirPath}`;
+  cache.listings[cacheKey] = {
+    files,
+    timestamp: Date.now()
+  };
+  saveDirectoryCache(cache);
 }
 // node_modules/zod/v4/classic/external.js
 var exports_external = {};
@@ -29552,7 +29553,7 @@ __export(exports_external, {
   custom: () => custom,
   cuid2: () => cuid22,
   cuid: () => cuid3,
-  core: () => exports_core2,
+  core: () => exports_core3,
   config: () => config,
   coerce: () => exports_coerce,
   codec: () => codec,
@@ -29654,8 +29655,8 @@ __export(exports_external, {
 });
 
 // node_modules/zod/v4/core/index.js
-var exports_core2 = {};
-__export(exports_core2, {
+var exports_core3 = {};
+__export(exports_core3, {
   version: () => version,
   util: () => exports_util,
   treeifyError: () => treeifyError,
@@ -30177,10 +30178,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path) {
-  if (!path)
+function getElementAtPath(obj, path2) {
+  if (!path2)
     return obj;
-  return path.reduce((acc, key) => acc?.[key], obj);
+  return path2.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -30561,11 +30562,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path, issues) {
+function prefixIssues(path2, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path);
+    iss.path.unshift(path2);
     return iss;
   });
 }
@@ -30748,7 +30749,7 @@ function formatError(error2, mapper = (issue3) => issue3.message) {
 }
 function treeifyError(error2, mapper = (issue3) => issue3.message) {
   const result = { errors: [] };
-  const processError = (error3, path = []) => {
+  const processError = (error3, path2 = []) => {
     var _a, _b;
     for (const issue3 of error3.issues) {
       if (issue3.code === "invalid_union" && issue3.errors.length) {
@@ -30758,7 +30759,7 @@ function treeifyError(error2, mapper = (issue3) => issue3.message) {
       } else if (issue3.code === "invalid_element") {
         processError({ issues: issue3.issues }, issue3.path);
       } else {
-        const fullpath = [...path, ...issue3.path];
+        const fullpath = [...path2, ...issue3.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue3));
           continue;
@@ -30790,8 +30791,8 @@ function treeifyError(error2, mapper = (issue3) => issue3.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path) {
+  const path2 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path2) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -42538,13 +42539,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path = ref.slice(1).split("/").filter(Boolean);
-  if (path.length === 0) {
+  const path2 = ref.slice(1).split("/").filter(Boolean);
+  if (path2.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path[0] === defsKey) {
-    const key = path[1];
+  if (path2[0] === defsKey) {
+    const key = path2[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -43658,8 +43659,8 @@ function getErrorMap2() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path, errorMaps, issueData } = params;
-  const fullPath = [...path, ...issueData.path || []];
+  const { data, path: path2, errorMaps, issueData } = params;
+  const fullPath = [...path2, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -43771,11 +43772,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 class ParseInputLazyPath {
-  constructor(parent, value, path, key) {
+  constructor(parent, value, path2, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path;
+    this._path = path2;
     this._key = key;
   }
   get path() {
@@ -48342,23 +48343,23 @@ function isNullable(schema) {
   }
   return false;
 }
-function ensureStrictJsonSchema(jsonSchema, path, root) {
+function ensureStrictJsonSchema(jsonSchema, path2, root) {
   if (typeof jsonSchema === "boolean") {
-    throw new TypeError(`Expected object schema but got boolean; path=${path.join("/")}`);
+    throw new TypeError(`Expected object schema but got boolean; path=${path2.join("/")}`);
   }
   if (!isObject2(jsonSchema)) {
-    throw new TypeError(`Expected ${JSON.stringify(jsonSchema)} to be an object; path=${path.join("/")}`);
+    throw new TypeError(`Expected ${JSON.stringify(jsonSchema)} to be an object; path=${path2.join("/")}`);
   }
   const defs = jsonSchema.$defs;
   if (isObject2(defs)) {
     for (const [defName, defSchema] of Object.entries(defs)) {
-      ensureStrictJsonSchema(defSchema, [...path, "$defs", defName], root);
+      ensureStrictJsonSchema(defSchema, [...path2, "$defs", defName], root);
     }
   }
   const definitions = jsonSchema.definitions;
   if (isObject2(definitions)) {
     for (const [definitionName, definitionSchema] of Object.entries(definitions)) {
-      ensureStrictJsonSchema(definitionSchema, [...path, "definitions", definitionName], root);
+      ensureStrictJsonSchema(definitionSchema, [...path2, "definitions", definitionName], root);
     }
   }
   const typ = jsonSchema.type;
@@ -48370,31 +48371,31 @@ function ensureStrictJsonSchema(jsonSchema, path, root) {
   if (isObject2(properties)) {
     for (const [key, value] of Object.entries(properties)) {
       if (!isNullable(value) && !required2.includes(key)) {
-        throw new Error(`Zod field at \`${[...path, "properties", key].join("/")}\` uses \`.optional()\` without \`.nullable()\` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required`);
+        throw new Error(`Zod field at \`${[...path2, "properties", key].join("/")}\` uses \`.optional()\` without \`.nullable()\` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required`);
       }
     }
     jsonSchema.required = Object.keys(properties);
     jsonSchema.properties = Object.fromEntries(Object.entries(properties).map(([key, propSchema]) => [
       key,
-      ensureStrictJsonSchema(propSchema, [...path, "properties", key], root)
+      ensureStrictJsonSchema(propSchema, [...path2, "properties", key], root)
     ]));
   }
   const items = jsonSchema.items;
   if (isObject2(items)) {
-    jsonSchema.items = ensureStrictJsonSchema(items, [...path, "items"], root);
+    jsonSchema.items = ensureStrictJsonSchema(items, [...path2, "items"], root);
   }
   const anyOf = jsonSchema.anyOf;
   if (Array.isArray(anyOf)) {
-    jsonSchema.anyOf = anyOf.map((variant, i) => ensureStrictJsonSchema(variant, [...path, "anyOf", String(i)], root));
+    jsonSchema.anyOf = anyOf.map((variant, i) => ensureStrictJsonSchema(variant, [...path2, "anyOf", String(i)], root));
   }
   const allOf = jsonSchema.allOf;
   if (Array.isArray(allOf)) {
     if (allOf.length === 1) {
-      const resolved = ensureStrictJsonSchema(allOf[0], [...path, "allOf", "0"], root);
+      const resolved = ensureStrictJsonSchema(allOf[0], [...path2, "allOf", "0"], root);
       Object.assign(jsonSchema, resolved);
       delete jsonSchema.allOf;
     } else {
-      jsonSchema.allOf = allOf.map((entry, i) => ensureStrictJsonSchema(entry, [...path, "allOf", String(i)], root));
+      jsonSchema.allOf = allOf.map((entry, i) => ensureStrictJsonSchema(entry, [...path2, "allOf", String(i)], root));
     }
   }
   if (jsonSchema.default === null) {
@@ -48403,7 +48404,7 @@ function ensureStrictJsonSchema(jsonSchema, path, root) {
   const ref = jsonSchema.$ref;
   if (ref && hasMoreThanNKeys(jsonSchema, 1)) {
     if (typeof ref !== "string") {
-      throw new TypeError(`Received non-string $ref - ${ref}; path=${path.join("/")}`);
+      throw new TypeError(`Received non-string $ref - ${ref}; path=${path2.join("/")}`);
     }
     const resolved = resolveRef2(root, ref);
     if (typeof resolved === "boolean") {
@@ -48414,7 +48415,7 @@ function ensureStrictJsonSchema(jsonSchema, path, root) {
     }
     Object.assign(jsonSchema, { ...resolved, ...jsonSchema });
     delete jsonSchema.$ref;
-    return ensureStrictJsonSchema(jsonSchema, path, root);
+    return ensureStrictJsonSchema(jsonSchema, path2, root);
   }
   return jsonSchema;
 }
@@ -48531,8 +48532,8 @@ async function callWithRetry(systemPrompt, userMessage, schema, schemaName) {
   });
 }
 // src/shared/config/load.ts
-import * as fs2 from "node:fs";
-import * as path from "node:path";
+import * as fs3 from "node:fs";
+import * as path2 from "node:path";
 var import_yaml = __toESM(require_dist(), 1);
 var cachedConfig;
 function loadConfig(workspacePath) {
@@ -48544,14 +48545,14 @@ function loadConfig(workspacePath) {
   if (cachedConfig) {
     return cachedConfig;
   }
-  const configPath = path.join(workspacePath, ".mifoshawk.yml");
-  if (!fs2.existsSync(configPath)) {
+  const configPath = path2.join(workspacePath, ".mifoshawk.yml");
+  if (!fs3.existsSync(configPath)) {
     info("No .mifoshawk.yml found. Using default configuration.");
     cachedConfig = {};
     return cachedConfig;
   }
   try {
-    const fileContent = fs2.readFileSync(configPath, "utf8");
+    const fileContent = fs3.readFileSync(configPath, "utf8");
     const parsedYaml = import_yaml.default.parse(fileContent);
     cachedConfig = ConfigSchema.parse(parsedYaml);
     info(`Loaded configuration from ${configPath}`);
@@ -48563,19 +48564,23 @@ function loadConfig(workspacePath) {
   }
 }
 function getConfig() {
-  return cachedConfig ?? loadConfig(process.env["GITHUB_WORKSPACE"]);
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+  const workspacePath = getInput("github-workspace") || process.env["GITHUB_WORKSPACE"];
+  return loadConfig(workspacePath);
 }
 // src/shared/config/schema.ts
 var AudienceSchema = exports_external.enum(["user", "implementor", "developer"]);
 var CommonDocumentSchema = {
   audience: AudienceSchema,
-  enabled: exports_external.boolean().optional(),
+  enabled: exports_external.boolean().optional().default(true),
   purpose: exports_external.string()
 };
 var GitHubDocSchema = {
-  branch: exports_external.string().optional(),
+  branch: exports_external.string(),
   path: exports_external.string(),
-  repo: exports_external.string().optional()
+  repo: exports_external.string()
 };
 var GitBookDocumentSchema = exports_external.object({
   ...CommonDocumentSchema,
@@ -48589,8 +48594,11 @@ var ReadMeDocumentSchema = exports_external.object({
 });
 var ConfluenceDocumentSchema = exports_external.object({
   ...CommonDocumentSchema,
-  pageId: exports_external.string(),
-  platform: exports_external.literal("confluence")
+  pageId: exports_external.string().optional(),
+  platform: exports_external.literal("confluence"),
+  spaceKey: exports_external.string().optional()
+}).refine((data) => !!(data.pageId ?? data.spaceKey) && !(data.pageId && data.spaceKey), {
+  message: "A Confluence source must specify exactly one of 'pageId' or 'spaceKey', not both."
 });
 var DocumentSchema = exports_external.discriminatedUnion("platform", [
   GitBookDocumentSchema,
@@ -48599,7 +48607,7 @@ var DocumentSchema = exports_external.discriminatedUnion("platform", [
 ]);
 var DocumentationSchema = exports_external.object({
   documents: exports_external.array(DocumentSchema),
-  enabled: exports_external.boolean().optional()
+  enabled: exports_external.boolean().optional().default(true)
 });
 var ReviewFilesSchema = exports_external.object({
   exclude: exports_external.array(exports_external.string()).optional(),
@@ -49660,11 +49668,11 @@ var qmarksTestNoExtDot = ([$0]) => {
   return (f) => f.length === len && f !== "." && f !== "..";
 };
 var defaultPlatform = typeof process === "object" && process ? typeof process.env === "object" && process.env && process.env.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
-var path2 = {
+var path3 = {
   win32: { sep: "\\" },
   posix: { sep: "/" }
 };
-var sep2 = defaultPlatform === "win32" ? path2.win32.sep : path2.posix.sep;
+var sep2 = defaultPlatform === "win32" ? path3.win32.sep : path3.posix.sep;
 minimatch.sep = sep2;
 var GLOBSTAR = Symbol("globstar **");
 minimatch.GLOBSTAR = GLOBSTAR;
@@ -50404,6 +50412,96 @@ function matchesScanPatterns(fileName) {
     return true;
   }
   return scanPatterns.some((p) => minimatch(fileName, p));
+}
+// src/shared/github/get-context.ts
+function stripMarkdown(text) {
+  return text.replace(/#{1,6}\s+/g, "").replace(/!\[.*?\]\(.*?\)/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/`{1,3}[^`]*`{1,3}/g, "").replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1").replace(/~~([^~]+)~~/g, "$1").replace(/^\s*[-*+>]\s+/gm, "").replace(/\r\n/g, `
+`).replace(/\n{3,}/g, `
+
+`).trim();
+}
+function extractIssueNumbers(text) {
+  const pattern = /(?:closes?|fixes?|resolves?)\s+#(\d+)|(?<!\w)#(\d+)/gi;
+  const seen = new Set;
+  let match2;
+  while ((match2 = pattern.exec(text)) !== null) {
+    const num = parseInt(match2[1] ?? match2[2] ?? "", 10);
+    if (!isNaN(num))
+      seen.add(num);
+  }
+  return [...seen];
+}
+async function getPRContext({
+  owner,
+  prNumber,
+  repo,
+  token
+}) {
+  const octokit = getOctokit(token);
+  const [prRes, diffRes, commitsRes, filesRes] = await Promise.all([
+    octokit.rest.pulls.get({
+      owner,
+      pull_number: prNumber,
+      repo
+    }),
+    octokit.rest.pulls.get({
+      headers: { accept: "application/vnd.github.v3.diff" },
+      owner,
+      pull_number: prNumber,
+      repo
+    }),
+    octokit.rest.pulls.listCommits({
+      owner,
+      per_page: 100,
+      pull_number: prNumber,
+      repo
+    }),
+    octokit.rest.pulls.listFiles({
+      owner,
+      per_page: 100,
+      pull_number: prNumber,
+      repo
+    })
+  ]);
+  const pr = prRes.data;
+  const title = pr.title;
+  const description = pr.body ?? "";
+  const strippedDescription = stripMarkdown(description);
+  const labels = pr.labels.map((label) => label.name);
+  const diff = diffRes.data;
+  const commits = commitsRes.data.map((c) => c.commit.message);
+  const commitMessages = commitsRes.data.map((c) => c.commit.message.split(`
+`)[0]);
+  const changedFiles = filesRes.data.map((file2) => ({
+    path: file2.filename,
+    status: file2.status
+  }));
+  const allText = [description, ...commits].join(`
+`);
+  const issueNumbers = extractIssueNumbers(allText);
+  const linkedIssues = [];
+  await Promise.all(issueNumbers.map(async (num) => {
+    try {
+      const { data: issue3 } = await octokit.rest.issues.get({
+        issue_number: num,
+        owner,
+        repo
+      });
+      linkedIssues.push({ number: num, title: issue3.title });
+    } catch {}
+  }));
+  linkedIssues.sort((a, b) => a.number - b.number);
+  return {
+    changedFiles,
+    commitMessages,
+    commits,
+    description,
+    diff,
+    labels,
+    linkedIssues,
+    strippedDescription,
+    title
+  };
 }
 // node_modules/js-tiktoken/dist/chunk-VL2OQCWN.js
 var import_base64_js = __toESM(require_base64_js(), 1);
@@ -52092,12 +52190,12 @@ function encodeURIPath(str) {
   return str.replace(/[^A-Za-z0-9\-._~!$&'()*+,;=:@]+/g, encodeURIComponent);
 }
 var EMPTY = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.create(null));
-var createPathTagFunction = (pathEncoder = encodeURIPath) => function path3(statics, ...params) {
+var createPathTagFunction = (pathEncoder = encodeURIPath) => function path4(statics, ...params) {
   if (statics.length === 1)
     return statics[0];
   let postPath = false;
   const invalidSegments = [];
-  const path4 = statics.reduce((previousValue, currentValue, index) => {
+  const path5 = statics.reduce((previousValue, currentValue, index) => {
     if (/[?#]/.test(currentValue)) {
       postPath = true;
     }
@@ -52113,7 +52211,7 @@ var createPathTagFunction = (pathEncoder = encodeURIPath) => function path3(stat
     }
     return previousValue + currentValue + (index === params.length ? "" : encoded);
   }, "");
-  const pathOnly = path4.split(/[?#]/, 1)[0];
+  const pathOnly = path5.split(/[?#]/, 1)[0];
   const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
   let match2;
   while ((match2 = invalidSegmentPattern.exec(pathOnly)) !== null) {
@@ -52135,17 +52233,17 @@ var createPathTagFunction = (pathEncoder = encodeURIPath) => function path3(stat
     throw new OpenAIError(`Path parameters result in path with invalid segments:
 ${invalidSegments.map((e) => e.error).join(`
 `)}
-${path4}
+${path5}
 ${underline}`);
   }
-  return path4;
+  return path5;
 };
-var path3 = /* @__PURE__ */ createPathTagFunction(encodeURIPath);
+var path4 = /* @__PURE__ */ createPathTagFunction(encodeURIPath);
 
 // node_modules/openai/resources/chat/completions/messages.mjs
 class Messages extends APIResource {
   list(completionID, query = {}, options) {
-    return this._client.getAPIList(path3`/chat/completions/${completionID}/messages`, CursorPage, { query, ...options });
+    return this._client.getAPIList(path4`/chat/completions/${completionID}/messages`, CursorPage, { query, ...options });
   }
 }
 
@@ -53303,16 +53401,16 @@ class Completions extends APIResource {
     return this._client.post("/chat/completions", { body, ...options, stream: body.stream ?? false });
   }
   retrieve(completionID, options) {
-    return this._client.get(path3`/chat/completions/${completionID}`, options);
+    return this._client.get(path4`/chat/completions/${completionID}`, options);
   }
   update(completionID, body, options) {
-    return this._client.post(path3`/chat/completions/${completionID}`, { body, ...options });
+    return this._client.post(path4`/chat/completions/${completionID}`, { body, ...options });
   }
   list(query = {}, options) {
     return this._client.getAPIList("/chat/completions", CursorPage, { query, ...options });
   }
   delete(completionID, options) {
-    return this._client.delete(path3`/chat/completions/${completionID}`, options);
+    return this._client.delete(path4`/chat/completions/${completionID}`, options);
   }
   parse(body, options) {
     validateInputTools(body.tools);
@@ -53456,13 +53554,13 @@ class Batches extends APIResource {
     return this._client.post("/batches", { body, ...options });
   }
   retrieve(batchID, options) {
-    return this._client.get(path3`/batches/${batchID}`, options);
+    return this._client.get(path4`/batches/${batchID}`, options);
   }
   list(query = {}, options) {
     return this._client.getAPIList("/batches", CursorPage, { query, ...options });
   }
   cancel(batchID, options) {
-    return this._client.post(path3`/batches/${batchID}/cancel`, options);
+    return this._client.post(path4`/batches/${batchID}/cancel`, options);
   }
 }
 // node_modules/openai/resources/beta/assistants.mjs
@@ -53475,13 +53573,13 @@ class Assistants extends APIResource {
     });
   }
   retrieve(assistantID, options) {
-    return this._client.get(path3`/assistants/${assistantID}`, {
+    return this._client.get(path4`/assistants/${assistantID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   update(assistantID, body, options) {
-    return this._client.post(path3`/assistants/${assistantID}`, {
+    return this._client.post(path4`/assistants/${assistantID}`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -53495,7 +53593,7 @@ class Assistants extends APIResource {
     });
   }
   delete(assistantID, options) {
-    return this._client.delete(path3`/assistants/${assistantID}`, {
+    return this._client.delete(path4`/assistants/${assistantID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
@@ -53545,7 +53643,7 @@ class Sessions2 extends APIResource {
     });
   }
   cancel(sessionID, options) {
-    return this._client.post(path3`/chatkit/sessions/${sessionID}/cancel`, {
+    return this._client.post(path4`/chatkit/sessions/${sessionID}/cancel`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
     });
@@ -53555,7 +53653,7 @@ class Sessions2 extends APIResource {
 // node_modules/openai/resources/beta/chatkit/threads.mjs
 class Threads extends APIResource {
   retrieve(threadID, options) {
-    return this._client.get(path3`/chatkit/threads/${threadID}`, {
+    return this._client.get(path4`/chatkit/threads/${threadID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
     });
@@ -53568,13 +53666,13 @@ class Threads extends APIResource {
     });
   }
   delete(threadID, options) {
-    return this._client.delete(path3`/chatkit/threads/${threadID}`, {
+    return this._client.delete(path4`/chatkit/threads/${threadID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
     });
   }
   listItems(threadID, query = {}, options) {
-    return this._client.getAPIList(path3`/chatkit/threads/${threadID}/items`, ConversationCursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers]) });
+    return this._client.getAPIList(path4`/chatkit/threads/${threadID}/items`, ConversationCursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers]) });
   }
 }
 
@@ -53592,7 +53690,7 @@ ChatKit.Threads = Threads;
 // node_modules/openai/resources/beta/threads/messages.mjs
 class Messages2 extends APIResource {
   create(threadID, body, options) {
-    return this._client.post(path3`/threads/${threadID}/messages`, {
+    return this._client.post(path4`/threads/${threadID}/messages`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -53600,21 +53698,21 @@ class Messages2 extends APIResource {
   }
   retrieve(messageID, params, options) {
     const { thread_id } = params;
-    return this._client.get(path3`/threads/${thread_id}/messages/${messageID}`, {
+    return this._client.get(path4`/threads/${thread_id}/messages/${messageID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   update(messageID, params, options) {
     const { thread_id, ...body } = params;
-    return this._client.post(path3`/threads/${thread_id}/messages/${messageID}`, {
+    return this._client.post(path4`/threads/${thread_id}/messages/${messageID}`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   list(threadID, query = {}, options) {
-    return this._client.getAPIList(path3`/threads/${threadID}/messages`, CursorPage, {
+    return this._client.getAPIList(path4`/threads/${threadID}/messages`, CursorPage, {
       query,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -53622,7 +53720,7 @@ class Messages2 extends APIResource {
   }
   delete(messageID, params, options) {
     const { thread_id } = params;
-    return this._client.delete(path3`/threads/${thread_id}/messages/${messageID}`, {
+    return this._client.delete(path4`/threads/${thread_id}/messages/${messageID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
@@ -53633,7 +53731,7 @@ class Messages2 extends APIResource {
 class Steps extends APIResource {
   retrieve(stepID, params, options) {
     const { thread_id, run_id, ...query } = params;
-    return this._client.get(path3`/threads/${thread_id}/runs/${run_id}/steps/${stepID}`, {
+    return this._client.get(path4`/threads/${thread_id}/runs/${run_id}/steps/${stepID}`, {
       query,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -53641,7 +53739,7 @@ class Steps extends APIResource {
   }
   list(runID, params, options) {
     const { thread_id, ...query } = params;
-    return this._client.getAPIList(path3`/threads/${thread_id}/runs/${runID}/steps`, CursorPage, {
+    return this._client.getAPIList(path4`/threads/${thread_id}/runs/${runID}/steps`, CursorPage, {
       query,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -54220,7 +54318,7 @@ class Runs extends APIResource {
   }
   create(threadID, params, options) {
     const { include, ...body } = params;
-    return this._client.post(path3`/threads/${threadID}/runs`, {
+    return this._client.post(path4`/threads/${threadID}/runs`, {
       query: { include },
       body,
       ...options,
@@ -54230,21 +54328,21 @@ class Runs extends APIResource {
   }
   retrieve(runID, params, options) {
     const { thread_id } = params;
-    return this._client.get(path3`/threads/${thread_id}/runs/${runID}`, {
+    return this._client.get(path4`/threads/${thread_id}/runs/${runID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   update(runID, params, options) {
     const { thread_id, ...body } = params;
-    return this._client.post(path3`/threads/${thread_id}/runs/${runID}`, {
+    return this._client.post(path4`/threads/${thread_id}/runs/${runID}`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   list(threadID, query = {}, options) {
-    return this._client.getAPIList(path3`/threads/${threadID}/runs`, CursorPage, {
+    return this._client.getAPIList(path4`/threads/${threadID}/runs`, CursorPage, {
       query,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -54252,7 +54350,7 @@ class Runs extends APIResource {
   }
   cancel(runID, params, options) {
     const { thread_id } = params;
-    return this._client.post(path3`/threads/${thread_id}/runs/${runID}/cancel`, {
+    return this._client.post(path4`/threads/${thread_id}/runs/${runID}/cancel`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
@@ -54310,7 +54408,7 @@ class Runs extends APIResource {
   }
   submitToolOutputs(runID, params, options) {
     const { thread_id, ...body } = params;
-    return this._client.post(path3`/threads/${thread_id}/runs/${runID}/submit_tool_outputs`, {
+    return this._client.post(path4`/threads/${thread_id}/runs/${runID}/submit_tool_outputs`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
@@ -54342,20 +54440,20 @@ class Threads2 extends APIResource {
     });
   }
   retrieve(threadID, options) {
-    return this._client.get(path3`/threads/${threadID}`, {
+    return this._client.get(path4`/threads/${threadID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   update(threadID, body, options) {
-    return this._client.post(path3`/threads/${threadID}`, {
+    return this._client.post(path4`/threads/${threadID}`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   delete(threadID, options) {
-    return this._client.delete(path3`/threads/${threadID}`, {
+    return this._client.delete(path4`/threads/${threadID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
@@ -54403,7 +54501,7 @@ class Completions2 extends APIResource {
 class Content extends APIResource {
   retrieve(fileID, params, options) {
     const { container_id } = params;
-    return this._client.get(path3`/containers/${container_id}/files/${fileID}/content`, {
+    return this._client.get(path4`/containers/${container_id}/files/${fileID}/content`, {
       ...options,
       headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
       __binaryResponse: true
@@ -54418,21 +54516,21 @@ class Files extends APIResource {
     this.content = new Content(this._client);
   }
   create(containerID, body, options) {
-    return this._client.post(path3`/containers/${containerID}/files`, multipartFormRequestOptions({ body, ...options }, this._client));
+    return this._client.post(path4`/containers/${containerID}/files`, multipartFormRequestOptions({ body, ...options }, this._client));
   }
   retrieve(fileID, params, options) {
     const { container_id } = params;
-    return this._client.get(path3`/containers/${container_id}/files/${fileID}`, options);
+    return this._client.get(path4`/containers/${container_id}/files/${fileID}`, options);
   }
   list(containerID, query = {}, options) {
-    return this._client.getAPIList(path3`/containers/${containerID}/files`, CursorPage, {
+    return this._client.getAPIList(path4`/containers/${containerID}/files`, CursorPage, {
       query,
       ...options
     });
   }
   delete(fileID, params, options) {
     const { container_id } = params;
-    return this._client.delete(path3`/containers/${container_id}/files/${fileID}`, {
+    return this._client.delete(path4`/containers/${container_id}/files/${fileID}`, {
       ...options,
       headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
     });
@@ -54450,13 +54548,13 @@ class Containers extends APIResource {
     return this._client.post("/containers", { body, ...options });
   }
   retrieve(containerID, options) {
-    return this._client.get(path3`/containers/${containerID}`, options);
+    return this._client.get(path4`/containers/${containerID}`, options);
   }
   list(query = {}, options) {
     return this._client.getAPIList("/containers", CursorPage, { query, ...options });
   }
   delete(containerID, options) {
-    return this._client.delete(path3`/containers/${containerID}`, {
+    return this._client.delete(path4`/containers/${containerID}`, {
       ...options,
       headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
     });
@@ -54467,7 +54565,7 @@ Containers.Files = Files;
 class Items extends APIResource {
   create(conversationID, params, options) {
     const { include, ...body } = params;
-    return this._client.post(path3`/conversations/${conversationID}/items`, {
+    return this._client.post(path4`/conversations/${conversationID}/items`, {
       query: { include },
       body,
       ...options
@@ -54475,14 +54573,14 @@ class Items extends APIResource {
   }
   retrieve(itemID, params, options) {
     const { conversation_id, ...query } = params;
-    return this._client.get(path3`/conversations/${conversation_id}/items/${itemID}`, { query, ...options });
+    return this._client.get(path4`/conversations/${conversation_id}/items/${itemID}`, { query, ...options });
   }
   list(conversationID, query = {}, options) {
-    return this._client.getAPIList(path3`/conversations/${conversationID}/items`, ConversationCursorPage, { query, ...options });
+    return this._client.getAPIList(path4`/conversations/${conversationID}/items`, ConversationCursorPage, { query, ...options });
   }
   delete(itemID, params, options) {
     const { conversation_id } = params;
-    return this._client.delete(path3`/conversations/${conversation_id}/items/${itemID}`, options);
+    return this._client.delete(path4`/conversations/${conversation_id}/items/${itemID}`, options);
   }
 }
 
@@ -54496,13 +54594,13 @@ class Conversations extends APIResource {
     return this._client.post("/conversations", { body, ...options });
   }
   retrieve(conversationID, options) {
-    return this._client.get(path3`/conversations/${conversationID}`, options);
+    return this._client.get(path4`/conversations/${conversationID}`, options);
   }
   update(conversationID, body, options) {
-    return this._client.post(path3`/conversations/${conversationID}`, { body, ...options });
+    return this._client.post(path4`/conversations/${conversationID}`, { body, ...options });
   }
   delete(conversationID, options) {
-    return this._client.delete(path3`/conversations/${conversationID}`, options);
+    return this._client.delete(path4`/conversations/${conversationID}`, options);
   }
 }
 Conversations.Items = Items;
@@ -54540,11 +54638,11 @@ class Embeddings extends APIResource {
 class OutputItems extends APIResource {
   retrieve(outputItemID, params, options) {
     const { eval_id, run_id } = params;
-    return this._client.get(path3`/evals/${eval_id}/runs/${run_id}/output_items/${outputItemID}`, options);
+    return this._client.get(path4`/evals/${eval_id}/runs/${run_id}/output_items/${outputItemID}`, options);
   }
   list(runID, params, options) {
     const { eval_id, ...query } = params;
-    return this._client.getAPIList(path3`/evals/${eval_id}/runs/${runID}/output_items`, CursorPage, { query, ...options });
+    return this._client.getAPIList(path4`/evals/${eval_id}/runs/${runID}/output_items`, CursorPage, { query, ...options });
   }
 }
 
@@ -54555,25 +54653,25 @@ class Runs2 extends APIResource {
     this.outputItems = new OutputItems(this._client);
   }
   create(evalID, body, options) {
-    return this._client.post(path3`/evals/${evalID}/runs`, { body, ...options });
+    return this._client.post(path4`/evals/${evalID}/runs`, { body, ...options });
   }
   retrieve(runID, params, options) {
     const { eval_id } = params;
-    return this._client.get(path3`/evals/${eval_id}/runs/${runID}`, options);
+    return this._client.get(path4`/evals/${eval_id}/runs/${runID}`, options);
   }
   list(evalID, query = {}, options) {
-    return this._client.getAPIList(path3`/evals/${evalID}/runs`, CursorPage, {
+    return this._client.getAPIList(path4`/evals/${evalID}/runs`, CursorPage, {
       query,
       ...options
     });
   }
   delete(runID, params, options) {
     const { eval_id } = params;
-    return this._client.delete(path3`/evals/${eval_id}/runs/${runID}`, options);
+    return this._client.delete(path4`/evals/${eval_id}/runs/${runID}`, options);
   }
   cancel(runID, params, options) {
     const { eval_id } = params;
-    return this._client.post(path3`/evals/${eval_id}/runs/${runID}`, options);
+    return this._client.post(path4`/evals/${eval_id}/runs/${runID}`, options);
   }
 }
 Runs2.OutputItems = OutputItems;
@@ -54588,16 +54686,16 @@ class Evals extends APIResource {
     return this._client.post("/evals", { body, ...options });
   }
   retrieve(evalID, options) {
-    return this._client.get(path3`/evals/${evalID}`, options);
+    return this._client.get(path4`/evals/${evalID}`, options);
   }
   update(evalID, body, options) {
-    return this._client.post(path3`/evals/${evalID}`, { body, ...options });
+    return this._client.post(path4`/evals/${evalID}`, { body, ...options });
   }
   list(query = {}, options) {
     return this._client.getAPIList("/evals", CursorPage, { query, ...options });
   }
   delete(evalID, options) {
-    return this._client.delete(path3`/evals/${evalID}`, options);
+    return this._client.delete(path4`/evals/${evalID}`, options);
   }
 }
 Evals.Runs = Runs2;
@@ -54607,16 +54705,16 @@ class Files2 extends APIResource {
     return this._client.post("/files", multipartFormRequestOptions({ body, ...options }, this._client));
   }
   retrieve(fileID, options) {
-    return this._client.get(path3`/files/${fileID}`, options);
+    return this._client.get(path4`/files/${fileID}`, options);
   }
   list(query = {}, options) {
     return this._client.getAPIList("/files", CursorPage, { query, ...options });
   }
   delete(fileID, options) {
-    return this._client.delete(path3`/files/${fileID}`, options);
+    return this._client.delete(path4`/files/${fileID}`, options);
   }
   content(fileID, options) {
-    return this._client.get(path3`/files/${fileID}/content`, {
+    return this._client.get(path4`/files/${fileID}/content`, {
       ...options,
       headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
       __binaryResponse: true
@@ -54664,17 +54762,17 @@ Alpha.Graders = Graders;
 // node_modules/openai/resources/fine-tuning/checkpoints/permissions.mjs
 class Permissions extends APIResource {
   create(fineTunedModelCheckpoint, body, options) {
-    return this._client.getAPIList(path3`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, Page, { body, method: "post", ...options });
+    return this._client.getAPIList(path4`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, Page, { body, method: "post", ...options });
   }
   retrieve(fineTunedModelCheckpoint, query = {}, options) {
-    return this._client.get(path3`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, {
+    return this._client.get(path4`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, {
       query,
       ...options
     });
   }
   delete(permissionID, params, options) {
     const { fine_tuned_model_checkpoint } = params;
-    return this._client.delete(path3`/fine_tuning/checkpoints/${fine_tuned_model_checkpoint}/permissions/${permissionID}`, options);
+    return this._client.delete(path4`/fine_tuning/checkpoints/${fine_tuned_model_checkpoint}/permissions/${permissionID}`, options);
   }
 }
 
@@ -54690,7 +54788,7 @@ Checkpoints.Permissions = Permissions;
 // node_modules/openai/resources/fine-tuning/jobs/checkpoints.mjs
 class Checkpoints2 extends APIResource {
   list(fineTuningJobID, query = {}, options) {
-    return this._client.getAPIList(path3`/fine_tuning/jobs/${fineTuningJobID}/checkpoints`, CursorPage, { query, ...options });
+    return this._client.getAPIList(path4`/fine_tuning/jobs/${fineTuningJobID}/checkpoints`, CursorPage, { query, ...options });
   }
 }
 
@@ -54704,22 +54802,22 @@ class Jobs extends APIResource {
     return this._client.post("/fine_tuning/jobs", { body, ...options });
   }
   retrieve(fineTuningJobID, options) {
-    return this._client.get(path3`/fine_tuning/jobs/${fineTuningJobID}`, options);
+    return this._client.get(path4`/fine_tuning/jobs/${fineTuningJobID}`, options);
   }
   list(query = {}, options) {
     return this._client.getAPIList("/fine_tuning/jobs", CursorPage, { query, ...options });
   }
   cancel(fineTuningJobID, options) {
-    return this._client.post(path3`/fine_tuning/jobs/${fineTuningJobID}/cancel`, options);
+    return this._client.post(path4`/fine_tuning/jobs/${fineTuningJobID}/cancel`, options);
   }
   listEvents(fineTuningJobID, query = {}, options) {
-    return this._client.getAPIList(path3`/fine_tuning/jobs/${fineTuningJobID}/events`, CursorPage, { query, ...options });
+    return this._client.getAPIList(path4`/fine_tuning/jobs/${fineTuningJobID}/events`, CursorPage, { query, ...options });
   }
   pause(fineTuningJobID, options) {
-    return this._client.post(path3`/fine_tuning/jobs/${fineTuningJobID}/pause`, options);
+    return this._client.post(path4`/fine_tuning/jobs/${fineTuningJobID}/pause`, options);
   }
   resume(fineTuningJobID, options) {
-    return this._client.post(path3`/fine_tuning/jobs/${fineTuningJobID}/resume`, options);
+    return this._client.post(path4`/fine_tuning/jobs/${fineTuningJobID}/resume`, options);
   }
 }
 Jobs.Checkpoints = Checkpoints2;
@@ -54765,13 +54863,13 @@ class Images extends APIResource {
 // node_modules/openai/resources/models.mjs
 class Models extends APIResource {
   retrieve(model, options) {
-    return this._client.get(path3`/models/${model}`, options);
+    return this._client.get(path4`/models/${model}`, options);
   }
   list(options) {
     return this._client.getAPIList("/models", Page, options);
   }
   delete(model, options) {
-    return this._client.delete(path3`/models/${model}`, options);
+    return this._client.delete(path4`/models/${model}`, options);
   }
 }
 // node_modules/openai/resources/moderations.mjs
@@ -54783,27 +54881,27 @@ class Moderations extends APIResource {
 // node_modules/openai/resources/realtime/calls.mjs
 class Calls extends APIResource {
   accept(callID, body, options) {
-    return this._client.post(path3`/realtime/calls/${callID}/accept`, {
+    return this._client.post(path4`/realtime/calls/${callID}/accept`, {
       body,
       ...options,
       headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
     });
   }
   hangup(callID, options) {
-    return this._client.post(path3`/realtime/calls/${callID}/hangup`, {
+    return this._client.post(path4`/realtime/calls/${callID}/hangup`, {
       ...options,
       headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
     });
   }
   refer(callID, body, options) {
-    return this._client.post(path3`/realtime/calls/${callID}/refer`, {
+    return this._client.post(path4`/realtime/calls/${callID}/refer`, {
       body,
       ...options,
       headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
     });
   }
   reject(callID, body = {}, options) {
-    return this._client.post(path3`/realtime/calls/${callID}/reject`, {
+    return this._client.post(path4`/realtime/calls/${callID}/reject`, {
       body,
       ...options,
       headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
@@ -55090,7 +55188,7 @@ function finalizeResponse(snapshot, params) {
 // node_modules/openai/resources/responses/input-items.mjs
 class InputItems extends APIResource {
   list(responseID, query = {}, options) {
-    return this._client.getAPIList(path3`/responses/${responseID}/input_items`, CursorPage, { query, ...options });
+    return this._client.getAPIList(path4`/responses/${responseID}/input_items`, CursorPage, { query, ...options });
   }
 }
 
@@ -55117,7 +55215,7 @@ class Responses extends APIResource {
     });
   }
   retrieve(responseID, query = {}, options) {
-    return this._client.get(path3`/responses/${responseID}`, {
+    return this._client.get(path4`/responses/${responseID}`, {
       query,
       ...options,
       stream: query?.stream ?? false
@@ -55129,7 +55227,7 @@ class Responses extends APIResource {
     });
   }
   delete(responseID, options) {
-    return this._client.delete(path3`/responses/${responseID}`, {
+    return this._client.delete(path4`/responses/${responseID}`, {
       ...options,
       headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
     });
@@ -55141,7 +55239,7 @@ class Responses extends APIResource {
     return ResponseStream.createResponse(this._client, body, options);
   }
   cancel(responseID, options) {
-    return this._client.post(path3`/responses/${responseID}/cancel`, options);
+    return this._client.post(path4`/responses/${responseID}/cancel`, options);
   }
   compact(body, options) {
     return this._client.post("/responses/compact", { body, ...options });
@@ -55152,7 +55250,7 @@ Responses.InputTokens = InputTokens;
 // node_modules/openai/resources/uploads/parts.mjs
 class Parts extends APIResource {
   create(uploadID, body, options) {
-    return this._client.post(path3`/uploads/${uploadID}/parts`, multipartFormRequestOptions({ body, ...options }, this._client));
+    return this._client.post(path4`/uploads/${uploadID}/parts`, multipartFormRequestOptions({ body, ...options }, this._client));
   }
 }
 
@@ -55166,10 +55264,10 @@ class Uploads extends APIResource {
     return this._client.post("/uploads", { body, ...options });
   }
   cancel(uploadID, options) {
-    return this._client.post(path3`/uploads/${uploadID}/cancel`, options);
+    return this._client.post(path4`/uploads/${uploadID}/cancel`, options);
   }
   complete(uploadID, body, options) {
-    return this._client.post(path3`/uploads/${uploadID}/complete`, { body, ...options });
+    return this._client.post(path4`/uploads/${uploadID}/complete`, { body, ...options });
   }
 }
 Uploads.Parts = Parts;
@@ -55195,7 +55293,7 @@ var allSettledWithThrow = async (promises3) => {
 // node_modules/openai/resources/vector-stores/file-batches.mjs
 class FileBatches extends APIResource {
   create(vectorStoreID, body, options) {
-    return this._client.post(path3`/vector_stores/${vectorStoreID}/file_batches`, {
+    return this._client.post(path4`/vector_stores/${vectorStoreID}/file_batches`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -55203,14 +55301,14 @@ class FileBatches extends APIResource {
   }
   retrieve(batchID, params, options) {
     const { vector_store_id } = params;
-    return this._client.get(path3`/vector_stores/${vector_store_id}/file_batches/${batchID}`, {
+    return this._client.get(path4`/vector_stores/${vector_store_id}/file_batches/${batchID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   cancel(batchID, params, options) {
     const { vector_store_id } = params;
-    return this._client.post(path3`/vector_stores/${vector_store_id}/file_batches/${batchID}/cancel`, {
+    return this._client.post(path4`/vector_stores/${vector_store_id}/file_batches/${batchID}/cancel`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
@@ -55221,7 +55319,7 @@ class FileBatches extends APIResource {
   }
   listFiles(batchID, params, options) {
     const { vector_store_id, ...query } = params;
-    return this._client.getAPIList(path3`/vector_stores/${vector_store_id}/file_batches/${batchID}/files`, CursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
+    return this._client.getAPIList(path4`/vector_stores/${vector_store_id}/file_batches/${batchID}/files`, CursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
   }
   async poll(vectorStoreID, batchID, options) {
     const headers = buildHeaders([
@@ -55285,7 +55383,7 @@ class FileBatches extends APIResource {
 // node_modules/openai/resources/vector-stores/files.mjs
 class Files3 extends APIResource {
   create(vectorStoreID, body, options) {
-    return this._client.post(path3`/vector_stores/${vectorStoreID}/files`, {
+    return this._client.post(path4`/vector_stores/${vectorStoreID}/files`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -55293,21 +55391,21 @@ class Files3 extends APIResource {
   }
   retrieve(fileID, params, options) {
     const { vector_store_id } = params;
-    return this._client.get(path3`/vector_stores/${vector_store_id}/files/${fileID}`, {
+    return this._client.get(path4`/vector_stores/${vector_store_id}/files/${fileID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   update(fileID, params, options) {
     const { vector_store_id, ...body } = params;
-    return this._client.post(path3`/vector_stores/${vector_store_id}/files/${fileID}`, {
+    return this._client.post(path4`/vector_stores/${vector_store_id}/files/${fileID}`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   list(vectorStoreID, query = {}, options) {
-    return this._client.getAPIList(path3`/vector_stores/${vectorStoreID}/files`, CursorPage, {
+    return this._client.getAPIList(path4`/vector_stores/${vectorStoreID}/files`, CursorPage, {
       query,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -55315,7 +55413,7 @@ class Files3 extends APIResource {
   }
   delete(fileID, params, options) {
     const { vector_store_id } = params;
-    return this._client.delete(path3`/vector_stores/${vector_store_id}/files/${fileID}`, {
+    return this._client.delete(path4`/vector_stores/${vector_store_id}/files/${fileID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
@@ -55369,7 +55467,7 @@ class Files3 extends APIResource {
   }
   content(fileID, params, options) {
     const { vector_store_id } = params;
-    return this._client.getAPIList(path3`/vector_stores/${vector_store_id}/files/${fileID}/content`, Page, { ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
+    return this._client.getAPIList(path4`/vector_stores/${vector_store_id}/files/${fileID}/content`, Page, { ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
   }
 }
 
@@ -55388,13 +55486,13 @@ class VectorStores extends APIResource {
     });
   }
   retrieve(vectorStoreID, options) {
-    return this._client.get(path3`/vector_stores/${vectorStoreID}`, {
+    return this._client.get(path4`/vector_stores/${vectorStoreID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   update(vectorStoreID, body, options) {
-    return this._client.post(path3`/vector_stores/${vectorStoreID}`, {
+    return this._client.post(path4`/vector_stores/${vectorStoreID}`, {
       body,
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -55408,13 +55506,13 @@ class VectorStores extends APIResource {
     });
   }
   delete(vectorStoreID, options) {
-    return this._client.delete(path3`/vector_stores/${vectorStoreID}`, {
+    return this._client.delete(path4`/vector_stores/${vectorStoreID}`, {
       ...options,
       headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
     });
   }
   search(vectorStoreID, body, options) {
-    return this._client.getAPIList(path3`/vector_stores/${vectorStoreID}/search`, Page, {
+    return this._client.getAPIList(path4`/vector_stores/${vectorStoreID}/search`, Page, {
       body,
       method: "post",
       ...options,
@@ -55430,16 +55528,16 @@ class Videos extends APIResource {
     return this._client.post("/videos", maybeMultipartFormRequestOptions({ body, ...options }, this._client));
   }
   retrieve(videoID, options) {
-    return this._client.get(path3`/videos/${videoID}`, options);
+    return this._client.get(path4`/videos/${videoID}`, options);
   }
   list(query = {}, options) {
     return this._client.getAPIList("/videos", ConversationCursorPage, { query, ...options });
   }
   delete(videoID, options) {
-    return this._client.delete(path3`/videos/${videoID}`, options);
+    return this._client.delete(path4`/videos/${videoID}`, options);
   }
   downloadContent(videoID, query = {}, options) {
-    return this._client.get(path3`/videos/${videoID}/content`, {
+    return this._client.get(path4`/videos/${videoID}/content`, {
       query,
       ...options,
       headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
@@ -55447,7 +55545,7 @@ class Videos extends APIResource {
     });
   }
   remix(videoID, body, options) {
-    return this._client.post(path3`/videos/${videoID}/remix`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+    return this._client.post(path4`/videos/${videoID}/remix`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
   }
 }
 // node_modules/openai/resources/webhooks.mjs
@@ -55643,9 +55741,9 @@ https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
     this.apiKey = token;
     return true;
   }
-  buildURL(path4, query, defaultBaseURL) {
+  buildURL(path5, query, defaultBaseURL) {
     const baseURL = !__classPrivateFieldGet(this, _OpenAI_instances, "m", _OpenAI_baseURLOverridden).call(this) && defaultBaseURL || this.baseURL;
-    const url2 = isAbsoluteURL(path4) ? new URL(path4) : new URL(baseURL + (baseURL.endsWith("/") && path4.startsWith("/") ? path4.slice(1) : path4));
+    const url2 = isAbsoluteURL(path5) ? new URL(path5) : new URL(baseURL + (baseURL.endsWith("/") && path5.startsWith("/") ? path5.slice(1) : path5));
     const defaultQuery = this.defaultQuery();
     if (!isEmptyObj2(defaultQuery)) {
       query = { ...defaultQuery, ...query };
@@ -55659,24 +55757,24 @@ https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
     await this._callApiKey();
   }
   async prepareRequest(request2, { url: url2, options }) {}
-  get(path4, opts) {
-    return this.methodRequest("get", path4, opts);
+  get(path5, opts) {
+    return this.methodRequest("get", path5, opts);
   }
-  post(path4, opts) {
-    return this.methodRequest("post", path4, opts);
+  post(path5, opts) {
+    return this.methodRequest("post", path5, opts);
   }
-  patch(path4, opts) {
-    return this.methodRequest("patch", path4, opts);
+  patch(path5, opts) {
+    return this.methodRequest("patch", path5, opts);
   }
-  put(path4, opts) {
-    return this.methodRequest("put", path4, opts);
+  put(path5, opts) {
+    return this.methodRequest("put", path5, opts);
   }
-  delete(path4, opts) {
-    return this.methodRequest("delete", path4, opts);
+  delete(path5, opts) {
+    return this.methodRequest("delete", path5, opts);
   }
-  methodRequest(method, path4, opts) {
+  methodRequest(method, path5, opts) {
     return this.request(Promise.resolve(opts).then((opts2) => {
-      return { method, path: path4, ...opts2 };
+      return { method, path: path5, ...opts2 };
     }));
   }
   request(options, remainingRetries = null) {
@@ -55780,8 +55878,8 @@ https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
     }));
     return { response, options, controller, requestLogID, retryOfRequestLogID, startTime };
   }
-  getAPIList(path4, Page2, opts) {
-    return this.requestAPIList(Page2, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path4, ...opts2 })) : { method: "get", path: path4, ...opts });
+  getAPIList(path5, Page2, opts) {
+    return this.requestAPIList(Page2, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path5, ...opts2 })) : { method: "get", path: path5, ...opts });
   }
   requestAPIList(Page2, options) {
     const request2 = this.makeRequest(options, null, undefined);
@@ -55860,8 +55958,8 @@ https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
   }
   async buildRequest(inputOptions, { retryCount = 0 } = {}) {
     const options = { ...inputOptions };
-    const { method, path: path4, query, defaultBaseURL } = options;
-    const url2 = this.buildURL(path4, query, defaultBaseURL);
+    const { method, path: path5, query, defaultBaseURL } = options;
+    const url2 = this.buildURL(path5, query, defaultBaseURL);
     if ("timeout" in options)
       validatePositiveInteger("timeout", options.timeout);
     options.timeout = options.timeout ?? this.timeout;
@@ -56566,69 +56664,6 @@ var ReviewSchema2 = exports_external.object({
 var ReviewsSchema = exports_external.object({
   reviews: exports_external.array(ReviewSchema2)
 });
-// src/features/pr/octokit/get-context.ts
-function stripMarkdown(text) {
-  return text.replace(/#{1,6}\s+/g, "").replace(/!\[.*?\]\(.*?\)/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/`{1,3}[^`]*`{1,3}/g, "").replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1").replace(/~~([^~]+)~~/g, "$1").replace(/^\s*[-*+>]\s+/gm, "").replace(/\r\n/g, `
-`).replace(/\n{3,}/g, `
-
-`).trim();
-}
-function extractIssueNumbers(text) {
-  const pattern = /(?:closes?|fixes?|resolves?)\s+#(\d+)|(?<!\w)#(\d+)/gi;
-  const seen = new Set;
-  let match2;
-  while ((match2 = pattern.exec(text)) !== null) {
-    const num = parseInt(match2[1] ?? match2[2] ?? "", 10);
-    if (!isNaN(num))
-      seen.add(num);
-  }
-  return [...seen];
-}
-async function getGitHubContext(token, owner, repo, pullNumber) {
-  const octokit = getOctokit(token);
-  const { data: pr } = await octokit.rest.pulls.get({
-    owner,
-    pull_number: pullNumber,
-    repo
-  });
-  const title = pr.title;
-  const description = stripMarkdown(pr.body ?? "");
-  const { data: commits } = await octokit.rest.pulls.listCommits({
-    owner,
-    per_page: 100,
-    pull_number: pullNumber,
-    repo
-  });
-  const commitMessages = commits.map((c) => c.commit.message.split(`
-`)[0]);
-  const allText = [pr.body ?? "", ...commits.map((c) => c.commit.message)].join(`
-`);
-  const issueNumbers = extractIssueNumbers(allText);
-  const linkedIssues = [];
-  await Promise.all(issueNumbers.map(async (num) => {
-    try {
-      const { data: issue3 } = await octokit.rest.issues.get({
-        issue_number: num,
-        owner,
-        repo
-      });
-      linkedIssues.push({ number: num, title: issue3.title });
-    } catch {}
-  }));
-  linkedIssues.sort((a, b) => a.number - b.number);
-  return { commitMessages, description, linkedIssues, title };
-}
-// src/features/pr/octokit/get-pr-diff.ts
-async function getPullRequestDiff(token, owner, repo, pullNumber) {
-  const octokit = getOctokit(token);
-  const response = await octokit.rest.pulls.get({
-    headers: { accept: "application/vnd.github.v3.diff" },
-    owner,
-    pull_number: pullNumber,
-    repo
-  });
-  return response.data;
-}
 // src/features/pr/octokit/persistent-state.ts
 var SUMMARY_MARKER = "<!-- summary -->";
 var STATE_BLOCK_START = "<!-- state";
@@ -56884,10 +56919,19 @@ function extractRow(m) {
 }
 function generateSummary(matched, fixed) {
   const rows = matched.map(extractRow).filter((r) => r !== null);
-  const newCount = matched.filter((m) => m.status === "new").length;
-  const activeCount = matched.filter((m) => m.status === "active").length;
+  const uniqueRows = [];
+  const seen = new Set;
+  for (const r of rows) {
+    const key = `${r.file}:${r.line}:${r.problem.trim().toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueRows.push(r);
+    }
+  }
+  const newCount = uniqueRows.filter((r) => r.status === "new").length;
+  const activeCount = uniqueRows.filter((r) => r.status === "active").length;
   const fixedCount = fixed.length;
-  const total = rows.length;
+  const total = uniqueRows.length;
   if (total === 0 && fixedCount === 0) {
     return [
       "## Security Review",
@@ -56903,7 +56947,7 @@ function generateSummary(matched, fixed) {
   }
   const severities = ["high", "medium", "low"];
   const counts = { high: 0, low: 0, medium: 0 };
-  for (const r of rows)
+  for (const r of uniqueRows)
     counts[r.severity]++;
   const statusRows = [
     `    <tr><td>New</td><td><strong>${newCount}</strong></td></tr>`,
@@ -56913,7 +56957,7 @@ function generateSummary(matched, fixed) {
 `);
   const summaryRows = severities.filter((s) => counts[s] > 0).map((s) => `    <tr><td>${severityBadge2(s)}</td><td><strong>${counts[s]}</strong></td></tr>`).join(`
 `);
-  const sortedRows = [...rows].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
+  const sortedRows = [...uniqueRows].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
   const findingRows = sortedRows.map((r) => {
     const location = `<code>${r.file}:${r.line}</code>`;
     const issue3 = r.problem.replace(/\n/g, " ").trim();
@@ -57101,18 +57145,19 @@ async function handlePullRequest({
       cause: loadStateError
     });
   }
-  const [diffError, rawDiff] = await expectError(getPullRequestDiff(token, owner, repo, prNumber));
-  if (diffError) {
-    throw new Error("Failed to fetch raw git diff from GitHub API", {
-      cause: diffError
-    });
-  }
-  const [contextError, prContext] = await expectError(getGitHubContext(token, owner, repo, prNumber));
+  const [contextError, prContext] = await expectError(getPRContext({ owner, prNumber, repo, token }));
   if (contextError) {
     throw new Error("Failed to fetch PR context from GitHub API", {
       cause: contextError
     });
   }
+  const rawDiff = prContext.diff;
+  const PRContext = {
+    commitMessages: prContext.commitMessages,
+    description: prContext.strippedDescription,
+    linkedIssues: prContext.linkedIssues,
+    title: prContext.title
+  };
   const parsedGitDiff = parseGitDiff(rawDiff);
   if (parsedGitDiff.length === 0) {
     info("No file changes detected in PR. Skipping analysis.");
@@ -57123,13 +57168,13 @@ async function handlePullRequest({
     warning(`Dependency vulnerability scan failed: ${dependencyError.message}`);
   }
   const securityScan = runSecurityEngine(parsedGitDiff);
-  const [llmError, llmReviews] = await expectError(callLLM(parsedGitDiff, securityScan, dependencyScan ?? [], prContext));
+  const [llmError, llmReviews] = await expectError(callLLM(parsedGitDiff, securityScan, dependencyScan ?? [], PRContext));
   if (llmError) {
     throw new Error("LLM review failed", {
       cause: llmError
     });
   }
-  const { fixed, matched } = matchFindings(securityScan, dependencyScan ?? [], llmReviews, parsedGitDiff, loadedState.state);
+  const { fixed, matched } = matchFindings(llmReviews, parsedGitDiff, loadedState.state);
   if (matched.length === 0 && fixed.length === 0) {
     info("No new, active, or fixed findings to report.");
     return;
@@ -57145,21 +57190,27 @@ async function handlePullRequest({
 
 // src/features/push/generator/generator.ts
 async function generateDocumentEdits(prContext, currentContent) {
-  const userMessage = `PR Context:
-Title: ${prContext.title}
-Description: ${prContext.description}
-Commits:
-${prContext.commits.map((c) => `- ${c}`).join(`
-`)}
-Net Diff:
-${prContext.diff}
-Current Document Content:
-\`\`\`
-${currentContent}
-\`\`\``;
+  const userMessage = [
+    "# Pull Request Context",
+    `## Title
+${prContext.title}`,
+    `## Description
+${prContext.description || "(none)"}`,
+    `## Commits
+${prContext.commits.length ? prContext.commits.map((commit) => `- ${commit}`).join(`
+`) : "(none)"}`,
+    `## Net Diff
+${prContext.diff}`,
+    "## Current Document",
+    "```",
+    currentContent,
+    "```"
+  ].join(`
+
+`);
   const [error51, result] = await expectError(callWithRetry(SYSTEM_PROMPT2, userMessage, DocumentEditsSchema, "documentEdits"));
-  if (error51) {
-    throw new Error("Failed to generate document edits using LLM", {
+  if (error51 || !result) {
+    throw new Error("Failed to generate document edits using the LLM.", {
       cause: error51
     });
   }
@@ -57173,6 +57224,7 @@ Return a JSON object with an "edits" array. Each item must be one of:
 
 1. **replace** — modify existing content:
    { "operation": "replace", "search": "<exact text>", "replace": "<new text>" }
+    The search string must uniquely identify the text. Include surrounding context if necessary.
 
 2. **append** — add entirely new content that has NO existing anchor in the document:
    { "operation": "append", "content": "<new markdown content>" }
@@ -57219,53 +57271,6 @@ var AppendEditSchema = v4_default.object({
 var DocumentEditsSchema = v4_default.object({
   edits: v4_default.array(v4_default.discriminatedUnion("operation", [ReplaceEditSchema, AppendEditSchema]))
 });
-// src/features/push/octokit/collect-pr-context.ts
-async function collectPRContext({
-  owner,
-  prNumber,
-  repo,
-  token
-}) {
-  const octokit = getOctokit(token);
-  const { data: pr } = await octokit.rest.pulls.get({
-    owner,
-    pull_number: prNumber,
-    repo
-  });
-  const base = pr.base.sha;
-  const head = pr.merge_commit_sha ?? pr.head.sha;
-  const title = pr.title;
-  const description = pr.body ?? "";
-  const labels = pr.labels.map((label) => label.name);
-  const { data: comparison } = await octokit.rest.repos.compareCommits({
-    base,
-    head,
-    owner,
-    repo
-  });
-  const commits = comparison.commits.map((commit) => commit.commit.message);
-  const changedFiles = (comparison.files ?? []).map((file2) => ({
-    path: file2.filename,
-    status: file2.status
-  }));
-  const { data: diff } = await octokit.rest.repos.compareCommits({
-    base,
-    head,
-    headers: {
-      accept: "application/vnd.github.diff"
-    },
-    owner,
-    repo
-  });
-  return {
-    changedFiles,
-    commits,
-    description,
-    diff,
-    labels,
-    title
-  };
-}
 // src/features/push/publisher/confluence.ts
 async function publishConfluenceUpdate({
   codeOwner,
@@ -57318,24 +57323,24 @@ async function publishConfluenceUpdate({
 }
 // src/features/push/publisher/github.ts
 async function publishGitHubUpdate({
+  branch,
   codeOwner,
   codePrNumber,
   codeRepo,
   docsGithubToken,
-  path: path4,
+  path: path5,
   reason,
   updatedContent
 }) {
   const octokit = getOctokit(docsGithubToken);
-  const parts = path4.split("/").filter(Boolean);
+  const parts = path5.split("/").filter(Boolean);
   if (parts.length < 2) {
-    throw new Error(`Invalid path format for git platform: ${path4}. Expected /owner/repo/filepath`);
+    throw new Error(`Invalid path format for git platform: ${path5}. Expected /owner/repo/filepath`);
   }
   const owner = parts[0];
   const repo = parts[1];
   const targetPath = parts.slice(2).join("/");
-  const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
-  const baseBranch = repoData.default_branch || "main";
+  const baseBranch = branch;
   const { data: refData } = await octokit.rest.git.getRef({
     owner,
     ref: `heads/${baseBranch}`,
@@ -57460,6 +57465,7 @@ async function publishDocumentUpdate({
       throw new Error(`Missing docsGithubToken for platform ${routedDoc.platform}`);
     }
     return publishGitHubUpdate({
+      branch: routedDoc.branch,
       codeOwner,
       codePrNumber,
       codeRepo,
@@ -57469,11 +57475,11 @@ async function publishDocumentUpdate({
       updatedContent
     });
   } else if (platform2.includes("confluence")) {
-    const confluenceBaseUrl = credentials.confluence?.baseUrl ? credentials.confluence.baseUrl.replace(/\/$/, "") : "https://confluence.atlassian.net";
+    const confluenceBaseUrl = credentials.confluence?.baseUrl.replace(/\/$/, "");
     const confluenceUsername = credentials.confluence?.username;
     const confluenceApiToken = credentials.confluence?.apiToken;
-    if (!confluenceUsername || !confluenceApiToken) {
-      throw new Error("Missing Confluence credentials username or apiToken.");
+    if (!confluenceUsername || !confluenceApiToken || !confluenceBaseUrl) {
+      throw new Error("Missing Confluence credentials.");
     }
     return publishConfluenceUpdate({
       codeOwner,
@@ -57521,11 +57527,45 @@ async function retrieveConfluenceContent(pageId, baseUrl2, username, apiToken) {
     webUrl: data._links?.webui ? new URL(data._links.webui, baseUrl2).toString() : undefined
   };
 }
+async function listConfluenceSpacePages(spaceKey, baseUrl2, username, apiToken, maxPages = 200) {
+  const PAGE_SIZE = 100;
+  const auth2 = Buffer.from(`${username}:${apiToken}`).toString("base64");
+  const headers = {
+    Accept: "application/json",
+    Authorization: `Basic ${auth2}`
+  };
+  const pages = [];
+  const initialUrl = new URL(`/wiki/api/v2/spaces/${spaceKey}/pages`, baseUrl2);
+  initialUrl.searchParams.set("limit", PAGE_SIZE.toString());
+  let nextPageUrl = initialUrl.toString();
+  while (nextPageUrl && pages.length < maxPages) {
+    const response = await fetch(nextPageUrl, {
+      headers,
+      method: "GET"
+    });
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      throw new Error(`Failed to list pages for Confluence space "${spaceKey}". ` + `Status: ${response.status} ${response.statusText}${details ? ` - ${details}` : ""}`);
+    }
+    const result = await response.json();
+    for (const page of result.results ?? []) {
+      pages.push({
+        id: page.id,
+        title: page.title
+      });
+      if (pages.length >= maxPages) {
+        break;
+      }
+    }
+    nextPageUrl = result._links?.next ? new URL(result._links.next, baseUrl2).toString() : null;
+  }
+  return pages;
+}
 // src/features/push/retriever/github.ts
-function parseGitHubPath(path4, minSegments = 2) {
-  const parts = path4.split("/").filter(Boolean);
+function parseGitHubPath(path5, minSegments = 2) {
+  const parts = path5.split("/").filter(Boolean);
   if (parts.length < minSegments) {
-    throw new Error(`Invalid GitHub path "${path4}". Expected format: /owner/repository/path`);
+    throw new Error(`Invalid GitHub path "${path5}". Expected format: /owner/repository/<path>.`);
   }
   return {
     filePath: parts.slice(2).join("/"),
@@ -57533,29 +57573,42 @@ function parseGitHubPath(path4, minSegments = 2) {
     repo: parts[1]
   };
 }
-async function listGitHubDirectory(path4, token) {
-  const { filePath, owner, repo } = parseGitHubPath(path4);
+async function listGitHubDirectory(path5, token, branch, maxFiles = 500) {
+  const { filePath, owner, repo } = parseGitHubPath(path5);
   const octokit = getOctokit(token);
-  const response = await octokit.rest.repos.getContent({
+  const {
+    data: {
+      commit: { sha: commitSha }
+    }
+  } = await octokit.rest.repos.getBranch({
+    branch,
     owner,
-    path: filePath,
     repo
   });
-  if (!Array.isArray(response.data)) {
-    return [path4];
+  const { data: tree } = await octokit.rest.git.getTree({
+    owner,
+    recursive: "true",
+    repo,
+    tree_sha: commitSha
+  });
+  const prefix = filePath ? `${filePath}/` : "";
+  const exactFile = tree.tree.find((entry) => entry.type === "blob" && entry.path === filePath);
+  if (exactFile) {
+    return [`/${owner}/${repo}/${filePath}`];
   }
-  return response.data.filter((item) => item.type === "file").map((item) => `/${owner}/${repo}/${item.path}`);
+  return tree.tree.filter((entry) => entry.type === "blob" && !!entry.path && entry.path.startsWith(prefix)).slice(0, maxFiles).map((entry) => `/${owner}/${repo}/${entry.path}`);
 }
-async function retrieveGitHubContent(path4, token) {
-  const { filePath, owner, repo } = parseGitHubPath(path4, 3);
+async function retrieveGitHubContent(path5, token, branch) {
+  const { filePath, owner, repo } = parseGitHubPath(path5, 3);
   const octokit = getOctokit(token);
   const response = await octokit.rest.repos.getContent({
     owner,
     path: filePath,
+    ref: branch,
     repo
   });
-  if (Array.isArray(response.data) || response.data.type !== "file" || !("content" in response.data)) {
-    throw new Error(`"${path4}" is not a valid GitHub file. If this is a directory, ensure the LLM routes to specific files within it.`);
+  if (Array.isArray(response.data) || response.data.type !== "file" || !response.data.content) {
+    throw new Error(`"${path5}" does not resolve to a GitHub file.`);
   }
   return Buffer.from(response.data.content, "base64").toString("utf8");
 }
@@ -57567,7 +57620,7 @@ async function retrieveDocumentContent(doc2, credentials) {
     if (!token) {
       throw new Error("Missing docsGithubToken.");
     }
-    const [err, content] = await expectError(retrieveGitHubContent(doc2.path, token));
+    const [err, content] = await expectError(retrieveGitHubContent(doc2.path, token, doc2.branch));
     if (err) {
       throw new Error(`Failed to retrieve GitHub content for ${doc2.path}`, {
         cause: err
@@ -57591,17 +57644,44 @@ async function retrieveDocumentContent(doc2, credentials) {
   throw new Error(`Unsupported documentation platform: ${doc2.platform}`);
 }
 // src/features/push/select-documents/list-directory.ts
-async function fetchDirectoryListing(path4, token) {
-  const [err, files] = await expectError(listGitHubDirectory(path4, token));
-  if (err) {
-    warning(`Could not list GitHub directory "${path4}": ${err.message}. The LLM will not see its file listing.`);
+async function fetchDirectoryListing(path5, token, branch) {
+  const [, owner, repo] = path5.split("/");
+  const repoSlug = `${owner}/${repo}`;
+  const cached2 = getCachedDirectoryListing(repoSlug, branch, path5);
+  if (cached2 !== null) {
+    debug(`Using cached directory listing for "${path5}" (branch: ${branch})`);
+    return cached2;
+  }
+  const [error51, files] = await expectError(listGitHubDirectory(path5, token, branch));
+  if (error51 || !files) {
+    const reason = error51?.message ?? "unknown error";
+    warning(`Could not list GitHub directory "${path5}": ${reason}. Skipping file list.`);
     return null;
   }
+  setCachedDirectoryListing(repoSlug, branch, path5, files);
   return files;
 }
-function isDirectoryPath(path4) {
-  const lastSegment = path4.split("/").filter(Boolean).at(-1) ?? "";
+function isDirectoryPath(path5) {
+  const lastSegment = path5.split("/").filter(Boolean).at(-1) ?? "";
   return !lastSegment.includes(".");
+}
+async function fetchSpaceListing(spaceKey, credentials) {
+  const cacheNamespace = "confluence";
+  const cacheKey = `confluence:${spaceKey}`;
+  const cached2 = getCachedDirectoryListing(cacheKey, cacheNamespace, cacheKey);
+  if (cached2 !== null) {
+    debug(`Using cached space listing for Confluence space "${spaceKey}"`);
+    return cached2;
+  }
+  const [error51, pages] = await expectError(listConfluenceSpacePages(spaceKey, credentials.baseUrl, credentials.username, credentials.apiToken));
+  if (error51 || !pages) {
+    const reason = error51?.message ?? "unknown error";
+    warning(`Could not list Confluence space "${spaceKey}": ${reason}. Skipping page list.`);
+    return null;
+  }
+  const entries = pages.map((page) => `${page.id}: ${page.title}`);
+  setCachedDirectoryListing(cacheKey, cacheNamespace, cacheKey, entries);
+  return entries;
 }
 // src/features/push/select-documents/prompt.ts
 var SYSTEM_PROMPT3 = `
@@ -57614,6 +57694,7 @@ You will receive:
    - Commit messages
 2. The documentation sources defined in the configuration.
    - If a source is a GitHub directory, its available files will be listed under it.
+   - If a source is a Confluence space, its available pages will be listed under it in the format "<pageId>: <title>".
 
 Your responsibilities:
 - Analyse the pull request to understand what functionality, behavior, API, configuration, workflow, or user experience has changed.
@@ -57621,11 +57702,12 @@ Your responsibilities:
 - Determine whether the changes require updates to that source.
 - Be conservative. Do not route documentation unless there is a reasonable likelihood that it requires modification.
 - Ignore formatting changes, refactoring, renaming, comments, dependency updates, test-only changes, CI changes, or other implementation details unless they change the documented behavior.
-- When a source lists available files, you MUST route to the specific file paths that need updating — never route the directory path itself.
-- If none of the listed files in a directory require updates, do not route anything from that source.
+- When a GitHub source lists available files, you MUST route to the specific file paths that need updating — never route the directory path itself.
+- When a Confluence source lists available pages, you MUST route to the specific page IDs (the numeric part before the colon) that need updating — never route the space key itself.
+- If none of the listed files or pages require updates, do not route anything from that source.
 
 For every routed document, provide:
-- The exact file path (not a directory path)
+- The exact file path (for GitHub sources) or page ID (for Confluence space sources)
 - The platform
 - A short reason explaining why it should be updated.
 
@@ -57633,18 +57715,94 @@ Only return documentation that should be updated.
 If no documentation changes are required, return an empty list.
 `;
 // src/features/push/select-documents/select-relevant-docs.ts
-async function selectDocuments(prContext, sources, docsGithubToken) {
+function resolveGitHubPath(repo, sourcePath) {
+  const cleanPath = sourcePath.replace(/^\/+/, "");
+  return `/${repo}/${cleanPath}`;
+}
+async function selectDocuments(prContext, sources, credentials) {
   const enabledSources = sources.filter((source) => source.enabled !== false);
   if (enabledSources.length === 0) {
     return [];
   }
+  const { docsGithubToken } = credentials;
   const directoryListings = new Map;
+  const spaceListings = new Map;
   await Promise.all(enabledSources.map(async (source) => {
-    if (source.platform !== "confluence" && docsGithubToken && isDirectoryPath(source.path)) {
-      const files = await fetchDirectoryListing(source.path, docsGithubToken);
-      directoryListings.set(source.path, files);
+    if (source.platform === "confluence") {
+      if (!source.spaceKey || !credentials.confluence) {
+        return;
+      }
+      const pages = await fetchSpaceListing(source.spaceKey, credentials.confluence);
+      spaceListings.set(source.spaceKey, pages);
+      return;
+    } else if (source.platform === "gitbook" || source.platform === "readme") {
+      if (!docsGithubToken) {
+        return;
+      }
+      const compositePath = resolveGitHubPath(source.repo, source.path);
+      if (!isDirectoryPath(compositePath)) {
+        return;
+      }
+      const files = await fetchDirectoryListing(compositePath, docsGithubToken, source.branch);
+      directoryListings.set(compositePath, files);
     }
   }));
+  const renderedSources = enabledSources.map((source, index) => {
+    const sourceNumber = index + 1;
+    if (source.platform === "confluence") {
+      const header2 = [
+        `## Source ${sourceNumber}`,
+        `Platform: ${source.platform}`,
+        `Audience: ${source.audience}`,
+        `Purpose: ${source.purpose ?? "(not specified)"}`
+      ];
+      if (!source.spaceKey) {
+        header2.push(`Page ID: ${source.pageId}`);
+        return header2.join(`
+`);
+      }
+      header2.push(`Space Key: ${source.spaceKey}`);
+      const pages = spaceListings.get(source.spaceKey);
+      const renderedHeader = header2.join(`
+`);
+      if (pages == null) {
+        return `${renderedHeader}
+Available pages: (could not be retrieved — skip if uncertain)`;
+      }
+      if (pages.length === 0) {
+        return `${renderedHeader}
+Available pages: (none found — skip if uncertain)`;
+      }
+      return `${renderedHeader}
+Available pages (format: "<pageId>: <title>"):
+${pages.map((page) => `  - ${page}`).join(`
+`)}`;
+    }
+    const compositePath = resolveGitHubPath(source.repo, source.path);
+    const header = [
+      `## Source ${sourceNumber}`,
+      `Platform: ${source.platform}`,
+      `Path: ${compositePath}`,
+      `Branch: ${source.branch}`,
+      `Audience: ${source.audience}`,
+      `Purpose: ${source.purpose ?? "(not specified)"}`
+    ].join(`
+`);
+    const listing = directoryListings.get(compositePath);
+    if (listing === undefined) {
+      return header;
+    }
+    if (!listing || listing.length === 0) {
+      return `${header}
+Available files: (could not be retrieved — skip if uncertain)`;
+    }
+    return `${header}
+Available files:
+${listing.map((file2) => `  - ${file2}`).join(`
+`)}`;
+  }).join(`
+
+`);
   const userMessage = `
 # Pull Request Context
 ## Title
@@ -57658,40 +57816,26 @@ ${prContext.commits.map((commit) => `- ${commit}`).join(`
 ${prContext.changedFiles.map((file2) => `- ${file2.path} (${file2.status})`).join(`
 `) || "(none)"}
 # Documentation Sources
-Each source represents an independent documentation location that may need updating.
-${enabledSources.map((source, index) => {
-    const header = `
-## Source ${index + 1}
-Platform: ${source.platform}
-${source.platform === "confluence" ? `Page ID: ${source.pageId}` : `Path: ${source.path}`}
-Audience: ${source.audience}
-Purpose: ${source.purpose ?? "(not specified)"}`;
-    if (source.platform === "confluence") {
-      return header;
-    }
-    const listing = directoryListings.get(source.path);
-    if (listing === undefined) {
-      return header;
-    }
-    if (listing === null || listing.length === 0) {
-      return `${header}
-Available files: (could not be retrieved — skip this source if uncertain)`;
-    }
-    return `${header}
-Available files:
-${listing.map((f) => `  - ${f}`).join(`
-`)}`;
-  }).join(`
-`)}
+${renderedSources}
 `.trim();
   const [error51, result] = await expectError(callWithRetry(SYSTEM_PROMPT3, userMessage, RoutedDocumentsResponseSchema, "routedDocuments"));
-  if (error51) {
-    throw new Error("Failed to route documentation sources.", { cause: error51 });
+  if (error51 || !result?.routedDocuments) {
+    throw new Error("Failed to route documentation sources.", {
+      cause: error51
+    });
   }
-  return result?.routedDocuments ?? [];
+  const pathToBranch = new Map(enabledSources.filter((source) => source.platform !== "confluence").map((source) => [
+    resolveGitHubPath(source.repo, source.path),
+    source.branch
+  ]));
+  return result.routedDocuments.map((document) => ({
+    ...document,
+    branch: pathToBranch.get(document.path) ?? ""
+  }));
 }
 // src/features/push/select-documents/types.ts
 var RoutedDocumentSchema = exports_external.object({
+  branch: exports_external.string(),
   path: exports_external.string(),
   platform: exports_external.string(),
   reason: exports_external.string()
@@ -57700,11 +57844,11 @@ var RoutedDocumentsResponseSchema = exports_external.object({
   routedDocuments: exports_external.array(RoutedDocumentSchema)
 });
 // src/features/push/validator/validator.ts
-function applyAndValidateEdits(currentContent, edits, codeDiff) {
-  let content = currentContent;
+function validateEdits(currentContent, edits, codeDiff) {
+  let updatedContent = currentContent;
   for (const edit of edits) {
     if (edit.operation === "append") {
-      content = content.trimEnd() + `
+      updatedContent = updatedContent.trimEnd() + `
 
 ` + edit.content;
       continue;
@@ -57712,56 +57856,55 @@ function applyAndValidateEdits(currentContent, edits, codeDiff) {
     if (!edit.search) {
       return {
         isValid: false,
-        reason: "Edit contains an empty search pattern."
+        reason: "Replace operation contains an empty search string."
       };
     }
-    const firstIndex = content.indexOf(edit.search);
+    const firstIndex = updatedContent.indexOf(edit.search);
     if (firstIndex === -1) {
       return {
         isValid: false,
-        reason: `Search pattern not found in document: "${edit.search.substring(0, 50)}..."`
+        reason: `Search pattern not found: "${edit.search.slice(0, 50)}..."`
       };
     }
-    const lastIndex = content.lastIndexOf(edit.search);
-    if (firstIndex !== lastIndex) {
+    if (firstIndex !== updatedContent.lastIndexOf(edit.search)) {
       return {
         isValid: false,
-        reason: `Search pattern is not unique: "${edit.search.substring(0, 50)}..."`
+        reason: `Search pattern is not unique: "${edit.search.slice(0, 50)}..."`
       };
     }
-    content = content.substring(0, firstIndex) + edit.replace + content.substring(firstIndex + edit.search.length);
+    updatedContent = updatedContent.slice(0, firstIndex) + edit.replace + updatedContent.slice(firstIndex + edit.search.length);
   }
-  const originalCodeBlocks = (currentContent.match(/```/g) || []).length;
-  const newCodeBlocks = (content.match(/```/g) || []).length;
-  if (newCodeBlocks % 2 !== 0 && originalCodeBlocks % 2 === 0) {
+  const originalFenceCount = (currentContent.match(/```/g) ?? []).length;
+  const updatedFenceCount = (updatedContent.match(/```/g) ?? []).length;
+  if (originalFenceCount % 2 === 0 && updatedFenceCount % 2 !== 0) {
     return {
       isValid: false,
-      reason: "Validation failed: an odd number of markdown code blocks (```) were detected, which may indicate broken formatting."
+      reason: "Generated document contains an unclosed markdown code block."
     };
   }
-  const diffSize = codeDiff.length;
-  const changeSize = Math.abs(content.length - currentContent.length);
-  const maxReasonableChange = Math.max(4000, diffSize * 3);
-  if (changeSize > maxReasonableChange) {
-    return {
-      isValid: false,
-      reason: `Generated change size (${changeSize} chars) is unreasonably large compared to code diff size (${diffSize} chars).`
-    };
-  }
-  const headerRegex = /^--- File: (.*?) ---$/gm;
-  const originalHeaders = Array.from(currentContent.matchAll(headerRegex), (m) => m[0]);
+  const headerPattern = /^--- File: .* ---$/gm;
+  const originalHeaders = Array.from(currentContent.matchAll(headerPattern), (match2) => match2[0]);
   if (originalHeaders.length > 0) {
-    const updatedHeaders = Array.from(content.matchAll(headerRegex), (m) => m[0]);
-    if (originalHeaders.length !== updatedHeaders.length || !originalHeaders.every((val, index) => val === updatedHeaders[index])) {
+    const updatedHeaders = Array.from(updatedContent.matchAll(headerPattern), (match2) => match2[0]);
+    const headersMatch = originalHeaders.length === updatedHeaders.length && originalHeaders.every((header, index) => header === updatedHeaders[index]);
+    if (!headersMatch) {
       return {
         isValid: false,
-        reason: "Validation failed: File header markers (e.g., '--- File: <path> ---') were modified or deleted."
+        reason: "Generated document modified multi-file header markers."
       };
     }
+  }
+  const changeSize = Math.abs(updatedContent.length - currentContent.length);
+  if (currentContent.length > 0 && changeSize > Math.max(currentContent.length * 5, codeDiff.length * 20)) {
+    return {
+      isValid: false,
+      reason: "Generated document change is unexpectedly large relative to the original document."
+    };
   }
   return {
     isValid: true,
-    updatedContent: content
+    reason: "",
+    updatedContent
   };
 }
 // src/features/push/handler.ts
@@ -57774,7 +57917,12 @@ async function handleMerge({
   repo,
   token
 }) {
-  const [collectorError, prContext] = await expectError(collectPRContext({ owner, prNumber, repo, token }));
+  const [collectorError, prContext] = await expectError(getPRContext({
+    owner,
+    prNumber,
+    repo,
+    token
+  }));
   if (collectorError) {
     throw new Error("Failed to collect pull request context", {
       cause: collectorError
@@ -57786,7 +57934,7 @@ async function handleMerge({
     info("No documentation sources are configured. Skipping documentation updates.");
     return;
   }
-  const [selectionError, selectedDocs] = await expectError(selectDocuments(prContext, sources, credentials.docsGithubToken));
+  const [selectionError, selectedDocs] = await expectError(selectDocuments(prContext, sources, credentials));
   if (selectionError) {
     throw new Error("Failed to select relevant documents", {
       cause: selectionError
@@ -57796,29 +57944,35 @@ async function handleMerge({
     info("No documents were selected for update by the LLM.");
     return;
   }
-  const processingPromises = selectedDocs.map((doc2) => limit2(async () => {
+  const results = await Promise.all(selectedDocs.map((doc2) => limit2(async () => {
     try {
-      info(`Processing selected document: ${doc2.path} (${doc2.platform})`);
-      const [retrieverError, currentContent] = await expectError(retrieveDocumentContent(doc2, credentials));
-      if (retrieverError) {
-        throw new Error(`Failed to retrieve content for ${doc2.path}`, {
-          cause: retrieverError
+      info(`Processing: ${doc2.path}`);
+      const [retrievalError, currentContent] = await expectError(retrieveDocumentContent(doc2, credentials));
+      if (retrievalError) {
+        throw new Error(`Failed to retrieve "${doc2.path}".`, {
+          cause: retrievalError
         });
       }
-      const [generatorError, edits] = await expectError(generateDocumentEdits(prContext, currentContent));
-      if (generatorError) {
-        throw new Error(`Failed to generate edits for ${doc2.path}`, {
-          cause: generatorError
+      const [generationError, edits] = await expectError(generateDocumentEdits(prContext, currentContent));
+      if (generationError) {
+        throw new Error(`Failed to generate edits for "${doc2.path}".`, {
+          cause: generationError
         });
       }
       if (edits.length === 0) {
-        info(`No edits were generated for ${doc2.path}.`);
-        return { doc: doc2 };
+        return {
+          doc: doc2,
+          reason: "No edits were generated.",
+          status: "skipped"
+        };
       }
-      const validationResult = applyAndValidateEdits(currentContent, edits, prContext.diff);
-      if (!validationResult.isValid || !validationResult.updatedContent) {
-        warning(`Validation failed for ${doc2.path}: ${validationResult.reason}. Skipping publication.`);
-        return { doc: doc2 };
+      const validation = validateEdits(currentContent, edits, prContext.diff);
+      if (!validation.isValid || !validation.updatedContent) {
+        return {
+          doc: doc2,
+          reason: validation.reason,
+          status: "skipped"
+        };
       }
       const [publishError, url2] = await expectError(publishDocumentUpdate({
         codeOwner: owner,
@@ -57827,50 +57981,45 @@ async function handleMerge({
         codeToken: token,
         credentials,
         routedDoc: doc2,
-        updatedContent: validationResult.updatedContent
+        updatedContent: validation.updatedContent
       }));
       if (publishError) {
-        throw new Error(`Failed to publish update for ${doc2.path}`, {
+        throw new Error(`Failed to publish "${doc2.path}".`, {
           cause: publishError
         });
       }
-      info(`Successfully published update for ${doc2.path}: ${url2}`);
-      return { doc: doc2 };
-    } catch (err) {
-      return { doc: doc2, error: err };
+      return {
+        doc: doc2,
+        status: "published",
+        url: url2
+      };
+    } catch (error51) {
+      return {
+        doc: doc2,
+        error: error51,
+        status: "failed"
+      };
     }
-  }));
-  const results = await Promise.all(processingPromises);
-  const failed = results.filter((r) => r.error);
-  if (failed.length > 0) {
-    error(`Failed to process ${failed.length} document(s):`);
-    for (const { doc: doc2, error: error51 } of failed) {
-      error(`- ${doc2.path}: ${error51?.message}`);
-    }
+  })));
+  const published = results.filter((result) => result.status === "published");
+  const skipped = results.filter((result) => result.status === "skipped");
+  const failed = results.filter((result) => result.status === "failed");
+  info("");
+  info("Documentation update summary");
+  info("----------------------------");
+  info(`Selected : ${selectedDocs.length}`);
+  info(`Published: ${published.length}`);
+  info(`Skipped  : ${skipped.length}`);
+  info(`Failed   : ${failed.length}`);
+  for (const result of published) {
+    info(`✓ ${result.doc.path}`);
   }
-}
-
-// src/features/push/octokit/get-pr.ts
-async function getPullRequestNumberFromCommit({
-  commitSha,
-  owner,
-  repo,
-  token
-}) {
-  const octokit = getOctokit(token);
-  const { data } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
-    commit_sha: commitSha,
-    owner,
-    repo
-  });
-  if (data.length === 0) {
-    return null;
+  for (const result of skipped) {
+    warning(`↷ ${result.doc.path}: ${result.reason}`);
   }
-  const pr = data.at(0);
-  if (!pr) {
-    return null;
+  for (const result of failed) {
+    error(`✗ ${result.doc.path}: ${result.error.message}`);
   }
-  return pr.number;
 }
 
 // src/index.ts
@@ -57878,58 +58027,45 @@ async function run() {
   const token = getInput("github-token");
   const { context: context3 } = exports_github;
   const { owner, repo } = context3.repo;
-  switch (context3.eventName) {
-    case "pull_request": {
-      const pr = context3.payload.pull_request;
-      if (!pr) {
-        setFailed("Pull request payload was not found.");
-        return;
-      }
-      const [error51] = await expectError(handlePullRequest({
-        commitSha: pr["head"]["sha"],
-        owner,
-        prNumber: pr["number"],
-        repo,
-        token
-      }));
-      if (error51) {
-        exitFailedAction("Pull request workflow failed", error51);
-      }
-      break;
-    }
-    case "push": {
-      const prNumber = await getPullRequestNumberFromCommit({
-        commitSha: context3.payload["after"],
-        owner,
-        repo,
-        token
-      });
-      if (!prNumber) {
-        notice("No merged pull request found for this push.");
-        return;
-      }
-      const [error51] = await expectError(handleMerge({
-        credentials: {
-          confluence: {
-            apiToken: getInput("confluence-api-token"),
-            baseUrl: getInput("confluence-base-url"),
-            username: getInput("confluence-username")
-          },
-          docsGithubToken: getInput("docs-token")
+  if (context3.eventName !== "pull_request") {
+    notice(`Unsupported event: "${context3.eventName}".`);
+    return;
+  }
+  const pr = context3.payload.pull_request;
+  if (!pr) {
+    setFailed("Pull request payload was not found.");
+    return;
+  }
+  if (context3.payload.action === "closed" && pr["merged"]) {
+    const [error51] = await expectError(handleMerge({
+      credentials: {
+        confluence: {
+          apiToken: getInput("confluence-api-token"),
+          baseUrl: getInput("confluence-base-url"),
+          username: getInput("confluence-username")
         },
-        owner,
-        prNumber,
-        repo,
-        token
-      }));
-      if (error51) {
-        exitFailedAction("Documentation workflow failed", error51);
-      }
-      break;
+        docsGithubToken: getInput("docs-token")
+      },
+      owner,
+      prNumber: pr.number,
+      repo,
+      token
+    }));
+    if (error51) {
+      exitFailedAction("Prowl documentation workflow failed", error51);
     }
-    default:
-      notice(`Unsupported event: "${context3.eventName}".`);
+    return;
+  } else {
+    const [error51] = await expectError(handlePullRequest({
+      commitSha: pr["head"]["sha"],
+      owner,
+      prNumber: pr.number,
+      repo,
+      token
+    }));
+    if (error51) {
+      exitFailedAction("Pull request workflow failed", error51);
+    }
   }
 }
-run();
 run();

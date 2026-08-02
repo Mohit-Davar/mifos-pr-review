@@ -57282,31 +57282,33 @@ async function publishConfluenceUpdate({
   const normalizedBaseUrl = confluenceBaseUrl.replace(/\/$/, "");
   const confluencePageUrl = `${normalizedBaseUrl}/wiki/pages/viewpage.action?pageId=${pageId}`;
   const commentBody = [
-    `## Documentation update suggested`,
+    `# \uD83D\uDCDD Documentation update suggested`,
     ``,
-    `Triggered by [PR #${codePrNumber}](https://github.com/${codeOwner}/${codeRepo}/pull/${codePrNumber}) in [${codeOwner}/${codeRepo}](https://github.com/${codeOwner}/${codeRepo}).`,
+    `> **Note**  `,
+    `> Triggered by [PR #${codePrNumber}](https://github.com/${codeOwner}/${codeRepo}/pull/${codePrNumber}) in **${codeOwner}/${codeRepo}**.`,
     ``,
-    `**Confluence page:** [${pageId}](${confluencePageUrl})`,
-    `**Reason:** ${reason}`,
+    `### \uD83D\uDCCD Reference Details`,
+    `| Property | Value |`,
+    `| :--- | :--- |`,
+    `| **Confluence Page** | [\uD83D\uDCC4 Page ID: ${pageId}](${confluencePageUrl}) |`,
+    `| **Reason** | ${reason} |`,
     ``,
+    `### \uD83D\uDEE0️ Proposed Content`,
     `<details>`,
-    `<summary><strong>Proposed content</strong></summary>`,
+    `<summary><strong>Click to expand suggested source code</strong></summary>`,
     ``,
     `\`\`\`html`,
     updatedContent,
     `\`\`\``,
-    ``,
     `</details>`,
     ``,
-    `### Next steps`,
-    ``,
+    `### \uD83D\uDE80 Next Steps`,
     `1. Review the proposed content above.`,
     `2. Open the [Confluence page](${confluencePageUrl}).`,
-    `3. Apply the changes, or paste the block directly into the page editor.`,
+    `3. Edit the page and apply the changes (or copy-paste the block directly into the page editor).`,
     ``,
     `---`,
-    ``,
-    `*Opened automatically by RepoOwl.*`
+    `*Opened automatically by **RepoOwl**.*`
   ].join(`
 `);
   const { data: commentResponse } = await codeOctokit.rest.issues.createComment({
@@ -57431,7 +57433,7 @@ ${updatedFilePaths.map((f) => `- \`${f}\``).join(`
     ``,
     `---`,
     ``,
-    `*Opened automatically by RepoOwl.*`
+    `*Opened automatically by MifosHawk.*`
   ].join(`
 `);
   const { data: prResponse } = await octokit.rest.pulls.create({

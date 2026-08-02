@@ -183,7 +183,7 @@ export async function publishGitHubUpdate({
     ``,
     `---`,
     ``,
-    `*Opened automatically by RepoOwl.*`,
+    `*Opened automatically by MifosHawk.*`,
   ].join("\n");
 
   const { data: prResponse } = await octokit.rest.pulls.create({
